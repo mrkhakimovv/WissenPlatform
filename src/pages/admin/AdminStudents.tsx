@@ -7,18 +7,43 @@ import { motion } from 'motion/react';
 
 export default function AdminStudents() {
   const [students, setStudents] = useState<any[]>([]);
+  const [groups, setGroups] = useState<any[]>([]);
   const [search, setSearch] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formData, setFormData] = useState({ fullName: '', username: '', password: '', subject: '', monthlyFee: '' });
+  const today = new Date().toISOString().split('T')[0];
+  const [formData, setFormData] = useState({ fullName: '', username: '', password: '', groupId: '', monthlyFee: '', joinedDate: today });
 
   useEffect(() => {
     const q = query(collection(db, 'users'));
-    const unsub = onSnapshot(q, (snap) => {
+    const unsubStudents = onSnapshot(q, (snap) => {
       const studs = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(s => s.role !== 'admin');
       setStudents(studs);
     });
-    return unsub;
+    
+    const unsubGroups = onSnapshot(query(collection(db, 'groups')), (snap) => {
+      setGroups(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    });
+    
+    return () => { unsubStudents(); unsubGroups(); };
   }, []);
+
+  const getProratedInfo = () => {
+    if (!formData.joinedDate || !formData.monthlyFee) return null;
+    const d = new Date(formData.joinedDate);
+    if (isNaN(d.getTime())) return null;
+    
+    const totalDays = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+    const remaining = Math.max(0, totalDays - d.getDate() + 1);
+    const percent = remaining / totalDays;
+    const amount = Math.round(Number(formData.monthlyFee) * percent);
+    
+    return {
+       percent: Math.round(percent * 100),
+       amount,
+       remaining,
+       totalDays
+    };
+  };
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,7 +56,7 @@ export default function AdminStudents() {
       });
       toast.success("O'quvchi qo'shildi!");
       setIsModalOpen(false);
-      setFormData({ fullName: '', username: '', password: '', subject: '', monthlyFee: '' });
+      setFormData({ fullName: '', username: '', password: '', groupId: '', monthlyFee: '', joinedDate: today });
     } catch(err) {
       toast.error("Xatolik yuz berdi");
     }
@@ -74,8 +99,16 @@ export default function AdminStudents() {
                 {initials}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-white text-sm font-semibold truncate">{student.fullName}</p>
-                <p className="text-white/40 text-[10px] truncate">@{student.username} • {student.subject || 'Fan yuq'}</p>
+                <p className="text-white text-sm font-semibold truncate flex items-center gap-2">
+                  {student.fullName}
+                  {student.role === 'teacher' && (
+                    <span className="text-[9px] px-1.5 py-0.5 rounded border border-[#FEC204]/40 text-[#FEC204] bg-[#FEC204]/10 uppercase tracking-wider font-bold">O'qituvchi</span>
+                  )}
+                  {student.role === 'student' && (
+                    <span className="text-[9px] px-1.5 py-0.5 rounded border border-blue-400/40 text-blue-400 bg-blue-400/10 uppercase tracking-wider font-bold">O'quvchi</span>
+                  )}
+                </p>
+                <p className="text-white/40 text-[10px] truncate">@{student.username} {student.groupId && `• ${groups.find(g => g.id === student.groupId)?.name || 'Noma\'lum guruh'}`}</p>
               </div>
               <div className="text-right shrink-0 flex items-center gap-2">
                 <p className="text-white text-xs font-bold mr-2">{student.monthlyFee ? `${(student.monthlyFee/1000).toFixed()}k` : '0'}</p>
@@ -106,10 +139,41 @@ export default function AdminStudents() {
               <input required placeholder="F.I.SH." value={formData.fullName} onChange={e=>setFormData({...formData, fullName: e.target.value})} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm placeholder-white/30" />
               <input required placeholder="Login" value={formData.username} onChange={e=>setFormData({...formData, username: e.target.value})} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm placeholder-white/30" />
               <input required placeholder="Parol" type="text" value={formData.password} onChange={e=>setFormData({...formData, password: e.target.value})} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm placeholder-white/30" />
-              <input placeholder="Fan" value={formData.subject} onChange={e=>setFormData({...formData, subject: e.target.value})} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm placeholder-white/30" />
+              <select required value={formData.groupId} onChange={e=>setFormData({...formData, groupId: e.target.value})} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm bg-transparent appearance-none">
+                <option value="" disabled className="text-black">Guruhni tanlang...</option>
+                {groups.map(g => (
+                  <option key={g.id} value={g.id} className="text-black">{g.name}</option>
+                ))}
+              </select>
               <input required placeholder="Oylik to'lov (so'm)" type="number" value={formData.monthlyFee} onChange={e=>setFormData({...formData, monthlyFee: e.target.value})} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm placeholder-white/30" />
               
-              <div className="flex gap-3 pt-2 mt-6">
+              <div className="space-y-1">
+                <label className="text-[11px] text-white/50 px-1 uppercase tracking-wider font-bold">Kelgan sanasi:</label>
+                <input required type="date" value={formData.joinedDate} onChange={e=>setFormData({...formData, joinedDate: e.target.value})} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm text-white/90" style={{ colorScheme: "dark" }} />
+              </div>
+
+              {formData.monthlyFee && formData.joinedDate && (
+                <div className="bg-white/5 border border-white/10 rounded-xl p-3 text-[11px] text-white/70 space-y-1.5 mt-2">
+                  {(() => {
+                    const info = getProratedInfo();
+                    if(!info) return null;
+                    return (
+                      <>
+                        <div className="flex justify-between items-center">
+                          <span>Shu oy qolgan kunlar:</span>
+                          <span className="font-bold text-white bg-white/10 px-2 py-0.5 rounded-full">{info.remaining} / {info.totalDays} ({info.percent}%)</span>
+                        </div>
+                        <div className="flex justify-between items-center bg-[#FEC204]/10 -mx-3 -mb-3 p-3 rounded-b-xl border-t border-[#FEC204]/20 mt-2">
+                          <span className="font-medium text-[#FEC204]">Ushbu oy uchun to'lov:</span>
+                          <span className="font-bold text-[#FEC204] text-sm">{info.amount.toLocaleString()} so'm</span>
+                        </div>
+                      </>
+                    )
+                  })()}
+                </div>
+              )}
+              
+              <div className="flex gap-3 pt-2 mt-4">
                 <button type="button" onClick={()=>setIsModalOpen(false)} className="flex-1 py-3 rounded-xl border border-white/10 text-sm font-medium hover:bg-white/5">Bekor qilish</button>
                 <button type="submit" className="flex-1 glass-button py-3 text-sm">Qo'shish</button>
               </div>

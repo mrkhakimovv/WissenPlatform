@@ -10,7 +10,7 @@ export default function AdminPayments() {
 
   useEffect(() => {
     const unsubStudents = onSnapshot(query(collection(db, 'users')), (snap) => {
-      setStudents(snap.docs.map(d => ({id: d.id, ...d.data()})).filter(s => s.role !== 'admin'));
+      setStudents(snap.docs.map(d => ({id: d.id, ...d.data()})).filter(s => s.role === 'student'));
     });
     const unsubPayments = onSnapshot(query(collection(db, 'payments')), (snap) => {
       setPayments(snap.docs.map(d => ({id: d.id, ...d.data()})));

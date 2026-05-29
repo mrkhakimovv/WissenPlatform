@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
@@ -34,6 +35,7 @@ const ActionRow = ({ icon, iconBg, label, sub, onClick }: any) => (
 
 export default function StudentProfile() {
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
   
   const [oldPw, setOldPw] = useState('');
   const [newPw, setNewPw] = useState('');
@@ -91,8 +93,18 @@ export default function StudentProfile() {
     <div className="space-y-6 pb-6">
       
       {/* Profile Header */}
-      <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col items-center pt-2">
-        <div className="w-24 h-24 rounded-full bg-gradient-to-br from-[#FEC204] to-[#ff8c00] p-[3px] relative mb-4" style={{ animation: 'ring-pulse 3s ease-in-out infinite' }}>
+      <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col items-center pt-2 relative">
+        <button 
+          onClick={() => {
+            logout();
+            navigate('/login');
+          }}
+          className="absolute right-0 top-0 p-2.5 text-red-400 bg-red-400/10 hover:bg-red-400/20 active:scale-95 transition-all rounded-full border border-red-400/20 flex items-center justify-center"
+          title="Tizimdan chiqish"
+        >
+          <LogOut size={18} />
+        </button>
+        <div className="w-24 h-24 rounded-full bg-gradient-to-br from-[#FEC204] to-[#ff8c00] p-[3px] relative mb-4 mt-2" style={{ animation: 'ring-pulse 3s ease-in-out infinite' }}>
           <div className="w-full h-full rounded-full bg-[#1a1500] flex items-center justify-center font-bold text-3xl text-[#FEC204] tracking-tight">
             {initials}
           </div>
@@ -141,45 +153,6 @@ export default function StudentProfile() {
            <InfoRow icon="👨‍🏫" iconBg="bg-blue-400/10 text-xl" label="O'qituvchi" value={user?.teacherId || "Noma'lum"} />
            <InfoRow icon="⏰" iconBg="bg-purple-400/10 text-xl" label="Dars vaqti" value="15:00 – 17:00" />
            <InfoRow icon="💰" iconBg="bg-[#FEC204]/10 text-xl" label="Oylik to'lov" value={`${user?.monthlyFee?.toLocaleString() || 600000} so'm`} badge="To'langan" badgeClass="bg-green-400/15 text-green-400 border-green-400/25" />
-        </div>
-      </motion.div>
-
-      {/* Bu oylik statistika */}
-      <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}>
-        <h3 className="text-[11px] font-bold text-white/40 uppercase tracking-widest mb-2.5 ml-1">Bu oylik statistika</h3>
-        <div className="glass-panel p-4 space-y-4 border-white/10 !bg-white/[0.04]">
-           <div>
-             <div className="flex justify-between items-center mb-1.5">
-               <div className="text-[13px] font-medium text-white">Davomat</div>
-               <div className="text-[13px] text-green-400 font-bold">92%</div>
-             </div>
-             <div className="h-1 bg-white/10 rounded-full overflow-hidden">
-                <div className="h-full bg-gradient-to-r from-[#22c55e] to-[#4ade80] rounded-full" style={{ width: '92%' }}></div>
-             </div>
-             <div className="flex justify-between text-[10px] text-white/40 mt-1.5 font-medium"><span>22 / 24 dars</span><span>Maqsad: 90%+</span></div>
-           </div>
-           
-           <div>
-             <div className="flex justify-between items-center mb-1.5">
-               <div className="text-[13px] font-medium text-white">To'lov holati</div>
-               <div className="text-[13px] text-[#FEC204] font-bold">100%</div>
-             </div>
-             <div className="h-1 bg-white/10 rounded-full overflow-hidden">
-                <div className="h-full bg-gradient-to-r from-[#ffab00] to-[#FEC204] rounded-full" style={{ width: '100%' }}></div>
-             </div>
-             <div className="flex justify-between text-[10px] text-white/40 mt-1.5 font-medium"><span>600 000 / 600 000 so'm</span><span>Iyul 2024</span></div>
-           </div>
-
-           <div>
-             <div className="flex justify-between items-center mb-1.5">
-               <div className="text-[13px] font-medium text-white">Kurs davomiyligi</div>
-               <div className="text-[13px] text-blue-400 font-bold">50%</div>
-             </div>
-             <div className="h-1 bg-white/10 rounded-full overflow-hidden">
-                <div className="h-full bg-gradient-to-r from-[#2563eb] to-[#60a5fa] rounded-full" style={{ width: '50%' }}></div>
-             </div>
-             <div className="flex justify-between text-[10px] text-white/40 mt-1.5 font-medium"><span>6 / 12 oy</span><span>Dekabr 2024</span></div>
-           </div>
         </div>
       </motion.div>
 
@@ -256,14 +229,9 @@ export default function StudentProfile() {
         </div>
       </motion.div>
 
-      {/* Logout */}
+      {/* Logout / Version */}
       <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="mt-2 text-center pb-8 pt-2">
-        <button onClick={() => {
-          if (confirm('Tizimdan chiqishni xohlaysizmi?')) logout();
-        }} className="w-full flex items-center justify-center gap-2 py-4 bg-red-400/10 border border-red-400/20 text-red-500 rounded-2xl font-semibold hover:bg-red-400/20 hover:scale-[0.99] transition-all">
-          <LogOut size={18} /> Tizimdan chiqish
-        </button>
-        <div className="text-[11px] text-white/30 mt-6 pb-2 font-medium">
+        <div className="text-[11px] text-white/30 mt-2 pb-2 font-medium">
           Wissen Edu v1.0.0 · <span className="text-[#FEC204]/70">Wissen O'quv Markazi</span>
         </div>
       </motion.div>

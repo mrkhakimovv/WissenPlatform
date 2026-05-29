@@ -6,9 +6,11 @@ import AdminLayout from './components/AdminLayout';
 import StudentLayout from './components/StudentLayout';
 import Login from './pages/Login';
 import AdminDashboard from './pages/admin/AdminDashboard';
+import AdminGroups from './pages/admin/AdminGroups';
 import AdminStudents from './pages/admin/AdminStudents';
 import AdminPayments from './pages/admin/AdminPayments';
 import AdminAttendance from './pages/admin/AdminAttendance';
+import AdminMore from './pages/admin/AdminMore';
 import StudentDashboard from './pages/student/StudentDashboard';
 import StudentPayments from './pages/student/StudentPayments';
 import StudentAttendance from './pages/student/StudentAttendance';
@@ -54,10 +56,11 @@ export default function App() {
               </AuthGuard>
             }>
               <Route index element={<AdminDashboard />} />
+              <Route path="groups" element={<AdminGroups />} />
               <Route path="students" element={<AdminStudents />} />
               <Route path="payments" element={<AdminPayments />} />
               <Route path="attendance" element={<AdminAttendance />} />
-              <Route path="more" element={<div className="p-4 text-center">Tez kunda...</div>} />
+              <Route path="more" element={<AdminMore />} />
             </Route>
 
             {/* Student Routes */}
