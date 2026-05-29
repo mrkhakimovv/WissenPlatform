@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { GraduationCap, Lock, User } from 'lucide-react';
+import { GraduationCap, Lock, User, Instagram, Send, Phone } from 'lucide-react';
 import { motion } from 'motion/react';
 
 export default function Login() {
@@ -83,6 +83,37 @@ export default function Login() {
             )}
           </button>
         </form>
+      </motion.div>
+
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.2 }}
+        className="w-full max-w-[360px] mt-6 glass-panel p-4 border-white/10 !bg-white/[0.02]"
+      >
+        <div className="text-[10px] uppercase tracking-widest font-bold text-white/40 mb-3 text-center">Markaz bilan bog'lanish</div>
+        
+        <div className="grid grid-cols-2 gap-2 mt-2">
+          <a href="https://t.me/wissen_admin" target="_blank" className="flex items-center gap-3 p-3 text-left rounded-xl hover:bg-white/[0.06] transition-colors bg-white/[0.02] border border-white/5 group">
+            <div className="w-8 h-8 rounded-full bg-blue-500/10 text-blue-400 flex shrink-0 items-center justify-center">
+              <Send size={14} className="-ml-0.5" />
+            </div>
+            <div className="min-w-0">
+              <div className="text-[9px] text-white/40 font-bold uppercase tracking-wider mb-0.5">Telegram</div>
+              <div className="text-[11px] truncate font-semibold text-white/90">@wissen_admin</div>
+            </div>
+          </a>
+
+          <a href="tel:+998886444400" className="flex items-center gap-3 p-3 text-left rounded-xl hover:bg-white/[0.06] transition-colors bg-white/[0.02] border border-white/5 group">
+            <div className="w-8 h-8 rounded-full bg-green-500/10 text-green-400 shrink-0 flex items-center justify-center">
+              <Phone size={14} />
+            </div>
+            <div className="min-w-0">
+              <div className="text-[9px] text-white/40 font-bold uppercase tracking-wider mb-0.5">Telefon</div>
+              <div className="text-[11px] truncate font-semibold text-white/90">+998886444400</div>
+            </div>
+          </a>
+        </div>
       </motion.div>
     </div>
   );

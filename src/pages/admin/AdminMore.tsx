@@ -91,6 +91,47 @@ export default function AdminMore() {
         </div>
       </motion.div>
 
+      <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+        <h3 className="text-[11px] font-bold text-white/40 uppercase tracking-widest mb-2.5 ml-1 mt-4">Markaz bilan bog'lanish</h3>
+        <div className="glass-panel overflow-hidden border-white/10 p-0 !bg-white/[0.04]">
+           <ActionRow 
+             onClick={() => window.open('https://instagram.com/wissen_oquv_markazi', '_blank')} 
+             icon="📸" 
+             iconBg="bg-pink-500/10 text-xl" 
+             label="Instagram" 
+             sub="@wissen_oquv_markazi" 
+           />
+           <ActionRow 
+             onClick={() => window.open('https://t.me/wissen_edu', '_blank')} 
+             icon="✈️" 
+             iconBg="bg-blue-400/10 text-xl" 
+             label="Telegram kanal" 
+             sub="@wissen_edu" 
+           />
+           <ActionRow 
+             onClick={() => window.open('https://t.me/wissen_admin', '_blank')} 
+             icon="👨‍💻" 
+             iconBg="bg-blue-500/10 text-xl" 
+             label="Telegram admin" 
+             sub="@wissen_admin" 
+           />
+           <ActionRow 
+             onClick={() => window.open('tel:+998886444400', '_blank')} 
+             icon="📞" 
+             iconBg="bg-green-500/10 text-xl" 
+             label="Telefon" 
+             sub="+998 88 644 44 00" 
+           />
+           <ActionRow 
+             onClick={() => window.open('tel:+998882444481', '_blank')} 
+             icon="📞" 
+             iconBg="bg-green-500/10 text-xl" 
+             label="Telefon (Qo'shimcha)" 
+             sub="+998 88 244 44 81" 
+           />
+        </div>
+      </motion.div>
+
       {/* Teacher Modal */}
       <AnimatePresence>
         {isTeacherModalOpen && (
