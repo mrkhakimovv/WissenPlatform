@@ -74,13 +74,13 @@ export default function AdminStudents() {
   return (
     <div className="space-y-6 flex-1 flex flex-col h-full">
       <div className="relative shrink-0">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40" size={18} />
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[color:var(--theme-text-primary)]/40" size={18} />
         <input 
           type="text" 
           placeholder="O'quvchilarni qidirish..." 
           value={search}
           onChange={e => setSearch(e.target.value)}
-          className="w-full glass-panel py-3 pl-11 pr-4 focus:outline-none focus:border-[#FEC204]/50 text-white placeholder-white/30 text-sm"
+          className="w-full glass-panel py-3 pl-11 pr-4 focus:outline-none focus:border-[#FEC204]/50 text-[color:var(--theme-text-primary)] placeholder-white/30 text-sm"
         />
       </div>
 
@@ -95,11 +95,11 @@ export default function AdminStudents() {
               key={student.id} 
               className="glass-panel-list p-3 flex items-center gap-4"
             >
-              <div className="w-10 h-10 shrink-0 rounded-xl bg-gradient-to-br from-white/10 to-white/5 flex items-center justify-center font-bold text-white border border-white/5">
+              <div className="w-10 h-10 shrink-0 rounded-xl bg-gradient-to-br from-white/10 to-white/5 flex items-center justify-center font-bold text-[color:var(--theme-text-primary)] border border-white/5">
                 {initials}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-white text-sm font-semibold truncate flex items-center gap-2">
+                <p className="text-[color:var(--theme-text-primary)] text-sm font-semibold truncate flex items-center gap-2">
                   {student.fullName}
                   {student.role === 'teacher' && (
                     <span className="text-[9px] px-1.5 py-0.5 rounded border border-[#FEC204]/40 text-[#FEC204] bg-[#FEC204]/10 uppercase tracking-wider font-bold">O'qituvchi</span>
@@ -108,10 +108,10 @@ export default function AdminStudents() {
                     <span className="text-[9px] px-1.5 py-0.5 rounded border border-blue-400/40 text-blue-400 bg-blue-400/10 uppercase tracking-wider font-bold">O'quvchi</span>
                   )}
                 </p>
-                <p className="text-white/40 text-[10px] truncate">@{student.username} {student.groupId && `• ${groups.find(g => g.id === student.groupId)?.name || 'Noma\'lum guruh'}`}</p>
+                <p className="text-[color:var(--theme-text-primary)]/40 text-[10px] truncate">@{student.username} {student.groupId && `• ${groups.find(g => g.id === student.groupId)?.name || 'Noma\'lum guruh'}`}</p>
               </div>
               <div className="text-right shrink-0 flex items-center gap-2">
-                <p className="text-white text-xs font-bold mr-2">{student.monthlyFee ? `${(student.monthlyFee/1000).toFixed()}k` : '0'}</p>
+                <p className="text-[color:var(--theme-text-primary)] text-xs font-bold mr-2">{student.monthlyFee ? `${(student.monthlyFee/1000).toFixed()}k` : '0'}</p>
                 <button onClick={() => handleDelete(student.id, student.fullName)} className="p-2 bg-red-500/10 text-red-400 rounded-lg hover:bg-red-500/20 transition-colors">
                   <Trash2 size={16} />
                 </button>
@@ -119,13 +119,13 @@ export default function AdminStudents() {
             </motion.div>
           )
         })}
-        {filtered.length === 0 && <p className="text-center text-white/40 py-6 text-sm">Topilmadi</p>}
+        {filtered.length === 0 && <p className="text-center text-[color:var(--theme-text-primary)]/40 py-6 text-sm">Topilmadi</p>}
       </div>
 
       <div className="fixed bottom-[100px] left-0 w-full max-w-[430px] px-6 mx-auto right-0 sm:absolute z-20">
         <button 
           onClick={() => setIsModalOpen(true)}
-          className="w-full py-4 rounded-2xl bg-gradient-to-r from-[#FEC204] to-[#f59e0b] text-black font-bold shadow-lg shadow-[#FEC204]/20 flex items-center justify-center gap-2 transition-transform active:scale-95"
+          className="w-full py-4 rounded-2xl bg-gradient-to-r from-[#FEC204] to-[#f59e0b] text-[#0d0d0d] font-bold shadow-lg shadow-[#FEC204]/20 flex items-center justify-center gap-2 transition-transform active:scale-95"
         >
           <span className="text-xl leading-none">+</span> O'quvchi Qo'shish
         </button>
@@ -134,26 +134,26 @@ export default function AdminStudents() {
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm sm:absolute">
           <div className="glass-panel w-full max-w-sm p-6 bg-[#1a1a1a]/80">
-            <h2 className="text-lg font-bold mb-4 text-white">Yangi o'quvchi</h2>
+            <h2 className="text-lg font-bold mb-4 text-[color:var(--theme-text-primary)]">Yangi o'quvchi</h2>
             <form onSubmit={handleAdd} className="space-y-4">
               <input required placeholder="F.I.SH." value={formData.fullName} onChange={e=>setFormData({...formData, fullName: e.target.value})} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm placeholder-white/30" />
               <input required placeholder="Login" value={formData.username} onChange={e=>setFormData({...formData, username: e.target.value})} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm placeholder-white/30" />
               <input required placeholder="Parol" type="text" value={formData.password} onChange={e=>setFormData({...formData, password: e.target.value})} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm placeholder-white/30" />
               <select required value={formData.groupId} onChange={e=>setFormData({...formData, groupId: e.target.value})} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm bg-transparent appearance-none">
-                <option value="" disabled className="text-black">Guruhni tanlang...</option>
+                <option value="" disabled className="text-[#0d0d0d]">Guruhni tanlang...</option>
                 {groups.map(g => (
-                  <option key={g.id} value={g.id} className="text-black">{g.name}</option>
+                  <option key={g.id} value={g.id} className="text-[#0d0d0d]">{g.name}</option>
                 ))}
               </select>
               <input required placeholder="Oylik to'lov (so'm)" type="number" value={formData.monthlyFee} onChange={e=>setFormData({...formData, monthlyFee: e.target.value})} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm placeholder-white/30" />
               
               <div className="space-y-1">
-                <label className="text-[11px] text-white/50 px-1 uppercase tracking-wider font-bold">Kelgan sanasi:</label>
-                <input required type="date" value={formData.joinedDate} onChange={e=>setFormData({...formData, joinedDate: e.target.value})} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm text-white/90" style={{ colorScheme: "dark" }} />
+                <label className="text-[11px] text-[color:var(--theme-text-primary)]/50 px-1 uppercase tracking-wider font-bold">Kelgan sanasi:</label>
+                <input required type="date" value={formData.joinedDate} onChange={e=>setFormData({...formData, joinedDate: e.target.value})} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm text-[color:var(--theme-text-primary)]/90" style={{ colorScheme: "dark" }} />
               </div>
 
               {formData.monthlyFee && formData.joinedDate && (
-                <div className="bg-white/5 border border-white/10 rounded-xl p-3 text-[11px] text-white/70 space-y-1.5 mt-2">
+                <div className="bg-white/5 border border-[color:var(--glass-border)] rounded-xl p-3 text-[11px] text-[color:var(--theme-text-primary)]/70 space-y-1.5 mt-2">
                   {(() => {
                     const info = getProratedInfo();
                     if(!info) return null;
@@ -161,7 +161,7 @@ export default function AdminStudents() {
                       <>
                         <div className="flex justify-between items-center">
                           <span>Shu oy qolgan kunlar:</span>
-                          <span className="font-bold text-white bg-white/10 px-2 py-0.5 rounded-full">{info.remaining} / {info.totalDays} ({info.percent}%)</span>
+                          <span className="font-bold text-[color:var(--theme-text-primary)] bg-white/10 px-2 py-0.5 rounded-full">{info.remaining} / {info.totalDays} ({info.percent}%)</span>
                         </div>
                         <div className="flex justify-between items-center bg-[#FEC204]/10 -mx-3 -mb-3 p-3 rounded-b-xl border-t border-[#FEC204]/20 mt-2">
                           <span className="font-medium text-[#FEC204]">Ushbu oy uchun to'lov:</span>
@@ -174,7 +174,7 @@ export default function AdminStudents() {
               )}
               
               <div className="flex gap-3 pt-2 mt-4">
-                <button type="button" onClick={()=>setIsModalOpen(false)} className="flex-1 py-3 rounded-xl border border-white/10 text-sm font-medium hover:bg-white/5">Bekor qilish</button>
+                <button type="button" onClick={()=>setIsModalOpen(false)} className="flex-1 py-3 rounded-xl border border-[color:var(--glass-border)] text-sm font-medium hover:bg-white/5">Bekor qilish</button>
                 <button type="submit" className="flex-1 glass-button py-3 text-sm">Qo'shish</button>
               </div>
             </form>

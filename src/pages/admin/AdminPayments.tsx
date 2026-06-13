@@ -46,7 +46,7 @@ export default function AdminPayments() {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-end mb-2">
-        <h2 className="text-white font-semibold">Oylik To'lovlar</h2>
+        <h2 className="text-[color:var(--theme-text-primary)] font-semibold">Oylik To'lovlar</h2>
         <span className="text-[#FEC204] text-xs font-medium bg-[#FEC204]/10 px-3 py-1 rounded-full border border-[#FEC204]/20">{new Date().toLocaleString('uz-UZ', {month: 'long'})}</span>
       </div>
       
@@ -57,12 +57,12 @@ export default function AdminPayments() {
           return (
             <div key={student.id} className="glass-panel-list p-3 flex flex-col gap-3">
               <div className="flex items-center gap-4">
-                <div className="w-10 h-10 shrink-0 rounded-xl bg-gradient-to-br from-white/10 to-white/5 flex items-center justify-center font-bold text-white border border-white/5">
+                <div className="w-10 h-10 shrink-0 rounded-xl bg-gradient-to-br from-white/10 to-white/5 flex items-center justify-center font-bold text-[color:var(--theme-text-primary)] border border-white/5">
                   {initials}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-white text-sm font-semibold truncate">{student.fullName}</p>
-                  <p className="text-white/40 text-[10px] truncate">{student.monthlyFee?.toLocaleString()} so'm</p>
+                  <p className="text-[color:var(--theme-text-primary)] text-sm font-semibold truncate">{student.fullName}</p>
+                  <p className="text-[color:var(--theme-text-primary)]/40 text-[10px] truncate">{student.monthlyFee?.toLocaleString()} so'm</p>
                 </div>
                 <div className="text-right shrink-0">
                   {status === 'paid' && <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-500/20 text-green-400 border border-green-500/20 leading-none inline-block mt-0.5">To'landi</span>}
@@ -72,7 +72,7 @@ export default function AdminPayments() {
               {status !== 'paid' && (
                 <button 
                   onClick={() => handlePay(student.id, student.monthlyFee)}
-                  className="w-full py-2 bg-gradient-to-r from-white/5 to-white/10 hover:from-white/10 hover:to-white/15 border border-white/5 text-white/90 font-medium rounded-xl text-xs transition-colors"
+                  className="w-full py-2 bg-gradient-to-r from-white/5 to-white/10 hover:from-white/10 hover:to-white/15 border border-white/5 text-[color:var(--theme-text-primary)]/90 font-medium rounded-xl text-xs transition-colors"
                 >
                   To'lovni kiritish
                 </button>
@@ -80,7 +80,7 @@ export default function AdminPayments() {
             </div>
           )
         })}
-        {students.length === 0 && <p className="text-center text-white/40 py-6 text-sm">O'quvchilar yo'q</p>}
+        {students.length === 0 && <p className="text-center text-[color:var(--theme-text-primary)]/40 py-6 text-sm">O'quvchilar yo'q</p>}
       </div>
     </div>
   );

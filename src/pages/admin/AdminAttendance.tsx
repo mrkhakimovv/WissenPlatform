@@ -53,15 +53,15 @@ export default function AdminAttendance() {
       <div className="flex justify-between items-end mb-2">
         <div className="flex items-center gap-3">
           {selectedGroupId && (
-            <button onClick={() => setSelectedGroupId(null)} className="w-8 h-8 flex items-center justify-center bg-white/5 hover:bg-white/10 rounded-full transition-colors text-white">
+            <button onClick={() => setSelectedGroupId(null)} className="w-8 h-8 flex items-center justify-center bg-white/5 hover:bg-white/10 rounded-full transition-colors text-[color:var(--theme-text-primary)]">
               <ChevronLeft size={20} />
             </button>
           )}
           <div>
-            <h2 className="text-white font-semibold">Kunlik Davomat {selectedGroup && `- ${selectedGroup.name}`}</h2>
+            <h2 className="text-[color:var(--theme-text-primary)] font-semibold">Kunlik Davomat {selectedGroup && `- ${selectedGroup.name}`}</h2>
           </div>
         </div>
-        <span className="text-white/60 text-xs font-medium border border-white/10 px-3 py-1 rounded-full shrink-0">{today}</span>
+        <span className="text-[color:var(--theme-text-primary)]/60 text-xs font-medium border border-[color:var(--glass-border)] px-3 py-1 rounded-full shrink-0">{today}</span>
       </div>
       
       {!selectedGroupId ? (
@@ -77,16 +77,16 @@ export default function AdminAttendance() {
                 className="glass-panel-list p-4 flex items-center justify-between cursor-pointer hover:bg-white/5 transition-colors"
               >
                 <div>
-                  <h3 className="text-white font-bold mb-1">{group.name}</h3>
-                  <p className="text-white/40 text-xs">{group.subject} • {group.teacherName}</p>
+                  <h3 className="text-[color:var(--theme-text-primary)] font-bold mb-1">{group.name}</h3>
+                  <p className="text-[color:var(--theme-text-primary)]/40 text-xs">{group.subject} • {group.teacherName}</p>
                 </div>
-                <div className="flex items-center gap-2 text-white/50 bg-white/5 px-3 py-1.5 rounded-full border border-white/5 text-xs font-medium">
+                <div className="flex items-center gap-2 text-[color:var(--theme-text-primary)]/50 bg-white/5 px-3 py-1.5 rounded-full border border-white/5 text-xs font-medium">
                   <Users size={14} /> {groupStudentCount} 
                 </div>
               </motion.div>
             )
           })}
-          {groups.length === 0 && <p className="text-center text-white/40 py-6 text-sm">Guruhlar yo'q</p>}
+          {groups.length === 0 && <p className="text-center text-[color:var(--theme-text-primary)]/40 py-6 text-sm">Guruhlar yo'q</p>}
         </div>
       ) : (
         <div className="space-y-3">
@@ -96,11 +96,11 @@ export default function AdminAttendance() {
             return (
               <div key={student.id} className="glass-panel-list p-3 flex flex-col gap-3">
                 <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 shrink-0 rounded-xl bg-gradient-to-br from-[#FEC204] to-[#f59e0b] flex items-center justify-center font-bold text-black">
+                  <div className="w-10 h-10 shrink-0 rounded-xl bg-gradient-to-br from-[#FEC204] to-[#f59e0b] flex items-center justify-center font-bold text-[#0d0d0d]">
                     {initials}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-white text-sm font-semibold truncate">{student.fullName}</p>
+                    <p className="text-[color:var(--theme-text-primary)] text-sm font-semibold truncate">{student.fullName}</p>
                   </div>
                 </div>
 
@@ -118,7 +118,7 @@ export default function AdminAttendance() {
               </div>
             )
           })}
-          {groupStudents.length === 0 && <p className="text-center text-white/40 py-6 text-sm">Bu guruhda o'quvchilar yo'q</p>}
+          {groupStudents.length === 0 && <p className="text-center text-[color:var(--theme-text-primary)]/40 py-6 text-sm">Bu guruhda o'quvchilar yo'q</p>}
         </div>
       )}
     </div>

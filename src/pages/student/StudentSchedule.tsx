@@ -24,10 +24,10 @@ export default function StudentSchedule() {
       <div className="glass-panel p-5 relative overflow-hidden bg-gradient-to-br from-[#FEC204]/10 to-transparent border-[#FEC204]/20">
         <div className="flex items-center gap-4 relative z-10">
           <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#FEC204] to-[#f59e0b] shadow-lg shadow-[#FEC204]/20 flex items-center justify-center shrink-0">
-            <CalendarClock className="text-black" size={24} />
+            <CalendarClock className="text-[#0d0d0d]" size={24} />
           </div>
           <div>
-            <h2 className="text-xl font-bold text-white leading-tight">Dars Jadvali</h2>
+            <h2 className="text-xl font-bold text-[color:var(--theme-text-primary)] leading-tight">Dars Jadvali</h2>
             <p className="text-[#FEC204] text-[10px] font-bold uppercase tracking-widest mt-1">Haftalik Reja</p>
           </div>
         </div>
@@ -48,10 +48,10 @@ export default function StudentSchedule() {
             {/* Card */}
             <div className={`w-[calc(100%-3rem)] md:w-[calc(50%-2.5rem)] glass-panel-list p-4 ${day.today ? 'border-[#FEC204]/50 shadow-lg shadow-[#FEC204]/10 bg-white/10' : ''}`}>
               <div className="flex justify-between items-center mb-1">
-                <h3 className={`font-bold ${day.today ? 'text-[#FEC204]' : 'text-white'}`}>{day.name}</h3>
-                {day.today && <span className="text-[9px] bg-[#FEC204] text-black px-2 py-0.5 rounded-full font-bold uppercase tracking-wide">Bugun</span>}
+                <h3 className={`font-bold ${day.today ? 'text-[#FEC204]' : 'text-[color:var(--theme-text-primary)]'}`}>{day.name}</h3>
+                {day.today && <span className="text-[9px] bg-[#FEC204] text-[#0d0d0d] px-2 py-0.5 rounded-full font-bold uppercase tracking-wide">Bugun</span>}
               </div>
-              <p className={`text-sm ${day.details === '-' ? 'text-white/30 italic font-light' : 'text-white/80 font-medium'}`}>
+              <p className={`text-sm ${day.details === '-' ? 'text-[color:var(--theme-text-primary)]/30 italic font-light' : 'text-[color:var(--theme-text-primary)]/80 font-medium'}`}>
                 {day.details}
               </p>
             </div>

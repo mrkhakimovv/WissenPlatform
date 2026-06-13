@@ -9,10 +9,10 @@ const ActionRow = ({ icon, iconBg, label, sub, onClick }: any) => (
   <div onClick={onClick} className="flex items-center gap-3 p-3.5 border-b border-white/5 hover:bg-white/5 active:bg-white/10 transition-colors last:border-b-0 cursor-pointer">
     <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${iconBg}`}>{icon}</div>
     <div className="flex-1">
-      <div className="text-[14px] font-semibold text-white">{label}</div>
-      <div className="text-[11px] text-white/40 mt-0.5">{sub}</div>
+      <div className="text-[14px] font-semibold text-[color:var(--theme-text-primary)]">{label}</div>
+      <div className="text-[11px] text-[color:var(--theme-text-primary)]/40 mt-0.5">{sub}</div>
     </div>
-    <ChevronRight size={18} className="text-white/30" />
+    <ChevronRight size={18} className="text-[color:var(--theme-text-primary)]/30" />
   </div>
 );
 
@@ -72,8 +72,8 @@ export default function AdminMore() {
   return (
     <div className="space-y-6 pb-6 h-full flex flex-col">
       <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }}>
-        <h3 className="text-[11px] font-bold text-white/40 uppercase tracking-widest mb-2.5 ml-1">Amallar</h3>
-        <div className="glass-panel overflow-hidden border-white/10 p-0 !bg-white/[0.04]">
+        <h3 className="text-[11px] font-bold text-[color:var(--theme-text-primary)]/40 uppercase tracking-widest mb-2.5 ml-1">Amallar</h3>
+        <div className="glass-panel overflow-hidden border-[color:var(--glass-border)] p-0 !bg-white/[0.04]">
            <ActionRow 
              onClick={() => setIsTeacherModalOpen(true)} 
              icon={<GraduationCap size={18} className="text-[#FEC204]" />} 
@@ -92,8 +92,8 @@ export default function AdminMore() {
       </motion.div>
 
       <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
-        <h3 className="text-[11px] font-bold text-white/40 uppercase tracking-widest mb-2.5 ml-1 mt-4">Markaz bilan bog'lanish</h3>
-        <div className="glass-panel overflow-hidden border-white/10 p-0 !bg-white/[0.04]">
+        <h3 className="text-[11px] font-bold text-[color:var(--theme-text-primary)]/40 uppercase tracking-widest mb-2.5 ml-1 mt-4">Markaz bilan bog'lanish</h3>
+        <div className="glass-panel overflow-hidden border-[color:var(--glass-border)] p-0 !bg-white/[0.04]">
            <ActionRow 
              onClick={() => window.open('https://instagram.com/wissen_oquv_markazi', '_blank')} 
              icon="📸" 
@@ -140,36 +140,36 @@ export default function AdminMore() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="glass-panel w-full max-w-sm p-6 bg-[#1a1a1a]/95 border-white/10"
+              className="glass-panel w-full max-w-sm p-6 bg-[#1a1a1a]/95 border-[color:var(--glass-border)]"
             >
               <div className="flex justify-between items-center mb-5">
-                <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                <h2 className="text-lg font-bold text-[color:var(--theme-text-primary)] flex items-center gap-2">
                   <UserPlus size={18} className="text-[#FEC204]" /> O'qituvchi qo'shish
                 </h2>
-                <button onClick={() => setIsTeacherModalOpen(false)} className="text-white/40 hover:text-white transition-colors">
+                <button onClick={() => setIsTeacherModalOpen(false)} className="text-[color:var(--theme-text-primary)]/40 hover:text-[color:var(--theme-text-primary)] transition-colors">
                   <X size={20} />
                 </button>
               </div>
               <form onSubmit={handleAddTeacher} className="space-y-4">
                 <div className="space-y-1">
-                  <label className="text-[11px] text-white/50 px-1 uppercase tracking-wider font-bold">Ism familiyasi</label>
+                  <label className="text-[11px] text-[color:var(--theme-text-primary)]/50 px-1 uppercase tracking-wider font-bold">Ism familiyasi</label>
                   <input required placeholder="F.I.SH." value={teacherForm.fullName} onChange={e=>setTeacherForm({...teacherForm, fullName: e.target.value})} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm placeholder-white/30" />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[11px] text-white/50 px-1 uppercase tracking-wider font-bold">Telefon raqami</label>
+                  <label className="text-[11px] text-[color:var(--theme-text-primary)]/50 px-1 uppercase tracking-wider font-bold">Telefon raqami</label>
                   <input required placeholder="+998 90 123 45 67" value={teacherForm.phone} onChange={e=>setTeacherForm({...teacherForm, phone: e.target.value})} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm placeholder-white/30" />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[11px] text-white/50 px-1 uppercase tracking-wider font-bold">Dars beradigan fan nomi</label>
+                  <label className="text-[11px] text-[color:var(--theme-text-primary)]/50 px-1 uppercase tracking-wider font-bold">Dars beradigan fan nomi</label>
                   <input required placeholder="Masalan: Matematika" value={teacherForm.subject} onChange={e=>setTeacherForm({...teacherForm, subject: e.target.value})} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm placeholder-white/30" />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[11px] text-white/50 px-1 uppercase tracking-wider font-bold">Fan bo'yicha sertifikatlari</label>
+                  <label className="text-[11px] text-[color:var(--theme-text-primary)]/50 px-1 uppercase tracking-wider font-bold">Fan bo'yicha sertifikatlari</label>
                   <input required placeholder="Masalan: IELTS 8.0, CEFR C1" value={teacherForm.certificates} onChange={e=>setTeacherForm({...teacherForm, certificates: e.target.value})} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm placeholder-white/30" />
                 </div>
                 
                 <div className="flex gap-3 pt-2 mt-4">
-                  <button type="button" disabled={loading} onClick={()=>setIsTeacherModalOpen(false)} className="flex-1 py-3 rounded-xl border border-white/10 text-sm font-medium hover:bg-white/5 transition-colors text-white/70">Bekor qilish</button>
+                  <button type="button" disabled={loading} onClick={()=>setIsTeacherModalOpen(false)} className="flex-1 py-3 rounded-xl border border-[color:var(--glass-border)] text-sm font-medium hover:bg-white/5 transition-colors text-[color:var(--theme-text-primary)]/70">Bekor qilish</button>
                   <button type="submit" disabled={loading} className="flex-1 glass-button py-3 text-sm disabled:opacity-50">Qo'shish</button>
                 </div>
               </form>
@@ -186,24 +186,24 @@ export default function AdminMore() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="glass-panel w-full max-w-sm p-6 bg-[#1a1a1a]/95 border-white/10"
+              className="glass-panel w-full max-w-sm p-6 bg-[#1a1a1a]/95 border-[color:var(--glass-border)]"
             >
               <div className="flex justify-between items-center mb-5">
-                <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                <h2 className="text-lg font-bold text-[color:var(--theme-text-primary)] flex items-center gap-2">
                   <BookOpen size={18} className="text-green-400" /> Fan qo'shish
                 </h2>
-                <button onClick={() => setIsSubjectModalOpen(false)} className="text-white/40 hover:text-white transition-colors">
+                <button onClick={() => setIsSubjectModalOpen(false)} className="text-[color:var(--theme-text-primary)]/40 hover:text-[color:var(--theme-text-primary)] transition-colors">
                   <X size={20} />
                 </button>
               </div>
               <form onSubmit={handleAddSubject} className="space-y-4">
                 <div className="space-y-1">
-                  <label className="text-[11px] text-white/50 px-1 uppercase tracking-wider font-bold">Fan nomi</label>
+                  <label className="text-[11px] text-[color:var(--theme-text-primary)]/50 px-1 uppercase tracking-wider font-bold">Fan nomi</label>
                   <input required placeholder="Masalan: Matematika" value={subjectForm.name} onChange={e=>setSubjectForm({...subjectForm, name: e.target.value})} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm placeholder-white/30" />
                 </div>
                 
                 <div className="flex gap-3 pt-2 mt-4">
-                  <button type="button" disabled={loading} onClick={()=>setIsSubjectModalOpen(false)} className="flex-1 py-3 rounded-xl border border-white/10 text-sm font-medium hover:bg-white/5 transition-colors text-white/70">Bekor qilish</button>
+                  <button type="button" disabled={loading} onClick={()=>setIsSubjectModalOpen(false)} className="flex-1 py-3 rounded-xl border border-[color:var(--glass-border)] text-sm font-medium hover:bg-white/5 transition-colors text-[color:var(--theme-text-primary)]/70">Bekor qilish</button>
                   <button type="submit" disabled={loading} className="flex-1 glass-button py-3 text-sm disabled:opacity-50">Qo'shish</button>
                 </div>
               </form>

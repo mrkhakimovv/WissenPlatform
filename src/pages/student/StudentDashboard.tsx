@@ -44,8 +44,8 @@ export default function StudentDashboard() {
       
       {/* Main Greeting */}
       <div className="mb-4">
-        <h2 className="text-white text-2xl font-bold">Xush kelibsiz! 👋</h2>
-        <p className="text-white/50 text-sm mt-1">Bugungi holatingiz xulosasi</p>
+        <h2 className="text-[color:var(--theme-text-primary)] text-2xl font-bold">Xush kelibsiz! 👋</h2>
+        <p className="text-[color:var(--theme-text-primary)]/50 text-sm mt-1">Bugungi holatingiz xulosasi</p>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
@@ -55,8 +55,8 @@ export default function StudentDashboard() {
             initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
             className={`glass-panel p-4 h-full relative overflow-hidden ${attRate < 80 ? 'border-red-500/30' : 'border-[#FEC204]/30'}`}
           >
-            <p className="text-white/40 text-[10px] uppercase font-bold mb-1">Davomat O'rtacha</p>
-            <div className="flex items-end gap-2 text-white">
+            <p className="text-[color:var(--theme-text-primary)]/40 text-[10px] uppercase font-bold mb-1">Davomat O'rtacha</p>
+            <div className="flex items-end gap-2 text-[color:var(--theme-text-primary)]">
               <span className="text-3xl font-black leading-none">{attRate}%</span>
             </div>
             
@@ -72,9 +72,9 @@ export default function StudentDashboard() {
             initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.1 }}
             className={`glass-panel p-4 h-full relative overflow-hidden ${paymentStatus === 'paid' ? 'border-green-500/30' : 'border-red-500/30'}`}
           >
-            <p className="text-white/40 text-[10px] uppercase font-bold mb-1">Joriy oy to'lovi</p>
+            <p className="text-[color:var(--theme-text-primary)]/40 text-[10px] uppercase font-bold mb-1">Joriy oy to'lovi</p>
             
-            <div className="mt-2 text-white flex items-center gap-2">
+            <div className="mt-2 text-[color:var(--theme-text-primary)] flex items-center gap-2">
               {paymentStatus === 'paid' ? (
                 <>
                   <CheckCircle2 className="text-green-400 shrink-0" size={24} />
@@ -86,7 +86,7 @@ export default function StudentDashboard() {
                   <span className="font-bold text-sm leading-tight text-red-50">To'lanmagan</span>
                 </>
               ) : (
-                <Clock className="text-white/40 shrink-0 animate-spin" size={24} />
+                <Clock className="text-[color:var(--theme-text-primary)]/40 shrink-0 animate-spin" size={24} />
               )}
             </div>
           </motion.div>
@@ -99,11 +99,11 @@ export default function StudentDashboard() {
         className="glass-panel p-5 relative overflow-hidden"
       >
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#FEC204] to-[#f59e0b] flex items-center justify-center text-black">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#FEC204] to-[#f59e0b] flex items-center justify-center text-[#0d0d0d]">
             <CalendarClock size={20} />
           </div>
           <div>
-            <h3 className="font-bold text-white leading-tight">Bugungi Darsingiz</h3>
+            <h3 className="font-bold text-[color:var(--theme-text-primary)] leading-tight">Bugungi Darsingiz</h3>
             <p className="text-[#FEC204] text-[10px] font-bold uppercase">{todayName}</p>
           </div>
         </div>
@@ -111,11 +111,11 @@ export default function StudentDashboard() {
         <div className="bg-white/5 border border-white/5 rounded-xl p-4">
           <div className="flex justify-between items-center">
             <div>
-              <p className="font-bold text-white text-lg">{user?.subject || "Fan biriktirilmagan"}</p>
-              <p className="text-white/50 text-xs">O'qituvchi: {user?.teacherId || "Noma'lum"}</p>
+              <p className="font-bold text-[color:var(--theme-text-primary)] text-lg">{user?.subject || "Fan biriktirilmagan"}</p>
+              <p className="text-[color:var(--theme-text-primary)]/50 text-xs">O'qituvchi: {user?.teacherId || "Noma'lum"}</p>
             </div>
             <div className="text-right">
-              <span className="inline-block px-3 py-1 bg-white/10 rounded-lg text-xs font-medium text-white/80">Rejalashtirilgan</span>
+              <span className="inline-block px-3 py-1 bg-white/10 rounded-lg text-xs font-medium text-[color:var(--theme-text-primary)]/80">Rejalashtirilgan</span>
             </div>
           </div>
         </div>
