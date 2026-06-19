@@ -2,12 +2,41 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { collection, onSnapshot, query, where } from '../../lib/firebase';
 import { db } from '../../lib/firebase';
-import { CheckCircle2, BookOpen } from 'lucide-react';
+import { CheckCircle2, BookOpen, ChevronLeft, ChevronRight } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+
+const NEWS_ITEMS = [
+  {
+    id: 1,
+    title: "Yangi o'quv yili uchun qabul boshlandi!",
+    description: "Markazimizda barcha fanlardan intensiv kurslariga qabul ochildi. Imkoniyatni boy bermang.",
+    date: "19-Iyun, 2026",
+    tag: "Yangilik",
+    color: "#FEC204"
+  },
+  {
+    id: 2,
+    title: "O'quv markazida Ichki Olimpiada",
+    description: "Barcha guruhlar o'rtasida katta olimpiada o'tkaziladi. G'oliblarga maxsus sovg'alar va chegirmalar tayyorlangan.",
+    date: "15-Iyun, 2026",
+    tag: "Musobaqa",
+    color: "#22c55e"
+  },
+  {
+    id: 3,
+    title: "Do'stingizni taklif qiling",
+    description: "Har bir yangi kelgan do'stingiz uchun keyingi oylik to'lovingizga 15% chegirma ega bo'ling.",
+    date: "05-Iyun, 2026",
+    tag: "Chegirma",
+    color: "#3b82f6"
+  }
+];
 
 export default function StudentDashboard() {
   const { user } = useAuth();
   const [attendance, setAttendance] = useState<any[]>([]);
   const [payments, setPayments] = useState<any[]>([]);
+  const [currentNewsIndex, setCurrentNewsIndex] = useState(0);
 
   useEffect(() => {
     if (!user) return;
@@ -21,6 +50,16 @@ export default function StudentDashboard() {
 
     return () => { unsubAtt(); unsubPay(); }
   }, [user]);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentNewsIndex((prev) => (prev + 1) % NEWS_ITEMS.length);
+    }, 6000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const nextNews = () => setCurrentNewsIndex((prev) => (prev + 1) % NEWS_ITEMS.length);
+  const prevNews = () => setCurrentNewsIndex((prev) => (prev - 1 + NEWS_ITEMS.length) % NEWS_ITEMS.length);
 
   // Mini calendar logic
   const todayDate = new Date();
@@ -36,37 +75,88 @@ export default function StudentDashboard() {
 
   const hasPaid = payments.some(p => p.status === 'paid' && p.amount > 0);
 
+  const currentNews = NEWS_ITEMS[currentNewsIndex];
+
   return (
-    <div className="space-y-6 pb-6">
+    <div className="space-y-6 pb-6 overflow-x-hidden">
       <div>
         <h1 className="text-[20px] font-black text-white">Xush kelibsiz, {user?.fullName}! 👋</h1>
         <p className="text-[12px] text-white/40 font-bold mt-1">Bugungi kun uchun rejalaringiz bilan tanishing.</p>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-5">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5">
         {/* Attendance Card */}
-        <div className="glass-panel p-4 md:p-5 !border-l-[3px] !border-l-[#FEC204] hover:scale-[1.02] transition-transform">
-          <p className="text-[9px] md:text-[11px] uppercase tracking-[2px] font-bold text-white/40 mb-1">Davomat %</p>
-          <p className="text-[26px] md:text-[32px] font-[900] tracking-[-1px] text-white">{attendance.length === 0 ? 0 : attendanceRate}%</p>
-          <div className="w-full h-1.5 bg-[#f0f0f0]/20 rounded-full mt-2 overflow-hidden">
-            <div className="bg-[#FEC204] h-full" style={{ width: `${attendance.length === 0 ? 0 : attendanceRate}%` }}></div>
+        <div className="glass-panel p-4 md:p-5 !border-l-[3px] !border-l-[#FEC204] hover:scale-[1.02] transition-transform flex flex-col justify-between">
+          <div>
+             <p className="text-[9px] md:text-[11px] uppercase tracking-[2px] font-bold text-white/40 mb-1">Davomat %</p>
+             <p className="text-[26px] md:text-[32px] font-[900] tracking-[-1px] text-white leading-none">{attendance.length === 0 ? 0 : attendanceRate}%</p>
+          </div>
+          <div className="w-full h-1.5 bg-[#f0f0f0]/20 rounded-full mt-3 overflow-hidden">
+            <motion.div 
+               initial={{ width: 0 }}
+               animate={{ width: `${attendance.length === 0 ? 0 : attendanceRate}%` }}
+               className="bg-[#FEC204] h-full" 
+            />
           </div>
         </div>
 
         {/* Payment Card */}
         <div className="glass-panel p-4 md:p-5 !border-l-[3px] !border-l-[#22c55e] flex flex-col justify-between hover:scale-[1.02] transition-transform">
           <p className="text-[9px] md:text-[11px] uppercase tracking-[2px] font-bold text-white/40 mb-1">To'lov holati</p>
-          <div className="flex items-center gap-2 mt-1">
+          <div className="flex items-center gap-2 mt-2 mb-1">
             {hasPaid ? (
               <>
                 <CheckCircle2 size={24} className="text-[#22c55e]" />
-                <p className="text-[18px] md:text-[22px] font-black text-white">To'langan</p>
+                <p className="text-[17px] md:text-[20px] font-black text-white leading-none">To'langan</p>
               </>
             ) : (
-                <p className="text-[18px] md:text-[22px] font-black text-red-500">To'lanmagan</p>
+                <p className="text-[17px] md:text-[20px] font-black text-red-500 leading-none">To'lanmagan</p>
             )}
           </div>
-          <p className="text-[10px] md:text-[12px] font-bold text-white/40 mt-2">Iyun oyi uchun</p>
+          <p className="text-[10px] md:text-[12px] font-bold text-white/40 mt-auto">Iyun oyi uchun</p>
+        </div>
+
+        {/* News Carousel */}
+        <div className="col-span-2 glass-panel p-0 overflow-hidden relative flex flex-col group min-h-[140px]">
+           <AnimatePresence mode="wait">
+             <motion.div
+               key={currentNewsIndex}
+               initial={{ opacity: 0, x: 20 }}
+               animate={{ opacity: 1, x: 0 }}
+               exit={{ opacity: 0, x: -20 }}
+               transition={{ duration: 0.3 }}
+               className="p-4 md:p-5 flex flex-col h-full absolute inset-0"
+             >
+                <div className="flex items-center justify-between mb-2">
+                   <div className="flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: currentNews.color }}></span>
+                      <span className="text-[10px] uppercase tracking-[1.5px] font-bold text-white/60">{currentNews.tag}</span>
+                   </div>
+                   <span className="text-[10px] font-bold text-white/40">{currentNews.date}</span>
+                </div>
+                <h3 className="text-[15px] md:text-[17px] font-black text-white leading-snug line-clamp-1">{currentNews.title}</h3>
+                <p className="text-[12px] text-white/60 font-medium mt-1.5 leading-relaxed line-clamp-2 md:line-clamp-none pr-8">
+                  {currentNews.description}
+                </p>
+             </motion.div>
+           </AnimatePresence>
+
+           {/* Controls */}
+           <div className="absolute right-3 bottom-4 flex gap-1 bg-[#1a1a1a]/80 backdrop-blur-sm p-1 rounded-full border border-white/10 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
+              <button onClick={prevNews} className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors">
+                 <ChevronLeft size={14} className="text-white" />
+              </button>
+              <button onClick={nextNews} className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors">
+                 <ChevronRight size={14} className="text-white" />
+              </button>
+           </div>
+           
+           {/* Dots */}
+           <div className="absolute left-4 md:left-5 bottom-4 flex gap-1.5 z-10">
+             {NEWS_ITEMS.map((_, idx) => (
+                <div key={idx} className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${idx === currentNewsIndex ? 'bg-white w-4' : 'bg-white/20'}`} />
+             ))}
+           </div>
         </div>
       </div>
 
