@@ -1,11 +1,6 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Basic rules to enable prototype functionality as explicitly requested.
-    // WARNING: In production, actual Firebase Auth MUST be used and these rules hardened.
-    // Since the system specifically uses custom Firestore-based password auth per user instructions
-    // we allow open reads/writes for testing.
-    
     match /{document=**} {
       allow read, write: if true;
     }

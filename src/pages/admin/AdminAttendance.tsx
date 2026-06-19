@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { collection, onSnapshot, query, addDoc } from 'firebase/firestore';
+import { collection, onSnapshot, query, addDoc } from '../../lib/firebase';
 import { db } from '../../lib/firebase';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
@@ -15,7 +15,7 @@ export default function AdminAttendance() {
 
   useEffect(() => {
     const unsubStudents = onSnapshot(query(collection(db, 'users')), (snap) => {
-      setStudents(snap.docs.map(d => ({id: d.id, ...d.data()})).filter(s => s.role !== 'admin' && s.role !== 'teacher'));
+      setStudents(snap.docs.map(d => ({id: d.id, ...(d.data() as any)})).filter(s => s.role !== 'admin' && s.role !== 'teacher'));
     });
     const unsubAtt = onSnapshot(query(collection(db, 'attendance')), (snap) => {
       setAttendance(snap.docs.map(d => ({id: d.id, ...d.data()})));

@@ -1,106 +1,69 @@
 {
-  "entities": {
-    "User": {
-      "title": "User",
-      "description": "Student or Admin user",
-      "type": "object",
-      "properties": {
-        "fullName": { "type": "string" },
-        "username": { "type": "string" },
-        "password": { "type": "string" },
-        "subject": { "type": "string" },
-        "groupId": { "type": "string" },
-        "teacherId": { "type": "string" },
-        "monthlyFee": { "type": "number" },
-        "createdAt": { "type": "string" },
-        "role": { "type": "string", "enum": ["student", "admin"] }
-      },
-      "required": ["fullName", "username", "password", "role"]
-    },
-    "Payment": {
-      "title": "Payment",
-      "description": "Student payment record",
-      "type": "object",
-      "properties": {
-        "studentId": { "type": "string" },
-        "amount": { "type": "number" },
-        "month": { "type": "string" },
-        "year": { "type": "string" },
-        "status": { "type": "string", "enum": ["paid", "unpaid", "partial"] },
-        "paidAt": { "type": "string" }
-      },
-      "required": ["studentId", "amount", "month", "year", "status"]
-    },
-    "Attendance": {
-      "title": "Attendance",
-      "description": "Daily attendance record",
-      "type": "object",
-      "properties": {
-        "studentId": { "type": "string" },
-        "date": { "type": "string" },
-        "status": { "type": "string", "enum": ["present", "absent", "excused"] }
-      },
-      "required": ["studentId", "date", "status"]
-    },
-    "Subject": {
-      "title": "Subject",
-      "description": "Course subject",
-      "type": "object",
-      "properties": {
-        "name": { "type": "string" },
-        "teacherId": { "type": "string" },
-        "schedule": { "type": "string" }
-      },
-      "required": ["name", "teacherId", "schedule"]
-    },
-    "Teacher": {
-      "title": "Teacher",
-      "description": "Teacher data",
-      "type": "object",
-      "properties": {
-        "fullName": { "type": "string" },
-        "subjects": { "type": "array", "items": { "type": "string" } },
-        "phone": { "type": "string" }
-      },
-      "required": ["fullName", "phone"]
-    },
-    "Group": {
-      "title": "Group",
-      "description": "Student group",
-      "type": "object",
-      "properties": {
-        "name": { "type": "string" },
-        "subjectId": { "type": "string" },
-        "teacherId": { "type": "string" },
-        "students": { "type": "array", "items": { "type": "string" } }
-      },
-      "required": ["name", "subjectId", "teacherId"]
-    }
+  "$schema": "https://raw.githubusercontent.com/google/google-ai-studio-agent-blueprints/main/schemas/firebase-blueprint-schema.json",
+  "auth": {
+    "enabled": false
   },
   "firestore": {
-    "/users/{userId}": {
-      "schema": "User",
-      "description": "Users collection"
-    },
-    "/payments/{paymentId}": {
-      "schema": "Payment",
-      "description": "Payments history"
-    },
-    "/attendance/{attendanceId}": {
-      "schema": "Attendance",
-      "description": "Attendance tracking"
-    },
-    "/subjects/{subjectId}": {
-      "schema": "Subject",
-      "description": "Available subjects"
-    },
-    "/teachers/{teacherId}": {
-      "schema": "Teacher",
-      "description": "Teachers roster"
-    },
-    "/groups/{groupId}": {
-      "schema": "Group",
-      "description": "Student groups"
-    }
+    "collections": [
+      {
+        "name": "users",
+        "document": {
+          "fields": [
+            { "name": "username", "type": "string" },
+            { "name": "password", "type": "string" },
+            { "name": "role", "type": "string" },
+            { "name": "fullName", "type": "string" },
+            { "name": "groupId", "type": "string", "optional": true },
+            { "name": "subject", "type": "string", "optional": true }
+          ]
+        },
+        "description": "Store users (students, teachers, admins)"
+      },
+      {
+        "name": "groups",
+        "document": {
+          "fields": [
+            { "name": "name", "type": "string" },
+            { "name": "teacherName", "type": "string" },
+            { "name": "subject", "type": "string" },
+            { "name": "createdAt", "type": "string" }
+          ]
+        },
+        "description": "Store classes/groups"
+      },
+      {
+        "name": "payments",
+        "document": {
+          "fields": [
+            { "name": "studentId", "type": "string" },
+            { "name": "amount", "type": "number" },
+            { "name": "date", "type": "string" },
+            { "name": "status", "type": "string" }
+          ]
+        },
+        "description": "Store students payments"
+      },
+      {
+        "name": "attendance",
+        "document": {
+          "fields": [
+            { "name": "studentId", "type": "string" },
+            { "name": "date", "type": "string" },
+            { "name": "present", "type": "boolean" }
+          ]
+        },
+        "description": "Store students attendance"
+      },
+      {
+        "name": "subjects",
+        "document": {
+          "fields": [
+            { "name": "name", "type": "string" },
+            { "name": "createdAt", "type": "string" }
+          ]
+        },
+        "description": "Store subjects"
+      }
+    ]
   }
 }

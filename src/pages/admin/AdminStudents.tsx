@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { collection, onSnapshot, query, doc, deleteDoc, addDoc } from 'firebase/firestore';
+import { collection, onSnapshot, query, doc, deleteDoc, addDoc } from '../../lib/firebase';
 import { db } from '../../lib/firebase';
 import { Plus, Search, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -16,7 +16,7 @@ export default function AdminStudents() {
   useEffect(() => {
     const q = query(collection(db, 'users'));
     const unsubStudents = onSnapshot(q, (snap) => {
-      const studs = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(s => s.role !== 'admin');
+      const studs = snap.docs.map(d => ({ id: d.id, ...(d.data() as any) })).filter(s => s.role !== 'admin');
       setStudents(studs);
     });
     
@@ -84,7 +84,7 @@ export default function AdminStudents() {
         />
       </div>
 
-      <div className="space-y-3 pb-8">
+      <div className="space-y-3 pb-8 md:space-y-0 md:grid md:grid-cols-2 lg:grid-cols-3 md:gap-4">
         {filtered.map((student, i) => {
           const initials = student.fullName?.substring(0,2).toUpperCase() || 'ST';
           return (
@@ -139,12 +139,7 @@ export default function AdminStudents() {
               <input required placeholder="F.I.SH." value={formData.fullName} onChange={e=>setFormData({...formData, fullName: e.target.value})} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm placeholder-white/30" />
               <input required placeholder="Login" value={formData.username} onChange={e=>setFormData({...formData, username: e.target.value})} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm placeholder-white/30" />
               <input required placeholder="Parol" type="text" value={formData.password} onChange={e=>setFormData({...formData, password: e.target.value})} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm placeholder-white/30" />
-              <select required value={formData.groupId} onChange={e=>setFormData({...formData, groupId: e.target.value})} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm bg-transparent appearance-none">
-                <option value="" disabled className="text-[#0d0d0d]">Guruhni tanlang...</option>
-                {groups.map(g => (
-                  <option key={g.id} value={g.id} className="text-[#0d0d0d]">{g.name}</option>
-                ))}
-              </select>
+              <input required placeholder="Guruh nomi" type="text" value={formData.groupId} onChange={e=>setFormData({...formData, groupId: e.target.value})} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm placeholder-white/30" />
               <input required placeholder="Oylik to'lov (so'm)" type="number" value={formData.monthlyFee} onChange={e=>setFormData({...formData, monthlyFee: e.target.value})} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm placeholder-white/30" />
               
               <div className="space-y-1">

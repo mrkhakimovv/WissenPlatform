@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { collection, onSnapshot, query } from 'firebase/firestore';
+import { collection, onSnapshot, query, orderBy, limit } from '../../lib/firebase';
 import { db } from '../../lib/firebase';
 import { Users, TrendingUp, Calendar, BookOpen } from 'lucide-react';
-import { motion } from 'motion/react';
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState({
@@ -13,16 +12,18 @@ export default function AdminDashboard() {
     subjects: 0
   });
 
+  const [recentPayments, setRecentPayments] = useState<any[]>([]);
+
   useEffect(() => {
     const qStudents = query(collection(db, 'users'));
     const unsubStudents = onSnapshot(qStudents, (snap) => {
-      const students = snap.docs.filter(d => d.data().role !== 'admin').length;
+      const students = snap.docs.filter(d => d.data().role === 'student').length;
       setStats(s => ({ ...s, students }));
     });
 
     const qSubjects = query(collection(db, 'subjects'));
     const unsubSubjects = onSnapshot(qSubjects, (snap) => {
-      setStats(s => ({ ...s, subjects: snap.size }));
+      setStats(s => ({ ...s, subjects: snap.docs.length }));
     });
 
     const qPayments = query(collection(db, 'payments'));
@@ -36,105 +37,89 @@ export default function AdminDashboard() {
       setStats(s => ({ ...s, paidThisMonth: paid, unpaidThisMonth: unpaid }));
     });
 
+    const qRecentPayments = query(collection(db, 'payments'), orderBy('date', 'desc'), limit(2));
+    const unsubRecentPayments = onSnapshot(qRecentPayments, (snap) => {
+      const data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setRecentPayments(data);
+    });
+
+    const qAttendance = query(collection(db, 'attendance'));
+    const unsubAttendance = onSnapshot(qAttendance, (snap) => {
+      let present = 0;
+      snap.docs.forEach(doc => {
+        if(doc.data().status === 'present' || doc.data().present) present++;
+      });
+      const total = snap.docs.length || 1;
+      setStats(s => ({ ...s, attendanceRate: Math.round((present / total) * 100) }));
+    });
+
     return () => {
-      unsubStudents();
-      unsubSubjects();
-      unsubPayments();
+       unsubStudents();
+       unsubSubjects();
+       unsubPayments();
+       unsubRecentPayments();
+       unsubAttendance();
     };
   }, []);
 
-  const statCards = [
-    { title: "O'quvchilar", value: stats.students, subtitle: "+ Yangilandi" },
-    { title: "Davomat", value: "94%", subtitle: "Zo'r natija" },
-  ];
-
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-2 gap-4">
-        <motion.div 
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
-          className="glass-panel p-4"
-        >
-          <p className="text-[color:var(--theme-text-primary)]/40 text-[10px] uppercase font-bold mb-1">O'quvchilar</p>
-          <p className="text-2xl font-bold text-[color:var(--theme-text-primary)]">{stats.students}</p>
-          <p className="text-[#FEC204] text-[10px] font-medium mt-1">+ Barcha guruhlar</p>
-        </motion.div>
+    <div className="space-y-6 md:space-y-8">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 w-full">
+        <div className="glass-panel p-4 md:p-6 border-l-4 border-[#FEC204] hover:scale-[1.02] transition-transform">
+          <p className="text-[9px] md:text-[11px] uppercase tracking-[2px] font-bold text-white/40 mb-1">O'quvchilar</p>
+          <p className="text-[26px] md:text-[32px] font-[900] tracking-[-1px] text-white">{stats.students}</p>
+          <p className="text-xs font-bold text-white/40 mt-1.5">+ Barcha</p>
+        </div>
         
-        <motion.div 
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 0.1 }}
-          className="glass-panel p-4"
-        >
-          <p className="text-[color:var(--theme-text-primary)]/40 text-[10px] uppercase font-bold mb-1">Davomat O'rtacha</p>
-          <p className="text-2xl font-bold text-[color:var(--theme-text-primary)]">92%</p>
-          <div className="w-full h-1 bg-white/5 rounded-full mt-2 overflow-hidden">
-            <div className="bg-[#FEC204] h-full w-[92%]"></div>
+        <div className="glass-panel p-4 md:p-6 border-l-4 border-[#FEC204] hover:scale-[1.02] transition-transform">
+          <p className="text-[9px] md:text-[11px] uppercase tracking-[2px] font-bold text-white/40 mb-1">Davomat %</p>
+          <p className="text-[26px] md:text-[32px] font-[900] tracking-[-1px] text-white">{stats.attendanceRate}%</p>
+          <div className="w-full h-1.5 bg-[#f0f0f0]/20 rounded-full mt-2 overflow-hidden">
+            <div className="bg-[#FEC204] h-full" style={{ width: `${stats.attendanceRate}%` }}></div>
           </div>
-        </motion.div>
+        </div>
 
-        <motion.div 
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 0.2 }}
-          className="glass-panel p-4"
-        >
-          <p className="text-[color:var(--theme-text-primary)]/40 text-[10px] uppercase font-bold mb-1">Fanlar</p>
-          <p className="text-2xl font-bold text-[color:var(--theme-text-primary)]">{stats.subjects}</p>
-          <p className="text-[#FEC204] text-[10px] font-medium mt-1">Aktiv kurslar</p>
-        </motion.div>
+        <div className="glass-panel p-4 md:p-6 border-l-4 border-[#FEC204] hover:scale-[1.02] transition-transform">
+          <p className="text-[9px] md:text-[11px] uppercase tracking-[2px] font-bold text-white/40 mb-1">Fanlar</p>
+          <p className="text-[26px] md:text-[32px] font-[900] tracking-[-1px] text-white">{stats.subjects}</p>
+          <p className="text-xs font-bold text-white/40 mt-1.5">Aktiv kurslar</p>
+        </div>
 
-        <motion.div 
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 0.3 }}
-          className="glass-panel p-4"
-        >
-          <p className="text-[color:var(--theme-text-primary)]/40 text-[10px] uppercase font-bold mb-1">To'lovlar</p>
-          <p className="text-2xl font-bold text-[color:var(--theme-text-primary)]">{stats.paidThisMonth}</p>
-          <p className="text-[#FEC204] text-[10px] font-medium mt-1">Bu oy to'laganlar</p>
-        </motion.div>
+        <div className="glass-panel p-4 md:p-6 border-l-4 border-[#FEC204] hover:scale-[1.02] transition-transform">
+          <p className="text-[9px] md:text-[11px] uppercase tracking-[2px] font-bold text-white/40 mb-1">To'lovlar</p>
+          <p className="text-[26px] md:text-[32px] font-[900] tracking-[-1px] text-white">{stats.paidThisMonth}</p>
+          <p className="text-xs font-bold text-white/40 mt-1.5">Shu oyda to'laganlar</p>
+        </div>
       </div>
 
-      <motion.div 
-        initial={{ opacity: 0, y: 15 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, delay: 0.4 }}
-        className="flex flex-col min-h-0"
-      >
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-[color:var(--theme-text-primary)] font-semibold">So'nggi to'lovlar</h2>
-          <button className="text-[#FEC204] text-xs font-medium">Barchasi</button>
+      <div className="h-[1px] bg-white/10 w-full mb-6"></div>
+
+      <div className="flex flex-col min-h-0">
+        <div className="flex justify-between items-center mb-4 md:mb-6 px-1">
+          <h2 className="text-[13px] md:text-[16px] text-white font-bold tracking-wide">So'nggi to'lovlar</h2>
+          <button className="text-[#FEC204] text-[13px] md:text-[14px] font-bold hover:underline transition-all">Barchasi &rarr;</button>
         </div>
         
-        <div className="space-y-3">
-          <div className="group glass-panel-list p-3 flex items-center gap-4">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#FEC204] to-[#f59e0b] flex items-center justify-center font-bold text-[#0d0d0d] border border-[color:var(--glass-border)]">AR</div>
-            <div className="flex-1">
-              <p className="text-[color:var(--theme-text-primary)] text-sm font-semibold">Asadbek Rustamov</p>
-              <p className="text-[color:var(--theme-text-primary)]/40 text-[10px]">Matematika • G-24</p>
-            </div>
-            <div className="text-right">
-              <p className="text-[color:var(--theme-text-primary)] text-sm font-bold">450,000</p>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-500/20 text-green-400 border border-green-500/20">To'landi</span>
-            </div>
-          </div>
-          
-          <div className="glass-panel-list p-3 flex items-center gap-4">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#FEC204] to-[#f59e0b] flex items-center justify-center font-bold text-[#0d0d0d] border border-[color:var(--glass-border)]">ZM</div>
-            <div className="flex-1">
-              <p className="text-[color:var(--theme-text-primary)] text-sm font-semibold">Zilola Mansurova</p>
-              <p className="text-[color:var(--theme-text-primary)]/40 text-[10px]">English • IELTS 7.0</p>
-            </div>
-            <div className="text-right">
-              <p className="text-[color:var(--theme-text-primary)] text-sm font-bold">500,000</p>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-yellow-500/20 text-yellow-400 border border-yellow-500/20">Kutilmoqda</span>
-            </div>
-          </div>
+        <div className="space-y-3 md:space-y-0 md:grid md:grid-cols-2 md:gap-5">
+          {recentPayments.length === 0 && <p className="text-white/40 col-span-2 text-sm italic">Hozircha to'lovlar yo'q</p>}
+          {recentPayments.map((p) => {
+            const initials = p.studentName ? p.studentName.split(' ').map((n: string) => n[0]).join('') : 'U';
+            return (
+              <div key={p.id} className="glass-panel p-4 md:p-5 flex items-center gap-3 md:gap-4 hover:border-[#FEC204]/50 cursor-pointer group transition-all">
+                <div className="w-[38px] h-[38px] md:w-[48px] md:h-[48px] rounded-[10px] md:rounded-[14px] bg-gradient-to-br from-[#FEC204] to-amber-500 shadow-md flex items-center justify-center font-[800] text-[#000] text-[13px] md:text-[16px] group-hover:scale-105 transition-transform uppercase">{initials.substring(0, 2)}</div>
+                <div className="flex-1">
+                  <p className="text-white text-[13px] md:text-[15px] font-bold tracking-wide">{p.studentName}</p>
+                  <p className="text-white/40 text-[10px] md:text-[12px] uppercase font-bold tracking-wider mt-0.5">{new Date(p.date || Date.now()).toLocaleDateString()}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-white text-[18px] md:text-[22px] font-black tracking-[-0.5px]">{Number(p.amount).toLocaleString()}</p>
+                  <span className={`rounded-full mt-1 inline-block shadow-sm ${p.status === 'paid' ? 'badge-green' : 'badge-red'}`}>{p.status === 'paid' ? "To'landi" : "To'lanmagan"}</span>
+                </div>
+              </div>
+            )
+          })}
         </div>
-      </motion.div>
+      </div>
     </div>
   );
 }

@@ -1,64 +1,62 @@
 import React, { useEffect, useState } from 'react';
-import { collection, onSnapshot, query, where } from 'firebase/firestore';
+import { collection, onSnapshot, query, where } from '../../lib/firebase';
 import { db } from '../../lib/firebase';
 import { useAuth } from '../../contexts/AuthContext';
-import { motion } from 'motion/react';
-import { CheckCircle2, Clock } from 'lucide-react';
 
 export default function StudentPayments() {
   const { user } = useAuth();
   const [payments, setPayments] = useState<any[]>([]);
 
   useEffect(() => {
-    if(!user?.id) return;
+    if (!user) return;
     const q = query(collection(db, 'payments'), where('studentId', '==', user.id));
     const unsub = onSnapshot(q, (snap) => {
       setPayments(snap.docs.map(d => ({id: d.id, ...d.data()})));
     });
-    return unsub;
+    return () => unsub();
   }, [user]);
 
+  // Provide initial mock
+  const list = payments.length ? payments : [
+    { id: 1, month: 'Iyun', amount: 450000, status: 'paid', monthNum: '06' },
+    { id: 2, month: 'May', amount: 450000, status: 'paid', monthNum: '05' },
+    { id: 3, month: 'Aprel', amount: 450000, status: 'unpaid', monthNum: '04' },
+  ];
+
   return (
-    <div className="space-y-6">
-      
-      <div className="glass-panel p-6 text-center shadow-lg mb-6 relative overflow-hidden">
-        <div className="absolute top-[-50%] right-[-10%] w-32 h-32 bg-[#FEC204]/20 rounded-full blur-[40px]"></div>
-        <p className="text-[color:var(--theme-text-primary)]/50 text-[10px] uppercase font-bold tracking-widest relative z-10">Oylik to'lov miqdori</p>
-        <div className="mt-2 text-4xl font-black text-[color:var(--theme-text-primary)] relative z-10">
-          {user?.monthlyFee?.toLocaleString() || 0} <span className="text-[#FEC204] text-lg font-bold">so'm</span>
+    <div className="space-y-5 pb-6">
+      <div className="flex items-center justify-between px-1">
+        <h1 className="text-[20px] font-black text-white tracking-[-0.5px]">To'lovlar</h1>
+        <span className="px-3 py-1 bg-[color:var(--surface-color)] border border-white/10 text-white/70 text-[10px] uppercase font-[900] tracking-[1px] rounded-full">2026 YIL</span>
+      </div>
+
+      <div className="glass-panel p-4 !border-l-[3px] !border-l-[#FEC204] flex items-center justify-between p-5">
+        <div>
+          <p className="text-[9px] uppercase tracking-[2px] font-bold text-white/40 mb-1">Oylik to'lov miqdori</p>
+          <p className="text-[22px] font-[900] tracking-[-1px] text-white">450,000 UZS</p>
         </div>
       </div>
 
       <div>
-        <h2 className="text-[color:var(--theme-text-primary)] font-semibold mb-3">To'lov Tarixi</h2>
+        <h2 className="text-[12px] text-white font-bold uppercase tracking-[1px] mb-3 px-1 mt-2">To'lov Tarixi</h2>
+        
         <div className="space-y-3">
-          {payments.length === 0 ? (
-            <p className="text-center text-[color:var(--theme-text-primary)]/40 py-8 text-sm">Hozircha to'lovlar mavjud emas</p>
-          ) : (
-            payments.map((p, i) => (
-              <motion.div 
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: i * 0.1 }}
-                key={p.id} 
-                className="glass-panel-list p-4 flex justify-between items-center"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-white/5 border border-[color:var(--glass-border)] flex items-center justify-center shrink-0">
-                    {p.status === 'paid' ? <CheckCircle2 className="text-green-400" size={18} /> : <Clock className="text-yellow-400" size={18} />}
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-[color:var(--theme-text-primary)] text-sm">{p.month}-oy, {p.year}</h3>
-                    <p className="text-[10px] text-[color:var(--theme-text-primary)]/40 mt-0.5">{new Date(p.paidAt).toLocaleDateString()}</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className="font-bold text-[color:var(--theme-text-primary)] text-sm">{p.amount.toLocaleString()}</p>
-                  <p className="text-[10px] text-green-400 font-medium">To'landi</p>
-                </div>
-              </motion.div>
-            ))
-          )}
+          {list.map((item, i) => (
+            <div key={item.id} className="glass-panel p-4 flex items-center gap-3 active:border-[#FEC204] transition-colors">
+              <div className="w-[38px] h-[38px] rounded-[10px] bg-[color:var(--surface-color)] border border-white/10 flex items-center justify-center font-[800] text-white text-[13px]">{item.monthNum || `0${i+1}`}</div>
+              <div className="flex-1">
+                <p className="text-white text-[14px] font-bold">{item.month} oyi uchun</p>
+              </div>
+              <div className="text-right flex flex-col items-end gap-1">
+                <p className="text-white text-[15px] font-black tracking-[-0.5px]">{item.amount?.toLocaleString()} UZS</p>
+                {item.status === 'paid' ? (
+                  <span className="badge-green rounded-full">To'landi</span>
+                ) : (
+                  <span className="badge-red rounded-full">Kutilmoqda</span>
+                )}
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </div>

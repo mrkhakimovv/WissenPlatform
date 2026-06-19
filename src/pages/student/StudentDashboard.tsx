@@ -1,138 +1,126 @@
 import React, { useEffect, useState } from 'react';
-import { collection, onSnapshot, query, where } from 'firebase/firestore';
-import { db } from '../../lib/firebase';
 import { useAuth } from '../../contexts/AuthContext';
-import { motion } from 'motion/react';
-import { CheckCircle2, AlertCircle, CalendarClock, Clock } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { collection, onSnapshot, query, where } from '../../lib/firebase';
+import { db } from '../../lib/firebase';
+import { CheckCircle2, BookOpen } from 'lucide-react';
 
 export default function StudentDashboard() {
   const { user } = useAuth();
-  
   const [attendance, setAttendance] = useState<any[]>([]);
-  const [paymentStatus, setPaymentStatus] = useState<'paid' | 'unpaid' | 'checking'>('checking');
-  
+  const [payments, setPayments] = useState<any[]>([]);
+
   useEffect(() => {
-    if(!user?.id) return;
-    
-    // Check attendance
+    if (!user) return;
     const qAtt = query(collection(db, 'attendance'), where('studentId', '==', user.id));
     const unsubAtt = onSnapshot(qAtt, (snap) => setAttendance(snap.docs.map(d => d.data())));
 
-    // Check payment for this month
-    const m = new Date().getMonth() + 1 + '';
-    const y = new Date().getFullYear() + '';
-    const qPay = query(collection(db, 'payments'), where('studentId', '==', user.id), where('month', '==', m), where('year', '==', y));
+    const qPay = query(collection(db, 'payments'), where('studentId', '==', user.id));
     const unsubPay = onSnapshot(qPay, (snap) => {
-      setPaymentStatus(snap.empty ? 'unpaid' : snap.docs[0].data().status);
+      setPayments(snap.docs.map(d => d.data()));
     });
 
     return () => { unsubAtt(); unsubPay(); }
   }, [user]);
 
-  const presentCount = attendance.filter(a => a.status === 'present').length;
-  const absentCount = attendance.filter(a => a.status === 'absent').length;
-  const totalAtt = presentCount + absentCount;
-  const attRate = totalAtt === 0 ? 100 : Math.round((presentCount / totalAtt) * 100);
+  // Mini calendar logic
+  const todayDate = new Date();
+  const days = Array.from({length: 7}, (_, i) => {
+    const d = new Date(todayDate);
+    d.setDate(todayDate.getDate() - 3 + i);
+    return d;
+  });
 
-  // Determine today's class status
-  const days = ['Yakshanba', 'Dushanba', 'Seshanba', 'Chorshanba', 'Payshanba', 'Juma', 'Shanba'];
-  const todayName = days[new Date().getDay()];
+  const presentCount = attendance.filter(a => a.status === 'present' || a.present).length;
+  const totalCount = attendance.length || 1;
+  const attendanceRate = Math.round((presentCount / totalCount) * 100);
+
+  const hasPaid = payments.some(p => p.status === 'paid' && p.amount > 0);
 
   return (
-    <div className="space-y-6">
-      
-      {/* Main Greeting */}
-      <div className="mb-4">
-        <h2 className="text-[color:var(--theme-text-primary)] text-2xl font-bold">Xush kelibsiz! 👋</h2>
-        <p className="text-[color:var(--theme-text-primary)]/50 text-sm mt-1">Bugungi holatingiz xulosasi</p>
+    <div className="space-y-6 pb-6">
+      <div>
+        <h1 className="text-[20px] font-black text-white">Xush kelibsiz, {user?.fullName}! 👋</h1>
+        <p className="text-[12px] text-white/40 font-bold mt-1">Bugungi kun uchun rejalaringiz bilan tanishing.</p>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        {/* Attendance Summary */}
-        <Link to="attendance" className="block">
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
-            className={`glass-panel p-4 h-full relative overflow-hidden ${attRate < 80 ? 'border-red-500/30' : 'border-[#FEC204]/30'}`}
-          >
-            <p className="text-[color:var(--theme-text-primary)]/40 text-[10px] uppercase font-bold mb-1">Davomat O'rtacha</p>
-            <div className="flex items-end gap-2 text-[color:var(--theme-text-primary)]">
-              <span className="text-3xl font-black leading-none">{attRate}%</span>
-            </div>
-            
-            <div className="w-full h-1.5 bg-white/5 rounded-full mt-3 overflow-hidden">
-              <div className={`h-full ${attRate < 80 ? 'bg-red-400' : 'bg-[#FEC204]'}`} style={{ width: `${attRate}%` }}></div>
-            </div>
-          </motion.div>
-        </Link>
-        
-        {/* Payment Summary */}
-        <Link to="payments" className="block">
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.1 }}
-            className={`glass-panel p-4 h-full relative overflow-hidden ${paymentStatus === 'paid' ? 'border-green-500/30' : 'border-red-500/30'}`}
-          >
-            <p className="text-[color:var(--theme-text-primary)]/40 text-[10px] uppercase font-bold mb-1">Joriy oy to'lovi</p>
-            
-            <div className="mt-2 text-[color:var(--theme-text-primary)] flex items-center gap-2">
-              {paymentStatus === 'paid' ? (
-                <>
-                  <CheckCircle2 className="text-green-400 shrink-0" size={24} />
-                  <span className="font-bold text-sm">To'langan</span>
-                </>
-              ) : paymentStatus === 'unpaid' ? (
-                <>
-                  <AlertCircle className="text-red-400 shrink-0" size={24} />
-                  <span className="font-bold text-sm leading-tight text-red-50">To'lanmagan</span>
-                </>
-              ) : (
-                <Clock className="text-[color:var(--theme-text-primary)]/40 shrink-0 animate-spin" size={24} />
-              )}
-            </div>
-          </motion.div>
-        </Link>
-      </div>
-
-      {/* Today's Schedule Card */}
-      <motion.div 
-        initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
-        className="glass-panel p-5 relative overflow-hidden"
-      >
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#FEC204] to-[#f59e0b] flex items-center justify-center text-[#0d0d0d]">
-            <CalendarClock size={20} />
-          </div>
-          <div>
-            <h3 className="font-bold text-[color:var(--theme-text-primary)] leading-tight">Bugungi Darsingiz</h3>
-            <p className="text-[#FEC204] text-[10px] font-bold uppercase">{todayName}</p>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-5">
+        {/* Attendance Card */}
+        <div className="glass-panel p-4 md:p-5 !border-l-[3px] !border-l-[#FEC204] hover:scale-[1.02] transition-transform">
+          <p className="text-[9px] md:text-[11px] uppercase tracking-[2px] font-bold text-white/40 mb-1">Davomat %</p>
+          <p className="text-[26px] md:text-[32px] font-[900] tracking-[-1px] text-white">{attendance.length === 0 ? 0 : attendanceRate}%</p>
+          <div className="w-full h-1.5 bg-[#f0f0f0]/20 rounded-full mt-2 overflow-hidden">
+            <div className="bg-[#FEC204] h-full" style={{ width: `${attendance.length === 0 ? 0 : attendanceRate}%` }}></div>
           </div>
         </div>
-        
-        <div className="bg-white/5 border border-white/5 rounded-xl p-4">
-          <div className="flex justify-between items-center">
+
+        {/* Payment Card */}
+        <div className="glass-panel p-4 md:p-5 !border-l-[3px] !border-l-[#22c55e] flex flex-col justify-between hover:scale-[1.02] transition-transform">
+          <p className="text-[9px] md:text-[11px] uppercase tracking-[2px] font-bold text-white/40 mb-1">To'lov holati</p>
+          <div className="flex items-center gap-2 mt-1">
+            {hasPaid ? (
+              <>
+                <CheckCircle2 size={24} className="text-[#22c55e]" />
+                <p className="text-[18px] md:text-[22px] font-black text-white">To'langan</p>
+              </>
+            ) : (
+                <p className="text-[18px] md:text-[22px] font-black text-red-500">To'lanmagan</p>
+            )}
+          </div>
+          <p className="text-[10px] md:text-[12px] font-bold text-white/40 mt-2">Iyun oyi uchun</p>
+        </div>
+      </div>
+
+      <div>
+        <h2 className="text-[13px] text-white font-bold mb-3 px-1 uppercase tracking-[1px]">Bugungi Darslar</h2>
+        <div className="glass-panel p-4 border-none bg-white shadow-sm p-4 ring-1 ring-[color:white/10]">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-[40px] h-[40px] rounded-[10px] bg-[#FEC204] flex items-center justify-center">
+              <BookOpen size={20} color="#000" />
+            </div>
             <div>
-              <p className="font-bold text-[color:var(--theme-text-primary)] text-lg">{user?.subject || "Fan biriktirilmagan"}</p>
-              <p className="text-[color:var(--theme-text-primary)]/50 text-xs">O'qituvchi: {user?.teacherId || "Noma'lum"}</p>
-            </div>
-            <div className="text-right">
-              <span className="inline-block px-3 py-1 bg-white/10 rounded-lg text-xs font-medium text-[color:var(--theme-text-primary)]/80">Rejalashtirilgan</span>
+              <p className="text-[15px] font-black text-white">{user?.subject || 'Matematika'}</p>
+              <p className="text-[11px] font-bold text-white/40">Guruh: {user?.groupId || 'G-24'}</p>
             </div>
           </div>
+          <div className="bg-[color:var(--surface-color)] p-3 rounded-xl flex items-center justify-between border border-white/10">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-[#FEC204]"></div>
+              <span className="text-[12px] font-bold text-white">Xona #12</span>
+            </div>
+            <span className="badge-gold">14:00 - 16:00</span>
+          </div>
         </div>
-      </motion.div>
+      </div>
 
-      {/* Warning Message if attendance is low */}
-      {attRate < 80 && (
-        <motion.div 
-          initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
-          className="bg-red-500/10 border border-red-500/20 rounded-2xl p-4 flex gap-3 text-red-200 text-sm item-start leading-tight"
-        >
-          <AlertCircle className="text-red-400 shrink-0 mt-0.5" size={18} />
-          <p>
-            <strong className="text-red-400">Diqqat!</strong> Davomatingiz 80% dan tushib ketgan. Iltimos, darslarni qoldirmaslikka harakat qiling.
-          </p>
-        </motion.div>
-      )}
+      <div>
+        <h2 className="text-[13px] text-white font-bold mb-3 px-1 uppercase tracking-[1px]">Davomat</h2>
+        <div className="glass-panel p-4">
+          <div className="grid grid-cols-7 gap-2">
+            {days.map((d, i) => {
+              const dateStr = [d.getFullYear(), String(d.getMonth() + 1).padStart(2, '0'), String(d.getDate()).padStart(2, '0')].join('-');
+              const isToday = i === 3;
+              
+              const attRecord = attendance.find(a => a.date === dateStr);
+              let status = 'empty';
+              if (attRecord) {
+                 status = attRecord.status === 'present' || attRecord.present ? 'present' : (attRecord.status || 'absent');
+              }
+              
+              let style = "bg-white/5 border-white/10 text-white/40";
+              if (status === 'present') style = "bg-[rgba(254,194,4,0.12)] border-[rgba(254,194,4,0.3)] text-[#FEC204]";
+              if (status === 'absent') style = "bg-[rgba(239,68,68,0.1)] border-[rgba(239,68,68,0.2)] text-red-500";
+              if (status === 'excused') style = "bg-yellow-500/10 border-yellow-500/20 text-yellow-500";
+
+              return (
+                <div key={i} className={`aspect-square flex flex-col items-center justify-center rounded-[10px] border font-bold text-[13px] ${style} ${isToday ? 'ring-2 ring-offset-[1px] ring-offset-[#0d0d0d] ring-[#FEC204]' : ''}`}>
+                  <span>{d.getDate()}</span>
+                  <span className="text-[8px] opacity-70 mt-0.5">{d.toLocaleDateString('uz', {weekday:'short'})}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
 
     </div>
   );

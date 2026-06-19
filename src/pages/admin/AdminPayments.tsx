@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { collection, onSnapshot, query, addDoc } from 'firebase/firestore';
+import { collection, onSnapshot, query, addDoc } from '../../lib/firebase';
 import { db } from '../../lib/firebase';
 import { CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -10,7 +10,7 @@ export default function AdminPayments() {
 
   useEffect(() => {
     const unsubStudents = onSnapshot(query(collection(db, 'users')), (snap) => {
-      setStudents(snap.docs.map(d => ({id: d.id, ...d.data()})).filter(s => s.role === 'student'));
+      setStudents(snap.docs.map(d => ({id: d.id, ...(d.data() as any)})).filter(s => s.role === 'student'));
     });
     const unsubPayments = onSnapshot(query(collection(db, 'payments')), (snap) => {
       setPayments(snap.docs.map(d => ({id: d.id, ...d.data()})));
@@ -50,7 +50,7 @@ export default function AdminPayments() {
         <span className="text-[#FEC204] text-xs font-medium bg-[#FEC204]/10 px-3 py-1 rounded-full border border-[#FEC204]/20">{new Date().toLocaleString('uz-UZ', {month: 'long'})}</span>
       </div>
       
-      <div className="space-y-3">
+      <div className="space-y-3 md:space-y-0 md:grid md:grid-cols-2 lg:grid-cols-3 md:gap-4">
         {students.map(student => {
           const status = getStatus(student.id);
           const initials = student.fullName?.substring(0,2).toUpperCase() || 'ST';

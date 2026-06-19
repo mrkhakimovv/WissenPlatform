@@ -1,7 +1,6 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-import { ThemeProvider } from './contexts/ThemeContext';
 import { RootLayout } from './components/RootLayout';
 import AdminLayout from './components/AdminLayout';
 import StudentLayout from './components/StudentLayout';
@@ -22,7 +21,7 @@ function AuthGuard({ children, roles }: { children: React.ReactNode, roles: stri
   const { user, loading } = useAuth();
   
   if (loading) {
-    return <div className="h-screen w-full flex items-center justify-center bg-[var(--theme-bg)]">
+    return <div className="h-screen w-full flex items-center justify-center bg-[#0d0d0d]">
       <div className="w-10 h-10 border-4 border-[#FEC204] border-t-transparent rounded-full animate-spin"></div>
     </div>;
   }
@@ -44,43 +43,41 @@ function DefaultRoute() {
 export default function App() {
   return (
     <BrowserRouter>
-      <ThemeProvider>
-        <AuthProvider>
-          <Routes>
-            <Route element={<RootLayout />}>
-              <Route path="/login" element={<Login />} />
-              <Route path="/" element={<DefaultRoute />} />
-              
-              {/* Admin Routes */}
-              <Route path="/admin" element={
-                <AuthGuard roles={['admin']}>
-                  <AdminLayout />
-                </AuthGuard>
-              }>
-                <Route index element={<AdminDashboard />} />
-                <Route path="groups" element={<AdminGroups />} />
-                <Route path="students" element={<AdminStudents />} />
-                <Route path="payments" element={<AdminPayments />} />
-                <Route path="attendance" element={<AdminAttendance />} />
-                <Route path="more" element={<AdminMore />} />
-              </Route>
-
-              {/* Student Routes */}
-              <Route path="/student" element={
-                <AuthGuard roles={['student']}>
-                  <StudentLayout />
-                </AuthGuard>
-              }>
-                <Route index element={<StudentDashboard />} />
-                <Route path="payments" element={<StudentPayments />} />
-                <Route path="attendance" element={<StudentAttendance />} />
-                <Route path="schedule" element={<StudentSchedule />} />
-                <Route path="profile" element={<StudentProfile />} />
-              </Route>
+      <AuthProvider>
+        <Routes>
+          <Route element={<RootLayout />}>
+            <Route path="/login" element={<Login />} />
+            <Route path="/" element={<DefaultRoute />} />
+            
+            {/* Admin Routes */}
+            <Route path="/admin" element={
+              <AuthGuard roles={['admin']}>
+                <AdminLayout />
+              </AuthGuard>
+            }>
+              <Route index element={<AdminDashboard />} />
+              <Route path="groups" element={<AdminGroups />} />
+              <Route path="students" element={<AdminStudents />} />
+              <Route path="payments" element={<AdminPayments />} />
+              <Route path="attendance" element={<AdminAttendance />} />
+              <Route path="more" element={<AdminMore />} />
             </Route>
-          </Routes>
-        </AuthProvider>
-      </ThemeProvider>
+
+            {/* Student Routes */}
+            <Route path="/student" element={
+              <AuthGuard roles={['student']}>
+                <StudentLayout />
+              </AuthGuard>
+            }>
+              <Route index element={<StudentDashboard />} />
+              <Route path="payments" element={<StudentPayments />} />
+              <Route path="attendance" element={<StudentAttendance />} />
+              <Route path="schedule" element={<StudentSchedule />} />
+              <Route path="profile" element={<StudentProfile />} />
+            </Route>
+          </Route>
+        </Routes>
+      </AuthProvider>
     </BrowserRouter>
   );
 }

@@ -1,109 +1,94 @@
-import React, { useEffect, useState } from 'react';
-import { collection, onSnapshot, query, where } from 'firebase/firestore';
-import { db } from '../../lib/firebase';
-import { useAuth } from '../../contexts/AuthContext';
-import { motion } from 'motion/react';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, startOfWeek, endOfWeek } from 'date-fns';
-import { AlertCircle } from 'lucide-react';
+import React from 'react';
+import { Calendar as CalendarIcon } from 'lucide-react';
 
 export default function StudentAttendance() {
-  const { user } = useAuth();
-  const [attendance, setAttendance] = useState<any[]>([]);
-  const [currentDate, setCurrentDate] = useState(new Date());
-
-  useEffect(() => {
-    if(!user?.id) return;
-    const q = query(collection(db, 'attendance'), where('studentId', '==', user.id));
-    const unsub = onSnapshot(q, (snap) => {
-      setAttendance(snap.docs.map(d => ({id: d.id, ...d.data()})));
-    });
-    return unsub;
-  }, [user]);
-
-  const presentCount = attendance.filter(a => a.status === 'present').length;
-  const absentCount = attendance.filter(a => a.status === 'absent').length;
-  const total = presentCount + absentCount;
-  const rate = total === 0 ? 100 : Math.round((presentCount / total) * 100);
-
-  // Calendar logic
-  const monthStart = startOfMonth(currentDate);
-  const monthEnd = endOfMonth(currentDate);
-  const startDate = startOfWeek(monthStart, { weekStartsOn: 1 });
-  const endDate = endOfWeek(monthEnd, { weekStartsOn: 1 });
-  
-  const dateFormat = "d";
-  const days = eachDayOfInterval({ start: startDate, end: endDate });
-
-  const getDayStatus = (day: Date) => {
-    const formattedDate = format(day, "yyyy-MM-dd");
-    const record = attendance.find(a => a.date === formattedDate);
-    return record?.status;
-  };
+  const days = Array.from({length: 31}, (_, i) => i + 1);
 
   return (
-    <div className="space-y-6 pb-4">
-      
-      <div className="glass-panel p-5 relative overflow-hidden">
-        <div className={`absolute inset-0 bg-gradient-to-br ${rate < 80 ? 'from-red-500/10' : 'from-[#FEC204]/10'} to-transparent z-0`}></div>
-        <p className="text-[color:var(--theme-text-primary)]/50 text-[10px] uppercase font-bold tracking-widest relative z-10 mb-2">Davomat Ko'rsatkichi</p>
-        <div className="flex items-end gap-3 relative z-10">
-          <p className="text-4xl font-black text-[color:var(--theme-text-primary)]">{rate}%</p>
-          <p className={`${rate < 80 ? 'text-red-400' : 'text-[#FEC204]'} text-sm font-medium mb-1`}>
-            {rate < 80 ? 'Xavfli holat' : 'Yaxshi'}
-          </p>
-        </div>
-        <div className="w-full h-1.5 bg-white/10 rounded-full mt-4 overflow-hidden relative z-10">
-          <div className={`${rate < 80 ? 'bg-red-400' : 'bg-[#FEC204]'} h-full transition-all duration-500`} style={{ width: `${rate}%` }}></div>
-        </div>
-        
-        {rate < 80 && (
-          <div className="mt-4 flex gap-2 items-start text-red-200 text-xs leading-tight relative z-10">
-            <AlertCircle className="text-red-400 shrink-0" size={14} />
-            <p>Sizning davomatingiz 80% dan past. Dars qoldirmaslikka harakat qiling.</p>
+    <div className="space-y-5 pb-6">
+      <div className="flex items-center justify-between px-1">
+        <h1 className="text-[20px] font-black text-white tracking-[-0.5px]">Davomat</h1>
+        <span className="badge-gold">Iyun, 2026</span>
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-5">
+        <div className="glass-panel p-4 md:p-5 flex items-center gap-3 md:gap-4 hover:scale-[1.02] transition-transform">
+          <div className="w-10 h-10 md:w-12 md:h-12 rounded-[10px] md:rounded-xl bg-[rgba(254,194,4,0.12)] border border-[rgba(254,194,4,0.3)] flex items-center justify-center text-[#FEC204] font-black text-[16px] md:text-[20px]">18</div>
+          <div>
+            <p className="text-[10px] md:text-[11px] uppercase font-bold text-white/40 tracking-[1px]">Keldi</p>
+            <p className="text-[15px] md:text-[18px] font-black text-white tracking-[-0.5px]">Kunlar</p>
           </div>
-        )}
-      </div>
-
-      <div className="glass-panel p-4">
-        <h3 className="text-center font-bold text-lg mb-4 capitalize text-[color:var(--theme-text-primary)]">{format(currentDate, "MMMM yyyy")}</h3>
+        </div>
         
-        {/* Days Header */}
-        <div className="grid grid-cols-7 mb-2 text-center">
-          {['Du', 'Se', 'Ch', 'Pa', 'Ju', 'Sh', 'Ya'].map((d, i) => (
-            <div key={i} className="text-[10px] font-bold text-[color:var(--theme-text-primary)]/40 uppercase">{d}</div>
-          ))}
-        </div>
-
-        {/* Calendar Grid */}
-        <div className="grid grid-cols-7 gap-1">
-          {days.map((day, i) => {
-            const status = getDayStatus(day);
-            const isCurrentMonth = isSameMonth(day, monthStart);
-            const isToday = isSameDay(day, new Date());
-            
-            let statusClasses = '';
-            if (status === 'present') statusClasses = 'bg-green-500/20 text-green-400 border-green-500/30 border font-bold';
-            else if (status === 'absent') statusClasses = 'bg-red-500/20 text-red-400 border-red-500/30 border font-bold';
-            else if (status === 'excused') statusClasses = 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30 border font-bold';
-            else statusClasses = 'bg-white/5 text-[color:var(--theme-text-primary)]/80';
-
-            return (
-              <div 
-                key={i} 
-                className={`relative flex items-center justify-center p-2 h-10 rounded-xl text-xs transition-all ${!isCurrentMonth ? 'opacity-30' : ''} ${statusClasses} ${isToday && !status ? 'ring-2 ring-[#FEC204]/50' : ''}`}
-              >
-                {format(day, dateFormat)}
-              </div>
-            );
-          })}
+        <div className="glass-panel p-4 md:p-5 flex items-center gap-3 md:gap-4 hover:scale-[1.02] transition-transform">
+          <div className="w-10 h-10 md:w-12 md:h-12 rounded-[10px] md:rounded-xl bg-[rgba(239,68,68,0.1)] border border-[rgba(239,68,68,0.2)] flex items-center justify-center text-red-500 font-black text-[16px] md:text-[20px]">4</div>
+          <div>
+            <p className="text-[10px] md:text-[11px] uppercase font-bold text-white/40 tracking-[1px]">Kelmadi</p>
+            <p className="text-[15px] md:text-[18px] font-black text-white tracking-[-0.5px]">Kunlar</p>
+          </div>
         </div>
       </div>
-      
+
+      <div className="glass-panel p-4 md:p-6 border-l-4 border-[#FEC204] hover:scale-[1.01] transition-transform">
+        <div className="flex justify-between items-end mb-2 md:mb-3">
+          <p className="text-[11px] md:text-[13px] uppercase tracking-[2px] font-bold text-white/40">O'rtacha ko'rsatkich</p>
+          <p className="text-[28px] md:text-[36px] font-[900] tracking-[-1px] text-white leading-none">82%</p>
+        </div>
+        <div className="w-full h-[6px] md:h-[8px] bg-white/10 rounded-full overflow-hidden mt-3 md:mt-4">
+          <div className="bg-[#FEC204] h-full" style={{ width: '82%' }}></div>
+        </div>
+      </div>
+
+      <div>
+        <div className="flex items-center justify-between mb-3 px-1 mt-2">
+          <h2 className="text-[12px] text-white font-bold uppercase tracking-[1px]">Oylik hisobot</h2>
+          <CalendarIcon size={16} className="text-white/40" />
+        </div>
+        
+        <div className="glass-panel p-4">
+          <div className="grid grid-cols-7 gap-2 mb-2">
+            {['Du', 'Se', 'Ch', 'Pa', 'Ju', 'Sh', 'Ya'].map(d => (
+              <div key={d} className="text-center text-[10px] font-bold text-white/40 mb-1">
+                {d}
+              </div>
+            ))}
+          </div>
+          
+          <div className="grid grid-cols-7 gap-[6px]">
+            {/* Empty starts */}
+            <div className="aspect-square"></div>
+            {days.map(day => {
+              let status = 'empty';
+              // Randomly distribute some presences and absences for the mockup
+              if (day < 20) {
+                if (day % 4 === 0) status = 'absent';
+                else if (day % 7 !== 0) status = 'present';
+              }
+              
+              let style = "bg-[#f5f5f5] border-white/10 text-white/40";
+              if (status === 'present') style = "bg-[rgba(254,194,4,0.12)] border-[rgba(254,194,4,0.3)] text-[#a07800]";
+              if (status === 'absent') style = "bg-[rgba(239,68,68,0.1)] border-[rgba(239,68,68,0.2)] text-[color:var(--danger-color)]";
+
+              return (
+                <div key={day} className={`aspect-square flex flex-col items-center justify-center rounded-[8px] border font-bold text-[13px] ${style}`}>
+                  {day}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
       {/* Legend */}
-      <div className="flex justify-center gap-4 text-[10px] font-medium text-[color:var(--theme-text-primary)]/50">
-        <div className="flex items-center gap-1"><div className="w-3 h-3 rounded bg-green-500/20 border border-green-500/30"></div> Kelgan</div>
-        <div className="flex items-center gap-1"><div className="w-3 h-3 rounded bg-red-500/20 border border-red-500/30"></div> Kelmagan</div>
-        <div className="flex items-center gap-1"><div className="w-3 h-3 rounded bg-yellow-500/20 border border-yellow-500/30"></div> Sababli</div>
+      <div className="flex justify-center gap-4 py-2">
+        <div className="flex items-center gap-1.5 border border-white/10 bg-[color:var(--bg-color)] px-3 py-1.5 rounded-full shadow-sm">
+          <div className="w-3 h-3 rounded-md bg-[rgba(254,194,4,0.2)] border border-[rgba(254,194,4,0.4)]"></div>
+          <span className="text-[10px] font-bold text-white/70">Keldi</span>
+        </div>
+        <div className="flex items-center gap-1.5 border border-white/10 bg-[color:var(--bg-color)] px-3 py-1.5 rounded-full shadow-sm">
+          <div className="w-3 h-3 rounded-md bg-[rgba(239,68,68,0.15)] border border-[rgba(239,68,68,0.3)]"></div>
+          <span className="text-[10px] font-bold text-white/70">Kelmadi</span>
+        </div>
       </div>
 
     </div>

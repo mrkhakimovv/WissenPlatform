@@ -1,64 +1,90 @@
 import React from 'react';
-import { motion } from 'motion/react';
-import { CalendarClock } from 'lucide-react';
+import { MapPin, SearchX } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
 
 export default function StudentSchedule() {
-  const days = [
-    { name: 'Dushanba', details: '14:00 - 15:30', today: false },
-    { name: 'Seshanba', details: '-', today: false },
-    { name: 'Chorshanba', details: '14:00 - 15:30', today: true },
-    { name: 'Payshanba', details: '-', today: false },
-    { name: 'Juma', details: '14:00 - 15:30', today: false },
-    { name: 'Shanba', details: '-', today: false },
-    { name: 'Yakshanba', details: '-', today: false },
+  const { user } = useAuth();
+
+  const userSubject = user?.subject || 'Matematika';
+  const userGroup = user?.groupId || 'G-24';
+
+  const scheduleData = [
+    { day: 'Dushanba', short: 'Du', lessons: [{ subject: userSubject, title: `Guruh: ${userGroup}`, time: '14:00 - 16:00', duration: '2 SOAT', location: 'Asosiy bino, 12-xona' }] },
+    { day: 'Seshanba', short: 'Se', lessons: [] },
+    { day: 'Chorshanba', short: 'Ch', lessons: [{ subject: userSubject, title: `Guruh: ${userGroup}`, time: '14:00 - 16:00', duration: '2 SOAT', location: 'Asosiy bino, 12-xona' }] },
+    { day: 'Payshanba', short: 'Pa', lessons: [] },
+    { day: 'Juma', short: 'Ju', lessons: [{ subject: userSubject, title: `Guruh: ${userGroup}`, time: '14:00 - 16:00', duration: '2 SOAT', location: 'Asosiy bino, 12-xona' }] },
+    { day: 'Shanba', short: 'Sha', lessons: [] },
+    { day: 'Yakshanba', short: 'Ya', lessons: [] }
   ];
 
-  const currentDayIndex = new Date().getDay(); // 0 is Sunday
-  const JS_DOW_TO_MY_DOW = [6, 0, 1, 2, 3, 4, 5]; // maps JS 0 (Sun) -> 6 (Yakshanba in my array)
-  days.forEach(d => d.today = false);
-  days[JS_DOW_TO_MY_DOW[currentDayIndex]].today = true;
-
   return (
-    <div className="space-y-6">
-      
-      <div className="glass-panel p-5 relative overflow-hidden bg-gradient-to-br from-[#FEC204]/10 to-transparent border-[#FEC204]/20">
-        <div className="flex items-center gap-4 relative z-10">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#FEC204] to-[#f59e0b] shadow-lg shadow-[#FEC204]/20 flex items-center justify-center shrink-0">
-            <CalendarClock className="text-[#0d0d0d]" size={24} />
-          </div>
-          <div>
-            <h2 className="text-xl font-bold text-[color:var(--theme-text-primary)] leading-tight">Dars Jadvali</h2>
-            <p className="text-[#FEC204] text-[10px] font-bold uppercase tracking-widest mt-1">Haftalik Reja</p>
-          </div>
+    <div className="space-y-6 pb-6">
+      <div className="px-1">
+        <h1 className="text-[20px] font-black text-white tracking-[-0.5px] leading-tight">Dars Jadvali</h1>
+        <p className="text-[10px] uppercase font-bold tracking-[2px] text-white/40 mt-1">Haftalik timeline jadval</p>
+      </div>
+
+      <div className="relative mt-8 px-2 md:px-4">
+        {/* Vertical Line */}
+        <div className="absolute left-1/2 top-0 bottom-0 w-[2px] bg-white/10 -translate-x-1/2 hidden md:block"></div>
+        <div className="absolute left-6 top-0 bottom-0 w-[2px] bg-white/10 md:hidden"></div>
+
+        <div className="space-y-6">
+          {scheduleData.map((item, index) => {
+            const isLeft = index % 2 === 0;
+            return (
+              <div key={item.day} className={`relative flex items-center md:justify-between flex-col md:flex-row ${isLeft ? 'md:flex-row-reverse' : ''}`}>
+                
+                {/* Mobile line logic */}
+                <div className="absolute left-[14px] top-4 w-5 h-5 rounded-full bg-[#0d0d0d] border-4 border-[#FEC204] z-10 md:left-1/2 md:-translate-x-1/2 shadow flex items-center justify-center">
+                </div>
+
+                {/* Empty side for desktop balancing */}
+                <div className="hidden md:block w-[45%]"></div>
+
+                {/* Content Card */}
+                <div className={`w-full md:w-[45%] pl-12 md:pl-0`}>
+                   <div className={`glass-panel p-4 flex flex-col relative transition-all hover:scale-[1.02] ${item.lessons.length > 0 ? 'border-t-2 border-t-[#FEC204] shadow-md' : 'opacity-60 border-t-2 border-t-white/10'}`}>
+                      <div className="mb-3 flex items-center justify-between">
+                         <h3 className={`text-[16px] font-black ${item.lessons.length > 0 ? 'text-white' : 'text-white/40'}`}>{item.day}</h3>
+                         {item.lessons.length > 0 && <span className="text-[10px] font-bold text-white/40 bg-white/5 px-2 py-0.5 rounded-full">{item.lessons.length} dars</span>}
+                      </div>
+                      
+                      {item.lessons.length > 0 ? (
+                        <div className="space-y-3">
+                          {item.lessons.map((lesson, i) => (
+                             <div key={i} className="bg-white/5 rounded-[10px] p-3 border border-white/5">
+                                <div className="flex justify-between items-start mb-2">
+                                  <div>
+                                    <h4 className="text-[14px] font-[800] text-white">{lesson.subject}</h4>
+                                    <p className="text-[11px] font-bold text-white/40">{lesson.title}</p>
+                                  </div>
+                                  <div className="text-right">
+                                    <p className="text-[13px] font-[800] text-[#FEC204] font-mono tracking-tighter">{lesson.time}</p>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-2 pt-2 border-t border-white/10">
+                                  <MapPin size={12} className="text-[#FEC204]" />
+                                  <span className="text-[11px] font-bold text-white/50">{lesson.location}</span>
+                                </div>
+                             </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="py-2 flex items-center gap-2">
+                          <SearchX size={16} className="text-white/20" />
+                          <p className="text-[12px] font-bold text-white/30">Darslar yo'q</p>
+                        </div>
+                      )}
+                   </div>
+                </div>
+
+              </div>
+            );
+          })}
         </div>
       </div>
-
-      <div className="space-y-3 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-white/10 before:to-transparent">
-        {days.map((day, i) => (
-          <motion.div 
-            initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }}
-            key={day.name} 
-            className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active"
-          >
-            {/* Timeline Dot */}
-            <div className={`flex items-center justify-center w-10 h-10 rounded-full border-4 border-[#1a1a1a] shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 z-10 ${day.today ? 'bg-[#FEC204]' : 'bg-white/10'}`}>
-              <div className={`w-2 h-2 rounded-full ${day.today ? 'bg-black' : 'bg-white/40'}`}></div>
-            </div>
-            
-            {/* Card */}
-            <div className={`w-[calc(100%-3rem)] md:w-[calc(50%-2.5rem)] glass-panel-list p-4 ${day.today ? 'border-[#FEC204]/50 shadow-lg shadow-[#FEC204]/10 bg-white/10' : ''}`}>
-              <div className="flex justify-between items-center mb-1">
-                <h3 className={`font-bold ${day.today ? 'text-[#FEC204]' : 'text-[color:var(--theme-text-primary)]'}`}>{day.name}</h3>
-                {day.today && <span className="text-[9px] bg-[#FEC204] text-[#0d0d0d] px-2 py-0.5 rounded-full font-bold uppercase tracking-wide">Bugun</span>}
-              </div>
-              <p className={`text-sm ${day.details === '-' ? 'text-[color:var(--theme-text-primary)]/30 italic font-light' : 'text-[color:var(--theme-text-primary)]/80 font-medium'}`}>
-                {day.details}
-              </p>
-            </div>
-          </motion.div>
-        ))}
-      </div>
-
     </div>
   );
 }

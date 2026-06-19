@@ -1,10 +1,10 @@
 {
-  "projectId": "wissenedu",
-  "appId": "1:667769649401:web:5f6aa114bbc76e4cf3ca28",
-  "apiKey": "AIzaSyB0Y9k12V6wQkxUQl_6MKPCiBy2ZhlZD8M",
-  "authDomain": "wissenedu.firebaseapp.com",
+  "projectId": "wissenapp-4bce7",
+  "appId": "1:853806293997:web:a1948456c1b16403e8bde4",
+  "apiKey": "AIzaSyCn04t32JuYeOl-xvNklbJ9vNeTK7RGrfg",
+  "authDomain": "wissenapp-4bce7.firebaseapp.com",
   "firestoreDatabaseId": "ai-studio-41d7d5e5-6008-47c8-ae27-1ade7e269b79",
-  "storageBucket": "wissenedu.firebasestorage.app",
-  "messagingSenderId": "667769649401",
+  "storageBucket": "wissenapp-4bce7.firebasestorage.app",
+  "messagingSenderId": "853806293997",
   "measurementId": ""
 }
