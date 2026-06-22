@@ -24,10 +24,10 @@ export default function Login() {
   };
 
   return (
-    <div className="flex-1 flex flex-col justify-center px-6 relative h-full overflow-y-auto pt-10 pb-10 z-20">
-      <div className="flex flex-col items-center max-w-[340px] md:max-w-[400px] mx-auto w-full pb-8">
+    <div className="flex-1 flex flex-col px-6 relative h-[100dvh] overflow-y-auto z-20">
+      <div className="flex flex-col items-center max-w-[340px] md:max-w-[400px] mx-auto w-full my-auto py-10 md:py-16">
         
-        <div className="w-[72px] h-[72px] md:w-[90px] md:h-[90px] rounded-3xl bg-transparent border border-white/20 shadow-xl shadow-black/40 flex items-center justify-center mb-6 md:mb-8 relative overflow-hidden backdrop-blur-md">
+        <div className="w-[72px] h-[72px] md:w-[90px] md:h-[90px] rounded-3xl bg-transparent border border-white/20 shadow-xl shadow-black/40 flex items-center justify-center mb-6 md:mb-8 relative overflow-hidden backdrop-blur-md shrink-0">
           <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent"></div>
           <GraduationCap className="text-[#FEC204] relative z-10 w-10 h-10 md:w-12 md:h-12" strokeWidth={2} />
         </div>
