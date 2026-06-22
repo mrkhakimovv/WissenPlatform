@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { GraduationCap, Lock, User, Send, Phone } from 'lucide-react';
+import { GraduationCap, Lock, User } from 'lucide-react';
 
 export default function Login() {
   const [username, setUsername] = useState('');
@@ -74,32 +74,6 @@ export default function Login() {
             {loading ? 'Kirilmoqda...' : 'Tizimga kirish'}
           </button>
         </form>
-
-        <div className="w-full mt-8 p-5 md:p-6 rounded-3xl glass-panel">
-          <div className="text-[10px] md:text-[11px] uppercase tracking-[1.5px] font-bold text-white/40 mb-4 text-center">Aloqa markazi</div>
-          
-          <div className="grid grid-cols-2 gap-3 md:gap-4">
-            <a href="https://t.me/wissen_admin" target="_blank" className="flex flex-col items-center gap-2 p-3 md:p-4 rounded-2xl bg-white/5 border border-white/5 hover:border-white/20 active:border-[#FEC204]/50 transition-colors">
-              <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-blue-500/20 text-blue-400 flex shrink-0 items-center justify-center border border-blue-500/30 shadow-[0_0_15px_rgba(59,130,246,0.2)]">
-                <Send size={18} className="-ml-[2px]" />
-              </div>
-              <div className="text-center">
-                <div className="text-[9px] md:text-[10px] text-white/40 font-bold uppercase tracking-wider mb-0.5">Telegram</div>
-                <div className="text-[11px] md:text-[12px] font-bold text-white/90">@wissen_admin</div>
-              </div>
-            </a>
-
-            <a href="tel:+998886444400" className="flex flex-col items-center gap-2 p-3 md:p-4 rounded-2xl bg-white/5 border border-white/5 hover:border-white/20 active:border-[#FEC204]/50 transition-colors">
-              <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-green-500/20 text-green-400 flex shrink-0 items-center justify-center border border-green-500/30 shadow-[0_0_15px_rgba(34,197,94,0.2)]">
-                <Phone size={18} />
-              </div>
-              <div className="text-center">
-                <div className="text-[9px] md:text-[10px] text-white/40 font-bold uppercase tracking-wider mb-0.5">Telefon</div>
-                <div className="text-[11px] md:text-[12px] font-bold text-white/90">+998886444400</div>
-              </div>
-            </a>
-          </div>
-        </div>
       </div>
     </div>
   );
