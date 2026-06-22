@@ -3,6 +3,6 @@ import { getFirestore, collection, query, where, getDocs, doc, setDoc, updateDoc
 import firebaseConfig from '../../firebase-applet-config.json';
 
 const app = initializeApp(firebaseConfig);
-export const db = getFirestore(app);
+export const db = getFirestore(app, (firebaseConfig as any).firestoreDatabaseId);
 
 export { collection, query, where, getDocs, doc, setDoc, updateDoc, deleteDoc, onSnapshot, orderBy, addDoc, limit };
