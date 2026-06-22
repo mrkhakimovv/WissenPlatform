@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { Home, Users, CreditCard, CalendarCheck, BookOpen, Layers, LogOut } from 'lucide-react';
+import { Home, Users, CreditCard, CalendarCheck, BookOpen, Layers, LogOut, FileText, Megaphone } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 export default function AdminLayout() {
@@ -14,6 +14,8 @@ export default function AdminLayout() {
     { to: "payments", icon: <CreditCard size={22} />, label: "To'lov" },
     { to: "attendance", icon: <CalendarCheck size={22} />, label: "Davomat" },
     { to: "more", icon: <BookOpen size={22} />, label: "Boshqa" },
+    { to: "exams", icon: <FileText size={22} />, label: "Imtihonlar" },
+    { to: "news", icon: <Megaphone size={22} />, label: "Yangiliklar" },
   ];
 
   return (
@@ -82,20 +84,20 @@ export default function AdminLayout() {
         </main>
 
         {/* Mobile Bottom Nav */}
-        <nav className="md:hidden w-full h-[80px] glass-panel rounded-t-3xl rounded-b-none border-t border-white/10 flex items-center justify-around px-2 z-30 shrink-0 pb-4">
+        <nav className="md:hidden w-full h-[80px] glass-panel rounded-t-3xl rounded-b-none border-t border-white/10 flex items-center justify-around px-1 z-30 shrink-0 pb-4 overflow-x-auto gap-2">
           {navItems.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
               end={item.to === '.'}
               className={({ isActive }) => 
-                `flex flex-col items-center justify-center flex-1 h-full gap-1 transition-all ${
+                `flex flex-col items-center justify-center min-w-[70px] h-full gap-1 transition-all ${
                   isActive ? 'text-[#FEC204]' : 'text-white/40 hover:text-white/70'
                 }`
               }
             >
               {item.icon}
-              <span className="text-[10px] font-bold uppercase tracking-[1px]">{item.label}</span>
+              <span className="text-[9px] font-bold uppercase tracking-[0.5px] truncate max-w-full">{item.label}</span>
             </NavLink>
           ))}
         </nav>

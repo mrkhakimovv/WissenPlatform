@@ -11,6 +11,8 @@ import AdminStudents from './pages/admin/AdminStudents';
 import AdminPayments from './pages/admin/AdminPayments';
 import AdminAttendance from './pages/admin/AdminAttendance';
 import AdminMore from './pages/admin/AdminMore';
+import AdminExams from './pages/admin/AdminExams';
+import AdminNews from './pages/admin/AdminNews';
 import StudentDashboard from './pages/student/StudentDashboard';
 import StudentPayments from './pages/student/StudentPayments';
 import StudentAttendance from './pages/student/StudentAttendance';
@@ -61,6 +63,8 @@ export default function App() {
               <Route path="payments" element={<AdminPayments />} />
               <Route path="attendance" element={<AdminAttendance />} />
               <Route path="more" element={<AdminMore />} />
+              <Route path="exams" element={<AdminExams />} />
+              <Route path="news" element={<AdminNews />} />
             </Route>
 
             {/* Student Routes */}
