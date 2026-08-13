@@ -22,7 +22,9 @@ import StudentAttendance from './pages/student/StudentAttendance';
 import StudentSchedule from './pages/student/StudentSchedule';
 import StudentProfile from './pages/student/StudentProfile';
 import StudentHomeworks from './pages/student/StudentHomeworks';
+import StudentExams from './pages/student/StudentExams';
 import StudentRegistration from './pages/StudentRegistration';
+import TeacherRegistration from './pages/TeacherRegistration';
 
 function AuthGuard({ children, roles }: { children: React.ReactNode, roles: string[] }) {
   const { user, loading } = useAuth();
@@ -57,6 +59,7 @@ export default function App() {
           <Route element={<RootLayout />}>
             <Route path="/login" element={<Login />} />
             <Route path="/qoshil" element={<StudentRegistration />} />
+            <Route path="/oqituvchi-qoshil" element={<TeacherRegistration />} />
             <Route path="/" element={<DefaultRoute />} />
             
             {/* Admin Routes */}
@@ -87,7 +90,8 @@ export default function App() {
               <Route path="attendance" element={<StudentAttendance />} />
               <Route path="schedule" element={<StudentSchedule />} />
               <Route path="homeworks" element={<StudentHomeworks />} />
-              <Route path="profile" element={<StudentProfile />} />
+              <Route path="exams" element={<StudentExams />} />
+              <Route path="profile" element={<Navigate to="/student" replace />} />
             </Route>
           </Route>
           </Routes>

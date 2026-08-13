@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { collection, doc, getDocs, getDoc } from '../lib/firebase';
+import { collection, doc, getDocs, getDoc, onSnapshot } from '../lib/firebase';
 import { db, auth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from '../lib/firebase';
 import toast from 'react-hot-toast';
 
@@ -19,10 +19,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+    let unsubscribeDoc: (() => void) | null = null;
+
+    const unsubscribeAuth = onAuthStateChanged(auth, (firebaseUser) => {
       if (firebaseUser) {
-        try {
-          const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+        const userDocRef = doc(db, 'users', firebaseUser.uid);
+        
+        // Clean up any existing listener before creating a new one
+        if (unsubscribeDoc) {
+          unsubscribeDoc();
+        }
+
+        unsubscribeDoc = onSnapshot(userDocRef, (userDoc) => {
           if (userDoc.exists()) {
             const data = userDoc.data();
             setUser({
@@ -31,28 +39,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               fullName: data.fullName,
               role: data.role as UserRole,
               subject: data.subject,
-              groupId: data.groupId,
+              groupId: data.groupId, 
+              groups: data.groups,
               teacherId: data.teacherId,
               monthlyFee: data.monthlyFee,
               joinedDate: data.joinedDate,
               phone: data.phone,
               createdAt: data.createdAt
             });
+            setLoading(false);
           } else {
             console.error('User doc not found in Firestore');
             setUser(null);
+            setLoading(false);
           }
-        } catch (err) {
+        }, (err) => {
           console.error('Error fetching user:', err);
           setUser(null);
-        }
+          setLoading(false);
+        });
       } else {
         setUser(null);
+        setLoading(false);
+        if (unsubscribeDoc) {
+          unsubscribeDoc();
+          unsubscribeDoc = null;
+        }
       }
-      setLoading(false);
     });
 
-    return () => unsubscribe();
+    return () => {
+      if (unsubscribeDoc) {
+        unsubscribeDoc();
+      }
+      unsubscribeAuth();
+    };
   }, []);
 
   const login = async (email: string, pass: string) => {
@@ -72,7 +93,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           fullName: data.fullName,
           role: data.role as UserRole,
           subject: data.subject,
-          groupId: data.groupId,
+          groupId: data.groupId, groups: data.groups,
           teacherId: data.teacherId,
           monthlyFee: data.monthlyFee,
           joinedDate: data.joinedDate,

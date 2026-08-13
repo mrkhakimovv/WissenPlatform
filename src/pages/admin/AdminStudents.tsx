@@ -2,7 +2,7 @@ import { useConfirm } from '../../contexts/ConfirmContext';
 import React, { useEffect, useState } from 'react';
 import { collection, onSnapshot, query, doc, setDoc, deleteDoc, addDoc, updateDoc, secondaryAuth, createUserWithEmailAndPassword, getDocs, where } from '../../lib/firebase';
 import { db } from '../../lib/firebase';
-import { Plus, Search, Trash2, Edit2, X, ChevronRight, CheckCircle2 } from 'lucide-react';
+import { Plus, Search, Trash2, Edit2, X, ChevronRight, CheckCircle2, Layers } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'motion/react';
 import { Payment, Attendance } from '../../types';
@@ -24,6 +24,10 @@ export default function AdminStudents() {
   const [selectedStudent, setSelectedStudent] = useState<any>(null);
   const [studentPayments, setStudentPayments] = useState<Payment[]>([]);
   const [studentAttendance, setStudentAttendance] = useState<Attendance[]>([]);
+  
+  const [isGroupAssignModalOpen, setIsGroupAssignModalOpen] = useState(false);
+  const [groupAssignStudent, setGroupAssignStudent] = useState<any>(null);
+  const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>([]);
 
   useEffect(() => {
     const q = query(collection(db, 'users'));
@@ -124,6 +128,31 @@ export default function AdminStudents() {
     setStudentAttendance(attSnap.docs.map(d => ({id: d.id, ...d.data()} as Attendance)));
   };
 
+  const openGroupAssign = (e: React.MouseEvent, student: any) => {
+    e.stopPropagation();
+    setGroupAssignStudent(student);
+    const currentGroups = student.groups || (student.groupId ? [student.groupId] : []);
+    setSelectedGroupIds(currentGroups);
+    setIsGroupAssignModalOpen(true);
+  };
+
+  const handleGroupAssignSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!groupAssignStudent) return;
+    try {
+      await updateDoc(doc(db, 'users', groupAssignStudent.id), {
+        groups: selectedGroupIds,
+        groupId: selectedGroupIds.length > 0 ? selectedGroupIds[0] : ''
+      });
+      toast.success("Guruhlar muvaffaqiyatli biriktirildi!");
+      setIsGroupAssignModalOpen(false);
+      setGroupAssignStudent(null);
+    } catch (err) {
+      console.error(err);
+      toast.error("Xatolik yuz berdi");
+    }
+  };
+
   const handleDelete = async (e: React.MouseEvent, id: string, name: string) => {
     e.stopPropagation();
     if(await confirm({ title: 'Diqqat', message: `${name} ni haqiqatan ham o'chirmoqchimisiz?` })) {
@@ -182,6 +211,9 @@ export default function AdminStudents() {
                 </div>
                 
                 <div className="flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                  <button onClick={(e) => openGroupAssign(e, student)} className="w-8 h-8 flex items-center justify-center bg-blue-500/10 text-blue-400 rounded-full hover:text-blue-300 hover:bg-blue-500/20 transition-colors" title="Guruhlarga biriktirish">
+                    <Layers size={14} />
+                  </button>
                   <button onClick={(e) => openEdit(e, student)} className="w-8 h-8 flex items-center justify-center bg-white/5 text-white/70 rounded-full hover:text-white hover:bg-white/20 transition-colors">
                     <Edit2 size={14} />
                   </button>
@@ -207,8 +239,18 @@ export default function AdminStudents() {
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-[13px] text-white/50">Guruh:</span>
-                  <span className="text-[13px] text-white/90 font-medium truncate max-w-[120px] text-right">
-                    {groups.find(g => g.id === student.groupId)?.name || 'Yo\'q'}
+                  <span className="text-[13px] text-white/90 font-medium truncate max-w-[120px] text-right" title={
+                    (() => {
+                      const sGroups = groups.filter(g => student.groups?.includes(g.id) || g.id === student.groupId);
+                      return sGroups.length > 0 ? sGroups.map(g => g.name).join(', ') : 'Yo\'q';
+                    })()
+                  }>
+                    {(() => {
+                      const sGroups = groups.filter(g => student.groups?.includes(g.id) || g.id === student.groupId);
+                      if (sGroups.length === 0) return 'Yo\'q';
+                      if (sGroups.length > 1) return `${sGroups.length} ta guruh`;
+                      return sGroups[0].name || 'Nomsiz guruh';
+                    })()}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
@@ -349,7 +391,10 @@ export default function AdminStudents() {
                   <h3 className="text-[18px] font-bold text-white">{selectedStudent.fullName}</h3>
                   <p className="text-[13px] text-white/40">@{selectedStudent.username}</p>
                   <p className="text-[12px] font-medium text-[#FEC204] mt-1">
-                    Guruh: {groups.find(g => g.id === selectedStudent.groupId)?.name || 'Noma\'lum'}
+                    Guruh: {(() => {
+                      const sGroups = groups.filter(g => selectedStudent.groups?.includes(g.id) || g.id === selectedStudent.groupId);
+                      return sGroups.length > 0 ? sGroups.map(g => g.name).join(', ') : 'Noma\'lum';
+                    })()}
                   </p>
                 </div>
               </div>
@@ -412,6 +457,51 @@ export default function AdminStudents() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {isGroupAssignModalOpen && groupAssignStudent && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm sm:absolute">
+          <div className="glass-panel w-full max-w-sm p-6 bg-[#1a1a1a]/95 relative overflow-hidden">
+            <h2 className="text-[18px] font-black text-white mb-2">Guruhlarga biriktirish</h2>
+            <p className="text-[13px] text-white/50 mb-4">{groupAssignStudent.fullName} uchun guruhlarni tanlang</p>
+            
+            <form onSubmit={handleGroupAssignSave}>
+              <div className="space-y-2 max-h-[40vh] overflow-y-auto pr-2 custom-scrollbar">
+                {groups.length === 0 ? (
+                  <p className="text-[13px] text-white/40 italic">Guruhlar mavjud emas</p>
+                ) : (
+                  groups.map(g => {
+                    const isSelected = selectedGroupIds.includes(g.id);
+                    return (
+                      <div 
+                        key={g.id} 
+                        onClick={() => {
+                          setSelectedGroupIds(prev => 
+                            prev.includes(g.id) ? prev.filter(id => id !== g.id) : [...prev, g.id]
+                          );
+                        }}
+                        className={`p-3 rounded-[12px] border cursor-pointer flex items-center justify-between transition-colors ${isSelected ? 'bg-[#FEC204]/10 border-[#FEC204]/30' : 'bg-white/5 border-white/10 hover:bg-white/10'}`}
+                      >
+                        <div>
+                          <p className={`text-[14px] font-bold ${isSelected ? 'text-[#FEC204]' : 'text-white'}`}>{g.name || 'Nomsiz guruh'}</p>
+                          <p className="text-[11px] text-white/40">{g.subject}</p>
+                        </div>
+                        <div className={`w-5 h-5 rounded-md border flex items-center justify-center ${isSelected ? 'bg-[#FEC204] border-[#FEC204]' : 'border-white/20'}`}>
+                          {isSelected && <CheckCircle2 size={12} className="text-black" />}
+                        </div>
+                      </div>
+                    )
+                  })
+                )}
+              </div>
+              <div className="flex gap-3 pt-2 mt-4 border-t border-white/10">
+                <button type="button" onClick={() => {setIsGroupAssignModalOpen(false); setGroupAssignStudent(null);}} className="flex-1 py-3 rounded-xl border border-[color:var(--glass-border)] text-sm font-medium hover:bg-white/5">Bekor qilish</button>
+                <button type="submit" className="flex-1 bg-[#FEC204] text-black rounded-xl py-3 text-sm font-bold active:scale-95 transition-transform">Saqlash</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

@@ -1,8 +1,10 @@
 import { useConfirm } from '../contexts/ConfirmContext';
-import React from 'react';
+import React, { useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
-import { Home, CreditCard, CalendarCheck, CalendarDays, User, LogOut, FileText } from 'lucide-react';
+import { Home, CreditCard, CalendarCheck, CalendarDays, User, LogOut, FileText, GraduationCap } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import StudentProfile from '../pages/student/StudentProfile';
+import { X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 export default function StudentLayout() {
@@ -18,6 +20,7 @@ export default function StudentLayout() {
   };
   const location = useLocation();
   const isProfile = location.pathname.endsWith('/profile');
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
   
   const navItems = [
     { to: ".", icon: <Home size={22} />, label: "Asosiy" },
@@ -25,8 +28,8 @@ export default function StudentLayout() {
     { to: "attendance", icon: <CalendarCheck size={22} />, label: "Davomat" },
     { to: "schedule", icon: <CalendarDays size={22} />, label: "Jadval" },
     { to: "homeworks", icon: <FileText size={22} />, label: "Vazifalar" },
-    { to: "profile", icon: <User size={22} />, label: "Profil" },
-  ];
+    { to: "exams", icon: <GraduationCap size={22} />, label: "Imtihonlar" },
+      ];
 
   return (
     <div className="flex flex-col md:flex-row h-full w-full bg-transparent">
@@ -73,7 +76,7 @@ export default function StudentLayout() {
               <h1 className="text-[#FEC204] text-[20px] font-black tracking-[-0.5px] leading-tight line-clamp-1">{user?.fullName || "O'quvchi"}</h1>
               <p className="text-white/40 text-[9px] uppercase tracking-[2px] font-bold">O'quvchi Kabineti</p>
             </div>
-            <div className="flex items-center gap-3 shrink-0 ml-2">
+            <div className="flex items-center gap-3 shrink-0 ml-2 cursor-pointer hover:opacity-80 transition-opacity" onClick={() => setIsProfileOpen(true)}>
               <div className="w-10 h-10 rounded-2xl bg-[#FEC204] flex items-center justify-center text-[#000] font-black text-sm shadow-lg shadow-[#FEC204]/20 border border-white/20">
                 {user?.fullName?.substring(0,2).toUpperCase() || 'ST'}
               </div>
@@ -83,7 +86,7 @@ export default function StudentLayout() {
 
         {/* Desktop Top Header (Always visible on desktop) */}
         <header className="hidden md:flex h-[80px] px-8 items-center justify-end shrink-0 relative z-20 border-b border-white/5">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 cursor-pointer hover:opacity-80 transition-opacity" onClick={() => setIsProfileOpen(true)}>
             <div className="flex flex-col items-end mr-2">
               <span className="text-[14px] font-bold text-white/90 tracking-wide">{user?.fullName || "O'quvchi"}</span>
               <span className="text-[11px] text-white/40 font-bold uppercase tracking-wider">Talaba</span>
@@ -118,6 +121,34 @@ export default function StudentLayout() {
           ))}
         </nav>
       </div>
+
+      {/* Profile Slideover */}
+      {isProfileOpen && (
+        <div className="fixed inset-0 z-50 flex justify-end">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsProfileOpen(false)} />
+          <div className="relative w-full max-w-md bg-[#0d0d0d] border-l border-white/5 h-full flex flex-col shadow-2xl animate-in slide-in-from-right duration-300">
+             <div className="flex items-center justify-between p-5 border-b border-white/5 shrink-0">
+               <h2 className="text-lg font-bold text-white">Profil</h2>
+               <button onClick={() => setIsProfileOpen(false)} className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-white/50 hover:text-white hover:bg-white/10 transition-colors">
+                 <X size={18} />
+               </button>
+             </div>
+             <div className="flex-1 overflow-y-auto p-5">
+               <StudentProfile />
+             </div>
+             
+             <div className="p-5 border-t border-white/5 shrink-0">
+                <button 
+                  onClick={handleLogout}
+                  className="w-full flex justify-center items-center gap-2 py-3 rounded-xl bg-red-500/10 text-red-500 font-bold hover:bg-red-500/20 transition-colors"
+                >
+                  <LogOut size={18} />
+                  <span>Tizimdan chiqish</span>
+                </button>
+             </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

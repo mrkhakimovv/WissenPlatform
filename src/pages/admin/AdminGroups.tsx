@@ -51,7 +51,7 @@ export default function AdminGroups() {
     return () => { unsubGroups(); unsubStudents(); unsubSubjects(); unsubTeachers(); }
   }, []);
 
-  const getStudentCount = (groupId: string) => students.filter(s => s.groupId === groupId).length;
+  const getStudentCount = (groupId: string) => students.filter(s => s.groups?.includes(groupId) || s.groupId === groupId).length;
   
   const filteredGroups = groups.filter(g => g.name?.toLowerCase().includes(searchTerm.toLowerCase()));
 

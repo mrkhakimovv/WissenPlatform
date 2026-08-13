@@ -1,16 +1,14 @@
-import { useConfirm } from '../../contexts/ConfirmContext';
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { Phone, Mail, BookOpen, CalendarIcon } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+
 import { db, doc, getDoc, collection, query, where, getDocs } from '../../lib/firebase';
 import { Group, Attendance } from '../../types';
 import { format } from 'date-fns';
 
 export default function StudentProfile() {
-  const { confirm } = useConfirm();
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
+  const { user } = useAuth();
+  
   const [group, setGroup] = useState<Group | null>(null);
   const [attendanceRate, setAttendanceRate] = useState<number>(0);
   const [monthsCount, setMonthsCount] = useState<number>(0);
@@ -19,12 +17,14 @@ export default function StudentProfile() {
     async function loadData() {
       if (!user) return;
       
-      // Load group
-      if (user.groupId) {
+      // Load group(s)
+      const userGroups = user.groups?.length ? user.groups : (user.groupId ? [user.groupId] : []);
+      if (userGroups.length > 0) {
         try {
-          const gDoc = await getDoc(doc(db, 'groups', user.groupId));
-          if (gDoc.exists()) {
-            setGroup({ id: gDoc.id, ...gDoc.data() } as Group);
+          const groupDocs = await Promise.all(userGroups.map(id => getDoc(doc(db, 'groups', id))));
+          const fetchedGroups = groupDocs.filter(d => d.exists()).map(d => ({ id: d.id, ...d.data() } as Group));
+          if (fetchedGroups.length > 0) {
+            setGroup(fetchedGroups[0]); // Set the primary one for the state
           }
         } catch (e) {
           console.error('Error loading group', e);
@@ -64,7 +64,7 @@ export default function StudentProfile() {
   const groupText = group ? `${group.subject} • ${group.name}` : (user?.subject ? user.subject : 'Biriktirilmagan');
 
   return (
-    <div className="space-y-6 pt-4 pb-6 overflow-y-auto">
+    <div className="space-y-6 pt-4 pb-6">
       {/* Profile Header Block */}
       <div className="flex flex-col items-center">
         <div className="relative mb-4">
@@ -141,11 +141,7 @@ export default function StudentProfile() {
         </div>
       </div>
 
-      <div className="pt-4">
-        <button onClick={async () => { if (await confirm({ title: 'Diqqat', message: `Rostdan tizimdan chiqmoqchimisiz?` })) { logout().then(() => navigate('/login')); } }} className="glass-button py-3 mt-4 w-full flex justify-center items-center">
-          Tizimdan chiqish
-        </button>
-      </div>
+
 
       <p className="text-center text-[10px] font-bold text-white/40 py-4">Wissen Edu v1.0.0</p>
     </div>

@@ -26,6 +26,7 @@ export default function AdminPayments() {
   const handlePay = async (studentId: string, amount: number) => {
     try {
       const now = new Date();
+      const finalAmount = amount || 0;
       
       const existing = payments.find(p => 
         p.studentId === studentId && 
@@ -41,7 +42,7 @@ export default function AdminPayments() {
       if(await confirm({ title: 'Diqqat', message: "To'lov qabul qilinganini tasdiqlaysizmi?" })) {
         await addDoc(collection(db, 'payments'), {
           studentId,
-          amount,
+          amount: finalAmount,
           month: filterMonth,
           year: filterYear,
           status: 'paid',

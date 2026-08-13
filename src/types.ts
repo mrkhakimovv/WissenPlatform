@@ -9,6 +9,7 @@ export interface User {
   username: string;
   role: UserRole;
   groupId?: string;
+  groups?: string[];
   subject?: string;
   monthlyFee?: number;
   phone?: string;
@@ -23,6 +24,9 @@ export interface Group {
   teacherName: string;
   subject: string;
   createdAt: string;
+  days?: string[];
+  startTime?: string;
+  endTime?: string;
 }
 
 export interface Payment {

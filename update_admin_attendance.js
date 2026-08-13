@@ -1,10 +1,12 @@
-import { useConfirm } from '../../contexts/ConfirmContext';
+import fs from 'fs';
+
+const code = `import { useConfirm } from '../../contexts/ConfirmContext';
 import React, { useState, useEffect } from 'react';
 import { collection, onSnapshot, query, addDoc, updateDoc, deleteDoc, doc } from '../../lib/firebase';
 import { db } from '../../lib/firebase';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
-import { ChevronLeft, Users } from 'lucide-react';
+import { ChevronLeft, Users, ArchiveBox } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 export default function AdminAttendance() {
@@ -13,6 +15,7 @@ export default function AdminAttendance() {
   const [groups, setGroups] = useState<any[]>([]);
   const [attendance, setAttendance] = useState<any[]>([]);
   const [payments, setPayments] = useState<any[]>([]);
+  const [schedules, setSchedules] = useState<any[]>([]);
   
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
   const [selectedMonth, setSelectedMonth] = useState(format(new Date(), 'yyyy-MM'));
@@ -30,7 +33,10 @@ export default function AdminAttendance() {
     const unsubPay = onSnapshot(query(collection(db, 'payments')), (snap) => {
       setPayments(snap.docs.map(d => ({id: d.id, ...d.data()})));
     });
-    return () => { unsubStudents(); unsubAtt(); unsubGroups(); unsubPay(); }
+    const unsubSched = onSnapshot(query(collection(db, 'schedules')), (snap) => {
+      setSchedules(snap.docs.map(d => ({id: d.id, ...d.data()})));
+    });
+    return () => { unsubStudents(); unsubAtt(); unsubGroups(); unsubPay(); unsubSched(); }
   }, []);
 
   const [year, month] = selectedMonth.split('-').map(Number);
@@ -39,13 +45,14 @@ export default function AdminAttendance() {
   const groupStudents = students.filter(s => s.groups?.includes(selectedGroupId) || s.groupId === selectedGroupId);
   const selectedGroup = groups.find(g => g.id === selectedGroupId);
 
-  const allowedDaysOfWeek = (selectedGroup?.days || []).map(Number); // e.g. [1, 3, 5]
+  const groupSchedules = schedules.filter(s => s.groupId === selectedGroupId);
+  const allowedDaysOfWeek = groupSchedules.map(s => Number(s.dayOfWeek)); // 1 to 7
 
   const validDates: number[] = [];
   for (let d = 1; d <= daysInMonth; d++) {
       const dateObj = new Date(year, month - 1, d);
       const dayOfWeek = dateObj.getDay() || 7;
-      if (allowedDaysOfWeek.includes(dayOfWeek)) {
+      if (allowedDaysOfWeek.length === 0 || allowedDaysOfWeek.includes(dayOfWeek)) {
           validDates.push(d);
       }
   }
@@ -61,13 +68,13 @@ export default function AdminAttendance() {
   };
 
   const getStatus = (studentId: string, day: number) => {
-    const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    const dateStr = \`\${year}-\${String(month).padStart(2, '0')}-\${String(day).padStart(2, '0')}\`;
     const a = attendance.find(a => a.studentId === studentId && a.date === dateStr);
     return a ? a.status : null;
   };
 
   const toggleAttendance = async (studentId: string, day: number) => {
-     const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+     const dateStr = \`\${year}-\${String(month).padStart(2, '0')}-\${String(day).padStart(2, '0')}\`;
      const existing = attendance.find(a => a.studentId === studentId && a.date === dateStr);
      
      let newStatus = 'present';
@@ -157,7 +164,7 @@ export default function AdminAttendance() {
                  <div>
                     <h2 className="text-[20px] font-black text-white flex items-center gap-3">
                         {selectedGroup?.name} 
-                        {selectedGroup?.startTime && <span className="text-white/40 text-[16px] font-medium">{selectedGroup.startTime}{selectedGroup.endTime ? ` - ${selectedGroup.endTime}` : ''}</span>}
+                        {groupSchedules.length > 0 && <span className="text-white/40 text-[16px] font-medium">{groupSchedules[0].startTime}</span>}
                     </h2>
                     <p className="text-[12px] font-bold text-white/40 mt-1">{darslarSoni} ta dars • {groupStudents.length} ta o'quvchi</p>
                  </div>
@@ -174,43 +181,39 @@ export default function AdminAttendance() {
               </div>
            </div>
 
-           {validDates.length === 0 ? (
-             <div className="glass-panel p-8 text-center">
-                 <p className="text-white/40 text-sm font-medium">Ushbu guruh uchun dars jadvali (kunlari) belgilanmagan.</p>
-             </div>
-           ) : (
-             <div className="glass-panel overflow-hidden rounded-xl border border-white/5 bg-[#1a1a1a]">
+           <div className="glass-panel overflow-hidden">
                <div className="w-full overflow-x-auto">
                    <table className="w-full text-left border-collapse whitespace-nowrap">
                        <thead>
-                           <tr className="bg-[#2a2a2a] border-b border-white/5">
-                               <th className="sticky left-0 z-20 bg-[#2a2a2a] p-4 text-[11px] font-bold text-white/50 uppercase tracking-widest min-w-[250px] border-r border-white/5 shadow-[4px_0_12px_rgba(0,0,0,0.1)]">
-                                   ISM FAMILIYA
+                           <tr>
+                               <th className="sticky left-0 z-10 bg-[#121212]/95 backdrop-blur border-b border-white/10 p-4 text-[10px] font-bold text-white/40 uppercase tracking-widest min-w-[250px]">
+                                   Ism Familiya
                                </th>
                                {validDates.map(d => (
-                                   <th key={d} className="p-4 text-center text-[12px] font-bold text-white w-[50px] min-w-[50px]">
+                                   <th key={d} className="border-b border-white/10 p-4 text-center text-[12px] font-bold text-white w-12 min-w-[48px]">
                                        {d}
                                    </th>
                                ))}
                            </tr>
                        </thead>
-                       <tbody className="bg-[#1e1e1e]">
+                       <tbody>
                            {groupStudents.map(student => {
                                const debt = getStudentDebt(student.id);
                                return (
-                                   <tr key={student.id} className="border-b border-white/5 last:border-0 hover:bg-[#252525] transition-colors group">
-                                       <td className="sticky left-0 z-10 bg-[#1e1e1e] group-hover:bg-[#252525] transition-colors p-4 border-r border-white/5 shadow-[4px_0_12px_rgba(0,0,0,0.1)]">
+                                   <tr key={student.id} className="border-b border-white/5 last:border-0 hover:bg-white/[0.02] transition-colors">
+                                       <td className="sticky left-0 z-10 bg-[#151515] p-4 border-r border-white/5">
                                            <div className="flex justify-between items-center pr-2">
                                               <div>
-                                                  <h4 className="text-[14px] font-bold text-white mb-0.5">{student.fullName}</h4>
+                                                  <h4 className="text-[14px] font-bold text-white mb-1">{student.fullName}</h4>
                                                   {debt > 0 ? (
-                                                      <p className="text-[11px] font-medium text-[#f87171]">{debt.toLocaleString()} so'm qarz</p>
+                                                      <p className="text-[11px] font-bold text-red-500">{debt.toLocaleString()} so'm qarz</p>
                                                   ) : (
-                                                      <p className="text-[11px] font-medium text-[#4ade80]">To'langan</p>
+                                                      <p className="text-[11px] font-bold text-green-400">To'langan</p>
                                                   )}
                                               </div>
-                                              <div className="w-6 h-6 rounded flex items-center justify-center text-white/20">
-                                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"></path><path d="m3.3 7 8.7 5 8.7-5"></path><path d="M12 22V12"></path></svg>
+                                              {/* Just a placeholder icon like in the screenshot */}
+                                              <div className="w-6 h-6 rounded border border-white/10 flex items-center justify-center text-white/20">
+                                                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"></path><path d="m3.3 7 8.7 5 8.7-5"></path><path d="M12 22V12"></path></svg>
                                               </div>
                                            </div>
                                        </td>
@@ -219,17 +222,17 @@ export default function AdminAttendance() {
                                            let cellStyle = "bg-white/5 text-transparent border border-white/5";
                                            let label = "";
                                            if (status === 'present') {
-                                               cellStyle = "bg-[#065f46]/40 text-[#4ade80] border-[#065f46]/60";
+                                               cellStyle = "bg-green-500/20 text-green-400 border-green-500/20";
                                                label = "+";
                                            } else if (status === 'absent') {
-                                               cellStyle = "bg-[#7f1d1d]/40 text-[#f87171] border-[#7f1d1d]/60";
+                                               cellStyle = "bg-red-500/20 text-red-500 border-red-500/20";
                                                label = "-";
                                            }
                                            return (
                                                <td key={d} className="p-2 text-center">
                                                    <button 
                                                        onClick={() => toggleAttendance(student.id, d)}
-                                                       className={`w-[34px] h-[28px] rounded-[6px] mx-auto flex items-center justify-center text-[15px] font-black transition-all hover:scale-[1.05] ${cellStyle}`}
+                                                       className={\`w-8 h-8 rounded-[6px] mx-auto flex items-center justify-center text-[16px] font-black transition-colors \${cellStyle}\`}
                                                    >
                                                        {label}
                                                    </button>
@@ -250,9 +253,11 @@ export default function AdminAttendance() {
                    </table>
                </div>
            </div>
-           )}
         </div>
       )}
     </div>
   );
 }
+`;
+
+fs.writeFileSync('src/pages/admin/AdminAttendance.tsx', code);

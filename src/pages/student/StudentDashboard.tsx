@@ -15,6 +15,7 @@ export default function StudentDashboard() {
   const [currentNewsIndex, setCurrentNewsIndex] = useState(0);
   const [group, setGroup] = useState<Group | null>(null);
   const [exams, setExams] = useState<Exam[]>([]);
+  const [groups, setGroups] = useState<Group[]>([]);
 
   useEffect(() => {
     if (!user) return;
@@ -39,25 +40,43 @@ export default function StudentDashboard() {
 
   useEffect(() => {
     async function fetchGroupAndSchedules() {
-      if (!user?.groupId) return;
+      const userGroups = user?.groups?.length ? user.groups : (user?.groupId ? [user.groupId] : []);
+      if (userGroups.length === 0) return;
       
-      const gDoc = await getDoc(doc(db, 'groups', user.groupId));
-      if (gDoc.exists()) {
-        setGroup({ id: gDoc.id, ...gDoc.data() } as Group);
+      const groupDocs = await Promise.all(userGroups.map(id => getDoc(doc(db, 'groups', id))));
+      const fetchedGroups = groupDocs.filter(d => d.exists()).map(d => ({ id: d.id, ...d.data() } as Group));
+      setGroups(fetchedGroups);
+      if (fetchedGroups.length > 0) {
+         setGroup(fetchedGroups[0]); // Set primary for any legacy usage
       }
 
-      const qSched = query(collection(db, 'schedules'), where('groupId', '==', user.groupId));
-      const snapSched = await getDocs(qSched);
-      const schedules = snapSched.docs.map(d => ({ id: d.id, ...d.data() } as ScheduleItem));
+      // Build schedules from groups
+      let schedules: any[] = [];
+      fetchedGroups.forEach(g => {
+          if (g.days && g.days.length > 0) {
+              g.days.forEach(dayStr => {
+                  schedules.push({
+                      id: Math.random().toString(),
+                      groupId: g.id,
+                      subject: g.subject || '',
+                      teacherName: g.teacherName || '',
+                      dayOfWeek: Number(dayStr),
+                      startTime: g.startTime || '',
+                      endTime: g.endTime || '',
+                      location: 'Asosiy xona'
+                  });
+              });
+          }
+      });
       
       const todayDayOfWeek = new Date().getDay() || 7; // 1-7
-      const todays = schedules.filter(s => s.dayOfWeek === todayDayOfWeek);
-      todays.sort((a, b) => a.startTime.localeCompare(b.startTime));
+      const todays = schedules.filter(s => Number(s.dayOfWeek) === todayDayOfWeek);
+      todays.sort((a, b) => (a.startTime || '').localeCompare(b.startTime || ''));
       setTodaySchedules(todays);
 
       const unsubExams = onSnapshot(query(collection(db, 'exams')), snap => {
         const allExams = snap.docs.map(d => ({ id: d.id, ...d.data() } as Exam));
-        const myExams = allExams.filter(e => !e.groupId || e.groupId === user.groupId);
+        const myExams = allExams.filter(e => !e.groupId || userGroups.includes(e.groupId));
         // Only show upcoming exams or today's
         const now = new Date();
         const upcoming = myExams.filter(e => new Date(e.date) >= new Date(now.getFullYear(), now.getMonth(), now.getDate()));
@@ -217,7 +236,7 @@ export default function StudentDashboard() {
                   </div>
                   <div>
                     <p className="text-[15px] font-black text-white">{sched.subject}</p>
-                    <p className="text-[11px] font-bold text-white/40">Guruh: {group?.name || 'Biriktirilmagan'}</p>
+                    <p className="text-[11px] font-bold text-white/40">Guruh: {groups.find(g => g.id === sched.groupId)?.name || 'Biriktirilmagan'}</p>
                   </div>
                 </div>
                 <div className="bg-[color:var(--surface-color)] p-3 rounded-xl flex items-center justify-between border border-white/10">

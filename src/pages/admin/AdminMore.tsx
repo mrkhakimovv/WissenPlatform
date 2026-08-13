@@ -2,9 +2,10 @@ import { useConfirm } from '../../contexts/ConfirmContext';
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { collection, addDoc, onSnapshot, query, deleteDoc, doc, updateDoc, getDocs, where, secondaryAuth, createUserWithEmailAndPassword } from '../../lib/firebase';
+import { QRCodeSVG } from 'qrcode.react';
 import { db } from '../../lib/firebase';
 import toast from 'react-hot-toast';
-import { GraduationCap, ChevronRight, X, UserPlus, BookOpen, Calendar as CalendarIcon, ArrowLeft, Trash2, Edit2 } from 'lucide-react';
+import { GraduationCap, ChevronRight, X, UserPlus, BookOpen, Calendar as CalendarIcon, ArrowLeft, Trash2, Edit2, QrCode } from 'lucide-react';
 import { ScheduleItem } from '../../types';
 
 const ActionRow = ({ icon, iconBg, label, sub, onClick }: any) => (
@@ -112,6 +113,7 @@ function TeachersTab({ onBack }: { onBack: () => void }) {
   const { confirm } = useConfirm();
   const [teachers, setTeachers] = useState<any[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [teacherForm, setTeacherForm] = useState({ fullName: '', username: '', password: '', phone: '', subject: '', certificates: '' });
 
@@ -164,6 +166,14 @@ function TeachersTab({ onBack }: { onBack: () => void }) {
         <button onClick={onBack} className="p-2 bg-white/5 rounded-full hover:bg-white/10"><ArrowLeft size={18} className="text-white" /></button>
         <h2 className="text-xl font-bold text-white">O'qituvchilar</h2>
         <div className="flex-1"></div>
+        <button 
+          onClick={() => setIsInviteModalOpen(true)}
+          className="h-9 px-3 rounded-lg bg-[rgba(254,194,4,0.1)] flex items-center gap-2 text-[#FEC204] hover:bg-[rgba(254,194,4,0.2)] active:scale-95 transition-all border border-[#FEC204]/20 font-bold text-sm"
+          title="O'qituvchi qabul qilish"
+        >
+          <QrCode size={16} />
+          <span className="hidden sm:inline">Qabul</span>
+        </button>
         <button onClick={() => setIsModalOpen(true)} className="glass-panel px-4 py-2 font-bold text-[#FEC204] hover:bg-[#FEC204] hover:text-black rounded-lg text-sm">
           + Qo'shish
         </button>
@@ -181,6 +191,39 @@ function TeachersTab({ onBack }: { onBack: () => void }) {
         ))}
         {teachers.length === 0 && <p className="text-center text-white/40 text-sm py-4">Yo'q</p>}
       </div>
+
+      {isInviteModalOpen && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[100] flex flex-col items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => setIsInviteModalOpen(false)}>
+          <div className="w-full max-w-[400px] glass-panel border border-white/10 rounded-[24px] p-8 flex flex-col items-center text-center shadow-2xl relative" onClick={e => e.stopPropagation()}>
+            <button onClick={() => setIsInviteModalOpen(false)} className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center bg-white/5 rounded-full hover:bg-white/10 text-white/60 transition-colors">
+              <X size={16} />
+            </button>
+            <h2 className="text-[20px] font-black text-white mb-2">O'qituvchi qabul qilish</h2>
+            <p className="text-[13px] text-white/60 mb-6 leading-relaxed">
+              Ushbu QR kodni o'qituvchilarga ko'rsating. Ular kodni skanerlab platformadan ro'yxatdan o'tishlari mumkin.
+            </p>
+
+            <div className="bg-white p-4 rounded-[20px] mb-8 shadow-[0_0_40px_rgba(254,194,4,0.15)] transition-all">
+              <QRCodeSVG 
+                value={`${window.location.origin}/oqituvchi-qoshil`} 
+                size={200}
+                level="H"
+                includeMargin={false}
+              />
+            </div>
+
+            <button 
+              onClick={() => {
+                navigator.clipboard.writeText(`${window.location.origin}/oqituvchi-qoshil`);
+                toast.success("Havola nusxalandi!");
+              }}
+              className="w-full py-4 rounded-2xl bg-white/5 hover:bg-white/10 text-white font-bold text-[14px] transition-all flex items-center justify-center gap-2"
+            >
+              Nusxa olish
+            </button>
+          </div>
+        </div>
+      )}
 
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm sm:absolute">

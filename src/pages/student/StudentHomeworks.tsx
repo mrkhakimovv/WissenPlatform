@@ -1,8 +1,9 @@
 import { useConfirm } from '../../contexts/ConfirmContext';
 import React, { useState, useEffect } from 'react';
-import { collection, onSnapshot, query, orderBy, addDoc, doc, where, getDocs } from '../../lib/firebase';
+import { collection, onSnapshot, query, orderBy, addDoc, doc, where, getDocs, getDoc } from '../../lib/firebase';
 import { db } from '../../lib/firebase';
 import { useAuth } from '../../contexts/AuthContext';
+import { Group } from '../../types';
 import { FileText, Loader2, Image as ImageIcon, CheckCircle, XCircle, ChevronLeft } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -14,10 +15,26 @@ export default function StudentHomeworks() {
   
   const [studentImages, setStudentImages] = useState<{data: string, mimeType: string}[]>([]);
   const [isEvaluating, setIsEvaluating] = useState(false);
+  const [groups, setGroups] = useState<Group[]>([]);
 
   useEffect(() => {
-    if (!user?.groupId) return;
-    const unsubHW = onSnapshot(query(collection(db, 'homeworks'), where('groupId', '==', user.groupId)), snap => {
+    const userGroups = user?.groups?.length ? user.groups : (user?.groupId ? [user.groupId] : []);
+    if (userGroups.length === 0) return;
+    const queryGroups = userGroups.slice(0, 10);
+    
+    
+    const fetchGroups = async () => {
+      try {
+        const groupDocs = await Promise.all(userGroups.map(id => getDoc(doc(db, 'groups', id))));
+        const fetchedGroups = groupDocs.filter(d => d.exists()).map(d => ({ id: d.id, ...d.data() } as Group));
+        setGroups(fetchedGroups);
+      } catch (err) {
+        console.error("Error fetching groups", err);
+      }
+    };
+    fetchGroups();
+
+    const unsubHW = onSnapshot(query(collection(db, 'homeworks'), where('groupId', 'in', queryGroups)), snap => {
       setHomeworks(snap.docs.map(d => ({ id: d.id, ...d.data() })));
     });
     const unsubSub = onSnapshot(query(collection(db, 'submissions'), where('studentId', '==', user.id)), snap => {
@@ -25,6 +42,12 @@ export default function StudentHomeworks() {
     });
     return () => { unsubHW(); unsubSub(); };
   }, [user]);
+
+  
+  const getGroupName = (groupId: string) => {
+    const g = groups.find(x => x.id === groupId);
+    return g ? g.name : '';
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -162,7 +185,10 @@ export default function StudentHomeworks() {
           return (
             <div key={hw.id} onClick={() => setSelectedHW(hw)} className="glass-panel-list p-4 rounded-xl border border-white/5 bg-white/5 cursor-pointer hover:bg-white/10 transition-colors flex items-center justify-between">
               <div>
-                <h3 className="text-[15px] font-bold text-white mb-1">{hw.title}</h3>
+                <div className="flex items-center gap-2 mb-1">
+                  <h3 className="text-[15px] font-bold text-white">{hw.title}</h3>
+                  <span className="text-[10px] bg-white/10 px-2 py-0.5 rounded-full text-[#FEC204] font-bold">{getGroupName(hw.groupId)}</span>
+                </div>
                 <p className="text-[11px] font-bold text-white/40 uppercase tracking-wider">
                   Muddati: {hw.deadline ? new Date(hw.deadline).toLocaleString('uz-UZ') : "Noma'lum"}
                 </p>
