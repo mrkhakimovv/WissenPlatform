@@ -1,0 +1,84 @@
+--- src/pages/admin/AdminGroups.tsx
++++ src/pages/admin/AdminGroups.tsx
+@@ -2,9 +2,8 @@
+ import React, { useEffect, useState } from 'react';
+ import { collection, addDoc, onSnapshot, query, orderBy, where, doc, deleteDoc, updateDoc } from '../../lib/firebase';
+ import { db } from '../../lib/firebase';
+-import { Plus, Search, Users, Trash2, Edit2, X, QrCode, Copy, CheckCircle2 } from 'lucide-react';
++import { Plus, Search, Users, Trash2, Edit2, X, Copy, CheckCircle2 } from 'lucide-react';
+ import toast from 'react-hot-toast';
+-import { QRCodeSVG } from 'qrcode.react';
+ 
+ export default function AdminGroups() {
+   const { confirm } = useConfirm();
+@@ -19,17 +18,6 @@
+   const [editingGroup, setEditingGroup] = useState<any>(null);
+   const [formData, setFormData] = useState({ name: '', subject: '', teacherName: '' });
+ 
+-  const [inviteGroup, setInviteGroup] = useState<any>(null);
+-  const [copied, setCopied] = useState(false);
+-
+-  const handleCopyLink = () => {
+-    if (!inviteGroup) return;
+-    const link = `${window.location.origin}/qoshil/${inviteGroup.id}`;
+-    navigator.clipboard.writeText(link);
+-    setCopied(true);
+-    setTimeout(() => setCopied(false), 2000);
+-  };
+-
+   useEffect(() => {
+     const unsubGroups = onSnapshot(query(collection(db, 'groups'), orderBy('createdAt', 'desc')), snap => {
+       setGroups(snap.docs.map(d => ({id: d.id, ...d.data()})));
+@@ -143,9 +131,6 @@
+                   <span className="text-[18px] font-[800] text-[#FEC204] tracking-[-0.5px] leading-none">{getStudentCount(group.id)}</span>
+                   <p className="text-[9px] uppercase tracking-[1px] font-bold text-white/40">o'quvchi</p>
+                 </div>
+-                <button onClick={() => setInviteGroup(group)} className="w-8 h-8 rounded-lg bg-[rgba(254,194,4,0.1)] flex items-center justify-center text-[#FEC204] hover:bg-[rgba(254,194,4,0.2)] transition-colors" title="Qabul qilish (QR)">
+-                  <QrCode size={14} />
+-                </button>
+                 <button onClick={() => openEdit(group)} className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-white/60 hover:text-white transition-colors">
+                   <Edit2 size={14} />
+                 </button>
+@@ -188,43 +173,6 @@
+           </div>
+         </div>
+       )}
+-
+-      {inviteGroup && (
+-        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex flex-col items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => setInviteGroup(null)}>
+-          <div className="w-full max-w-[400px] glass-panel border border-white/10 rounded-[24px] p-8 flex flex-col items-center text-center shadow-2xl relative" onClick={e => e.stopPropagation()}>
+-            <button onClick={() => setInviteGroup(null)} className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center bg-white/5 rounded-full hover:bg-white/10 text-white/60 transition-colors">
+-              <X size={16} />
+-            </button>
+-            <h2 className="text-[20px] font-black text-white mb-2">O'quvchi qabul qilish</h2>
+-            <p className="text-[14px] text-white/60 mb-8 leading-relaxed">
+-              Bu <strong>{inviteGroup.name}</strong> guruhi uchun maxsus QR kod. O'quvchilaringiz ushbu kodni skanerlab ro'yxatdan o'tishlari mumkin.
+-            </p>
+-            <div className="bg-white p-4 rounded-[20px] mb-8 shadow-[0_0_40px_rgba(254,194,4,0.15)]">
+-              <QRCodeSVG 
+-                value={`${window.location.origin}/qoshil/${inviteGroup.id}`} 
+-                size={200}
+-                level="H"
+-                includeMargin={false}
+-              />
+-            </div>
+-            <div className="w-full flex items-center gap-2">
+-              <input 
+-                type="text" 
+-                readOnly 
+-                value={`${window.location.origin}/qoshil/${inviteGroup.id}`}
+-                className="flex-1 bg-white/5 border border-white/10 rounded-[12px] p-3 text-[12px] text-white/60 outline-none"
+-              />
+-              <button 
+-                onClick={handleCopyLink}
+-                className="w-[48px] h-[48px] flex items-center justify-center bg-[rgba(254,194,4,0.15)] text-[#FEC204] rounded-[12px] hover:bg-[rgba(254,194,4,0.25)] transition-colors shrink-0"
+-              >
+-                {copied ? <CheckCircle2 size={18} /> : <Copy size={18} />}
+-              </button>
+-            </div>
+-          </div>
+-        </div>
+-      )}
+     </div>
+   );
+ }

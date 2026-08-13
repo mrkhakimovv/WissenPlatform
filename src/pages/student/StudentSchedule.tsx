@@ -1,22 +1,47 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { MapPin, SearchX } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { collection, query, where, onSnapshot } from '../../lib/firebase';
+import { db } from '../../lib/firebase';
+import { ScheduleItem } from '../../types';
+
+const DAYS = [
+  { id: 1, name: 'Dushanba', short: 'Du' },
+  { id: 2, name: 'Seshanba', short: 'Se' },
+  { id: 3, name: 'Chorshanba', short: 'Ch' },
+  { id: 4, name: 'Payshanba', short: 'Pa' },
+  { id: 5, name: 'Juma', short: 'Ju' },
+  { id: 6, name: 'Shanba', short: 'Sha' },
+  { id: 7, name: 'Yakshanba', short: 'Ya' },
+];
 
 export default function StudentSchedule() {
   const { user } = useAuth();
+  const [schedules, setSchedules] = useState<ScheduleItem[]>([]);
 
-  const userSubject = user?.subject || 'Matematika';
-  const userGroup = user?.groupId || 'G-24';
+  useEffect(() => {
+    if (!user?.groupId) return;
+    const q = query(collection(db, 'schedules'), where('groupId', '==', user.groupId));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const data: ScheduleItem[] = [];
+      snapshot.forEach(doc => {
+        data.push({ id: doc.id, ...doc.data() } as ScheduleItem);
+      });
+      setSchedules(data);
+    });
+    return () => unsubscribe();
+  }, [user]);
 
-  const scheduleData = [
-    { day: 'Dushanba', short: 'Du', lessons: [{ subject: userSubject, title: `Guruh: ${userGroup}`, time: '14:00 - 16:00', duration: '2 SOAT', location: 'Asosiy bino, 12-xona' }] },
-    { day: 'Seshanba', short: 'Se', lessons: [] },
-    { day: 'Chorshanba', short: 'Ch', lessons: [{ subject: userSubject, title: `Guruh: ${userGroup}`, time: '14:00 - 16:00', duration: '2 SOAT', location: 'Asosiy bino, 12-xona' }] },
-    { day: 'Payshanba', short: 'Pa', lessons: [] },
-    { day: 'Juma', short: 'Ju', lessons: [{ subject: userSubject, title: `Guruh: ${userGroup}`, time: '14:00 - 16:00', duration: '2 SOAT', location: 'Asosiy bino, 12-xona' }] },
-    { day: 'Shanba', short: 'Sha', lessons: [] },
-    { day: 'Yakshanba', short: 'Ya', lessons: [] }
-  ];
+  const scheduleData = DAYS.map(dayInfo => {
+    const daySchedules = schedules
+      .filter(s => s.dayOfWeek === dayInfo.id)
+      .sort((a, b) => a.startTime.localeCompare(b.startTime));
+    return {
+      day: dayInfo.name,
+      short: dayInfo.short,
+      lessons: daySchedules
+    };
+  });
 
   return (
     <div className="space-y-6 pb-6">
@@ -58,10 +83,10 @@ export default function StudentSchedule() {
                                 <div className="flex justify-between items-start mb-2">
                                   <div>
                                     <h4 className="text-[14px] font-[800] text-white">{lesson.subject}</h4>
-                                    <p className="text-[11px] font-bold text-white/40">{lesson.title}</p>
+                                    <p className="text-[11px] font-bold text-white/40">{lesson.teacherName ? `O'qituvchi: ${lesson.teacherName}` : ''}</p>
                                   </div>
                                   <div className="text-right">
-                                    <p className="text-[13px] font-[800] text-[#FEC204] font-mono tracking-tighter">{lesson.time}</p>
+                                    <p className="text-[13px] font-[800] text-[#FEC204] font-mono tracking-tighter">{lesson.startTime} - {lesson.endTime}</p>
                                   </div>
                                 </div>
                                 <div className="flex items-center gap-2 pt-2 border-t border-white/10">

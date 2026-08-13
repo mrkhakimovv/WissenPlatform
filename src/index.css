@@ -5,6 +5,24 @@
   --color-wissen-gold-dark: #f59e0b;
   --color-wissen-dark: #0d0d0d;
   --font-inter: "Inter", sans-serif;
+  --theme-text-primary: #ffffff;
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --surface-color: rgba(255, 255, 255, 0.05);
+  --bg-color: #0d0d0d;
+  --success-color: #22c55e;
+  --danger-color: #ef4444;
+}
+
+@layer components {
+  .badge-green {
+    @apply text-[10px] px-2 py-0.5 bg-green-500/20 text-green-400 border border-green-500/20 rounded-full inline-block font-bold;
+  }
+  .badge-red {
+    @apply text-[10px] px-2 py-0.5 bg-red-500/20 text-red-400 border border-red-500/20 rounded-full inline-block font-bold;
+  }
+  .badge-gold {
+    @apply text-[10px] px-2 py-0.5 bg-[#FEC204]/20 text-[#FEC204] border border-[#FEC204]/30 rounded-full inline-block font-bold;
+  }
 }
 
 body {

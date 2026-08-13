@@ -1,10 +1,21 @@
+import { useConfirm } from '../contexts/ConfirmContext';
 import React from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
-import { Home, CreditCard, CalendarCheck, CalendarDays, User } from 'lucide-react';
+import { Home, CreditCard, CalendarCheck, CalendarDays, User, LogOut, FileText } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 export default function StudentLayout() {
-  const { user } = useAuth();
+  const { confirm } = useConfirm();
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    if (await confirm({ title: 'Diqqat', message: `Rostdan tizimdan chiqmoqchimisiz?` })) {
+      await logout();
+      navigate('/login');
+    }
+  };
   const location = useLocation();
   const isProfile = location.pathname.endsWith('/profile');
   
@@ -13,6 +24,7 @@ export default function StudentLayout() {
     { to: "payments", icon: <CreditCard size={22} />, label: "To'lov" },
     { to: "attendance", icon: <CalendarCheck size={22} />, label: "Davomat" },
     { to: "schedule", icon: <CalendarDays size={22} />, label: "Jadval" },
+    { to: "homeworks", icon: <FileText size={22} />, label: "Vazifalar" },
     { to: "profile", icon: <User size={22} />, label: "Profil" },
   ];
 
@@ -42,6 +54,14 @@ export default function StudentLayout() {
             </NavLink>
           ))}
         </div>
+
+        <button 
+          onClick={handleLogout}
+          className="mt-auto flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-white/50 hover:bg-red-500/10 hover:text-red-500 font-bold"
+        >
+          <LogOut size={22} />
+          <span className="text-[14px]">Chiqish</span>
+        </button>
       </aside>
 
       {/* Main Content Area */}

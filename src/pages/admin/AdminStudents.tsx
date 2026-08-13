@@ -1,17 +1,29 @@
+import { useConfirm } from '../../contexts/ConfirmContext';
 import React, { useEffect, useState } from 'react';
-import { collection, onSnapshot, query, doc, deleteDoc, addDoc } from '../../lib/firebase';
+import { collection, onSnapshot, query, doc, setDoc, deleteDoc, addDoc, updateDoc, secondaryAuth, createUserWithEmailAndPassword, getDocs, where } from '../../lib/firebase';
 import { db } from '../../lib/firebase';
-import { Plus, Search, Trash2 } from 'lucide-react';
+import { Plus, Search, Trash2, Edit2, X, ChevronRight, CheckCircle2 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
+import { Payment, Attendance } from '../../types';
 
 export default function AdminStudents() {
+  const { confirm } = useConfirm();
   const [students, setStudents] = useState<any[]>([]);
   const [groups, setGroups] = useState<any[]>([]);
   const [search, setSearch] = useState('');
+  
   const [isModalOpen, setIsModalOpen] = useState(false);
   const today = new Date().toISOString().split('T')[0];
   const [formData, setFormData] = useState({ fullName: '', username: '', password: '', groupId: '', monthlyFee: '', joinedDate: today });
+
+  const [editingStudent, setEditingStudent] = useState<any>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editData, setEditData] = useState({ groupId: '', monthlyFee: '' });
+
+  const [selectedStudent, setSelectedStudent] = useState<any>(null);
+  const [studentPayments, setStudentPayments] = useState<Payment[]>([]);
+  const [studentAttendance, setStudentAttendance] = useState<Attendance[]>([]);
 
   useEffect(() => {
     const q = query(collection(db, 'users'));
@@ -48,8 +60,14 @@ export default function AdminStudents() {
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await addDoc(collection(db, 'users'), {
-        ...formData,
+      const email = `${formData.username}@wissen.internal`;
+      
+      const userCred = await createUserWithEmailAndPassword(secondaryAuth, email, formData.password);
+      
+      const { password, ...dataToSave } = formData;
+      
+      await setDoc(doc(db, 'users', userCred.user.uid), {
+        ...dataToSave,
         role: 'student',
         monthlyFee: Number(formData.monthlyFee),
         createdAt: new Date().toISOString()
@@ -57,15 +75,75 @@ export default function AdminStudents() {
       toast.success("O'quvchi qo'shildi!");
       setIsModalOpen(false);
       setFormData({ fullName: '', username: '', password: '', groupId: '', monthlyFee: '', joinedDate: today });
-    } catch(err) {
-      toast.error("Xatolik yuz berdi");
+    } catch(err: any) {
+      console.error(err);
+      if (err.code === 'auth/email-already-in-use') {
+        toast.error("Bu login (username) band, boshqasini tanlang!");
+      } else {
+        toast.error(err instanceof Error ? err.message : "Xatolik yuz berdi");
+      }
     }
   };
 
-  const handleDelete = async (id: string, name: string) => {
-    if(confirm(`${name} ni haqiqatan ham o'chirmoqchimisiz?`)) {
-      await deleteDoc(doc(db, 'users', id));
-      toast.success("O'chirildi");
+  const handleEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      if (editingStudent) {
+        await updateDoc(doc(db, 'users', editingStudent.id), {
+          groupId: editData.groupId,
+          monthlyFee: Number(editData.monthlyFee)
+        });
+        toast.success("Ma'lumotlar yangilandi!");
+        setIsEditModalOpen(false);
+        setEditingStudent(null);
+      }
+    } catch (err) {
+      console.error('Kontekst:', err);
+      const msg = err instanceof Error ? err.message : "Noma'lum xatolik";
+      toast.error(msg);
+    }
+  };
+
+  const openEdit = (e: React.MouseEvent, student: any) => {
+    e.stopPropagation(); // prevent card click
+    setEditingStudent(student);
+    setEditData({ groupId: student.groupId || '', monthlyFee: student.monthlyFee?.toString() || '' });
+    setIsEditModalOpen(true);
+  };
+
+  const openProfile = async (student: any) => {
+    setSelectedStudent(student);
+    
+    // Fetch payments and attendance
+    const qPay = query(collection(db, 'payments'), where('studentId', '==', student.id));
+    const paySnap = await getDocs(qPay);
+    setStudentPayments(paySnap.docs.map(d => ({id: d.id, ...d.data()} as Payment)));
+
+    const qAtt = query(collection(db, 'attendance'), where('studentId', '==', student.id));
+    const attSnap = await getDocs(qAtt);
+    setStudentAttendance(attSnap.docs.map(d => ({id: d.id, ...d.data()} as Attendance)));
+  };
+
+  const handleDelete = async (e: React.MouseEvent, id: string, name: string) => {
+    e.stopPropagation();
+    if(await confirm({ title: 'Diqqat', message: `${name} ni haqiqatan ham o'chirmoqchimisiz?` })) {
+      try {
+        await deleteDoc(doc(db, 'users', id));
+        
+        // Delete related payments
+        const payQ = query(collection(db, 'payments'), where('studentId', '==', id));
+        const paySnap = await getDocs(payQ);
+        paySnap.forEach(d => deleteDoc(d.ref));
+        
+        // Delete related attendance
+        const attQ = query(collection(db, 'attendance'), where('studentId', '==', id));
+        const attSnap = await getDocs(attQ);
+        attSnap.forEach(d => deleteDoc(d.ref));
+
+        toast.success("O'chirildi");
+      } catch (err: any) {
+        toast.error("O'chirishda xatolik yuz berdi");
+      }
     }
   };
 
@@ -84,42 +162,76 @@ export default function AdminStudents() {
         />
       </div>
 
-      <div className="space-y-3 pb-8 md:space-y-0 md:grid md:grid-cols-2 lg:grid-cols-3 md:gap-4">
+      <div className="space-y-4 pb-24 md:space-y-0 md:grid md:grid-cols-2 lg:grid-cols-3 md:gap-6">
         {filtered.map((student, i) => {
-          const initials = student.fullName?.substring(0,2).toUpperCase() || 'ST';
+          const initials = student.fullName?.substring(0, 2).toUpperCase() || 'ST';
           return (
             <motion.div 
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.2, delay: i*0.05 }}
               key={student.id} 
-              className="glass-panel-list p-3 flex items-center gap-4"
+              className="glass-panel p-5 flex flex-col relative group hover:border-[#FEC204]/30 transition-colors"
             >
-              <div className="w-10 h-10 shrink-0 rounded-xl bg-gradient-to-br from-white/10 to-white/5 flex items-center justify-center font-bold text-[color:var(--theme-text-primary)] border border-white/5">
-                {initials}
+              {/* Header: Avatar & Actions */}
+              <div className="flex justify-between items-start mb-3">
+                <div className="relative">
+                  <div className="w-14 h-14 rounded-[14px] bg-gradient-to-br from-white/10 to-white/5 border border-white/10 flex items-center justify-center overflow-hidden shadow-inner font-bold text-xl text-white/90">
+                    {initials}
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                  <button onClick={(e) => openEdit(e, student)} className="w-8 h-8 flex items-center justify-center bg-white/5 text-white/70 rounded-full hover:text-white hover:bg-white/20 transition-colors">
+                    <Edit2 size={14} />
+                  </button>
+                  <button onClick={(e) => handleDelete(e, student.id, student.fullName)} className="w-8 h-8 flex items-center justify-center bg-red-500/10 text-red-400 rounded-full hover:bg-red-500/20 transition-colors">
+                    <Trash2 size={14} />
+                  </button>
+                </div>
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-[color:var(--theme-text-primary)] text-sm font-semibold truncate flex items-center gap-2">
-                  {student.fullName}
-                  {student.role === 'teacher' && (
-                    <span className="text-[9px] px-1.5 py-0.5 rounded border border-[#FEC204]/40 text-[#FEC204] bg-[#FEC204]/10 uppercase tracking-wider font-bold">O'qituvchi</span>
-                  )}
-                  {student.role === 'student' && (
-                    <span className="text-[9px] px-1.5 py-0.5 rounded border border-blue-400/40 text-blue-400 bg-blue-400/10 uppercase tracking-wider font-bold">O'quvchi</span>
-                  )}
-                </p>
-                <p className="text-[color:var(--theme-text-primary)]/40 text-[10px] truncate">@{student.username} {student.groupId && `• ${groups.find(g => g.id === student.groupId)?.name || 'Noma\'lum guruh'}`}</p>
+
+              {/* Info: Name & ID */}
+              <div className="mb-4">
+                <h3 className="text-[18px] font-bold text-white leading-tight line-clamp-2">{student.fullName}</h3>
+                <p className="text-[12px] text-blue-400 font-semibold mt-1">ID: #{student.id.substring(0,7).toUpperCase()}</p>
               </div>
-              <div className="text-right shrink-0 flex items-center gap-2">
-                <p className="text-[color:var(--theme-text-primary)] text-xs font-bold mr-2">{student.monthlyFee ? `${(student.monthlyFee/1000).toFixed()}k` : '0'}</p>
-                <button onClick={() => handleDelete(student.id, student.fullName)} className="p-2 bg-red-500/10 text-red-400 rounded-lg hover:bg-red-500/20 transition-colors">
-                  <Trash2 size={16} />
-                </button>
+
+              <div className="w-full h-px bg-white/10 mb-4"></div>
+
+              {/* Details List */}
+              <div className="space-y-3 mb-6 flex-1">
+                <div className="flex justify-between items-center">
+                  <span className="text-[13px] text-white/50">Telefon:</span>
+                  <span className="text-[13px] text-blue-400 font-medium">{student.phone || 'Kiritilmagan'}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-[13px] text-white/50">Guruh:</span>
+                  <span className="text-[13px] text-white/90 font-medium truncate max-w-[120px] text-right">
+                    {groups.find(g => g.id === student.groupId)?.name || 'Yo\'q'}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-[13px] text-white/50">Username:</span>
+                  <span className="text-[13px] text-white/90 font-medium truncate max-w-[120px] text-right">{student.username}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-[13px] text-white/50">Parol:</span>
+                  <span className="text-[13px] text-white/90 font-medium">***</span>
+                </div>
               </div>
+
+              {/* Button */}
+              <button 
+                onClick={() => openProfile(student)} 
+                className="w-full py-3 rounded-[12px] border border-blue-400/30 text-blue-400 text-[13px] font-bold hover:bg-blue-400/10 transition-colors mt-auto flex items-center justify-center"
+              >
+                Batafsil ma'lumot
+              </button>
             </motion.div>
           )
         })}
-        {filtered.length === 0 && <p className="text-center text-[color:var(--theme-text-primary)]/40 py-6 text-sm">Topilmadi</p>}
+        {filtered.length === 0 && <p className="text-center text-[color:var(--theme-text-primary)]/40 py-6 text-sm col-span-full">Topilmadi</p>}
       </div>
 
       <div className="fixed bottom-[100px] left-0 w-full max-w-[430px] px-6 mx-auto right-0 sm:absolute z-20">
@@ -139,7 +251,10 @@ export default function AdminStudents() {
               <input required placeholder="F.I.SH." value={formData.fullName} onChange={e=>setFormData({...formData, fullName: e.target.value})} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm placeholder-white/30" />
               <input required placeholder="Login" value={formData.username} onChange={e=>setFormData({...formData, username: e.target.value})} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm placeholder-white/30" />
               <input required placeholder="Parol" type="text" value={formData.password} onChange={e=>setFormData({...formData, password: e.target.value})} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm placeholder-white/30" />
-              <input required placeholder="Guruh nomi" type="text" value={formData.groupId} onChange={e=>setFormData({...formData, groupId: e.target.value})} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm placeholder-white/30" />
+              <select required value={formData.groupId} onChange={e=>setFormData({...formData, groupId: e.target.value})} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm placeholder-white/30 text-[color:var(--theme-text-primary)] appearance-none" style={{ colorScheme: "dark" }}>
+                <option value="" disabled>Guruhni tanlang</option>
+                {groups.map(g => <option key={g.id} value={g.id} className="bg-[#1a1a1a]">{g.name} — {g.subject}</option>)}
+              </select>
               <input required placeholder="Oylik to'lov (so'm)" type="number" value={formData.monthlyFee} onChange={e=>setFormData({...formData, monthlyFee: e.target.value})} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm placeholder-white/30" />
               
               <div className="space-y-1">
@@ -176,6 +291,127 @@ export default function AdminStudents() {
           </div>
         </div>
       )}
+
+      {/* Edit Modal */}
+      {isEditModalOpen && editingStudent && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm sm:absolute">
+          <div className="glass-panel w-full max-w-sm p-6 bg-[#1a1a1a]/80">
+            <h2 className="text-lg font-bold mb-4 text-[color:var(--theme-text-primary)]">Tahrirlash: {editingStudent.fullName}</h2>
+            <form onSubmit={handleEdit} className="space-y-4">
+              <div>
+                <label className="text-[11px] text-[color:var(--theme-text-primary)]/50 px-1 uppercase tracking-wider font-bold mb-1 block">Guruh</label>
+                <select required value={editData.groupId} onChange={e=>setEditData({...editData, groupId: e.target.value})} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm text-[color:var(--theme-text-primary)] appearance-none" style={{ colorScheme: "dark" }}>
+                  <option value="" disabled>Guruhni tanlang</option>
+                  {groups.map(g => <option key={g.id} value={g.id} className="bg-[#1a1a1a]">{g.name} — {g.subject}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-[11px] text-[color:var(--theme-text-primary)]/50 px-1 uppercase tracking-wider font-bold mb-1 block">Oylik to'lov</label>
+                <input required type="number" placeholder="Oylik to'lov (so'm)" value={editData.monthlyFee} onChange={e=>setEditData({...editData, monthlyFee: e.target.value})} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm placeholder-white/30" />
+              </div>
+              <div className="flex gap-3 pt-2 mt-4">
+                <button type="button" onClick={()=>{setIsEditModalOpen(false); setEditingStudent(null);}} className="flex-1 py-3 rounded-xl border border-[color:var(--glass-border)] text-sm font-medium hover:bg-white/5">Bekor qilish</button>
+                <button type="submit" className="flex-1 bg-[#FEC204] text-black rounded-xl py-3 text-sm font-bold active:scale-95 transition-transform">Saqlash</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Profile Modal */}
+      <AnimatePresence>
+        {selectedStudent && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-sm sm:absolute"
+          >
+            <motion.div 
+              initial={{ x: "100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 200 }}
+              className="w-full max-w-md h-full bg-[#0d0d0d] border-l border-white/10 p-6 flex flex-col shadow-2xl overflow-y-auto"
+            >
+              <div className="flex items-center justify-between mb-8">
+                <h2 className="text-[20px] font-black text-white">O'quvchi Profili</h2>
+                <button onClick={() => setSelectedStudent(null)} className="p-2 bg-white/5 rounded-full text-white/40 hover:text-white transition-colors">
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="flex items-center gap-4 mb-8">
+                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-white/10 to-white/5 border border-white/10 flex items-center justify-center text-2xl font-bold text-white">
+                  {selectedStudent.fullName.substring(0,2).toUpperCase()}
+                </div>
+                <div>
+                  <h3 className="text-[18px] font-bold text-white">{selectedStudent.fullName}</h3>
+                  <p className="text-[13px] text-white/40">@{selectedStudent.username}</p>
+                  <p className="text-[12px] font-medium text-[#FEC204] mt-1">
+                    Guruh: {groups.find(g => g.id === selectedStudent.groupId)?.name || 'Noma\'lum'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-6">
+                <div>
+                  <h4 className="text-[11px] uppercase tracking-widest font-bold text-white/40 mb-3">Davomat (Oxirgi 7 kun)</h4>
+                  <div className="glass-panel p-4 flex gap-2 justify-between">
+                    {Array.from({length: 7}).map((_, i) => {
+                      const d = new Date();
+                      d.setDate(d.getDate() - 6 + i);
+                      const dateStr = [d.getFullYear(), String(d.getMonth() + 1).padStart(2, '0'), String(d.getDate()).padStart(2, '0')].join('-');
+                      const att = studentAttendance.find(a => a.date === dateStr);
+                      const status = att?.status || 'empty';
+                      let style = "bg-white/5 border-white/10";
+                      if (status === 'present') style = "bg-[rgba(254,194,4,0.12)] border-[rgba(254,194,4,0.3)] text-[#FEC204]";
+                      if (status === 'absent') style = "bg-[rgba(239,68,68,0.1)] border-[rgba(239,68,68,0.2)] text-red-500";
+                      return (
+                        <div key={i} className={`flex-1 aspect-square rounded-[8px] border flex flex-col items-center justify-center ${style}`}>
+                           <span className="text-[10px] font-bold">{d.getDate()}</span>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="text-[11px] uppercase tracking-widest font-bold text-white/40 mb-3">To'lovlar Tarixi</h4>
+                  <div className="glass-panel p-0 overflow-hidden">
+                    {studentPayments.length === 0 ? (
+                      <p className="text-[12px] text-white/40 p-4 text-center">To'lovlar topilmadi.</p>
+                    ) : (
+                      <div className="divide-y divide-white/5">
+                        {studentPayments.sort((a,b)=>new Date(b.paidAt).getTime()-new Date(a.paidAt).getTime()).slice(0, 5).map(pay => (
+                          <div key={pay.id} className="p-4 flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${pay.status==='paid' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
+                                <CheckCircle2 size={14} />
+                              </div>
+                              <div>
+                                <p className="text-[13px] font-bold text-white">{pay.month}/{pay.year}</p>
+                                <p className="text-[10px] text-white/40">{new Date(pay.paidAt).toLocaleDateString('uz-UZ')}</p>
+                              </div>
+                            </div>
+                            <span className="text-[14px] font-bold text-white">{pay.amount.toLocaleString()} so'm</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+              
+              <div className="mt-auto pt-6 pb-4">
+                <button onClick={(e) => { setSelectedStudent(null); openEdit(e, selectedStudent); }} className="w-full glass-panel py-3 flex items-center justify-center gap-2 font-bold text-white/70 hover:text-white hover:bg-white/5 transition-colors">
+                  <Edit2 size={16} /> Profildan Tahrirlash
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

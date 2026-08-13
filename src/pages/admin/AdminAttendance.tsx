@@ -1,5 +1,6 @@
+import { useConfirm } from '../../contexts/ConfirmContext';
 import React, { useState, useEffect } from 'react';
-import { collection, onSnapshot, query, addDoc } from '../../lib/firebase';
+import { collection, onSnapshot, query, addDoc, updateDoc, doc } from '../../lib/firebase';
 import { db } from '../../lib/firebase';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
@@ -7,11 +8,12 @@ import { ChevronLeft, Users } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 export default function AdminAttendance() {
+  const { confirm } = useConfirm();
   const [students, setStudents] = useState<any[]>([]);
   const [groups, setGroups] = useState<any[]>([]);
   const [attendance, setAttendance] = useState<any[]>([]);
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
-  const today = format(new Date(), 'yyyy-MM-dd');
+  const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
 
   useEffect(() => {
     const unsubStudents = onSnapshot(query(collection(db, 'users')), (snap) => {
@@ -28,21 +30,53 @@ export default function AdminAttendance() {
 
   const markAttendance = async (studentId: string, status: string) => {
     try {
+      const existing = attendance.find(a => a.studentId === studentId && a.date === selectedDate);
+      if (existing) {
+        if (await confirm({ title: 'Diqqat', message: "Ushbu o'quvchi uchun davomat allaqachon belgilangan. Yangilaysizmi?" })) {
+          await updateDoc(doc(db, 'attendance', existing.id), { status });
+          toast.success("Davomat yangilandi");
+        }
+        return;
+      }
+      
       await addDoc(collection(db, 'attendance'), {
         studentId,
-        date: today,
+        date: selectedDate,
         status,
         groupId: selectedGroupId
       });
       toast.success("Belgilandi");
-    } catch(err) {
-      toast.error("Xatolik");
+    } catch (err: any) {
+      console.error('Kontekst:', err);
+      toast.error(err instanceof Error ? err.message : "Noma'lum xatolik");
     }
   };
 
   const getStatus = (studentId: string) => {
-    const a = attendance.find(a => a.studentId === studentId && a.date === today);
+    const a = attendance.find(a => a.studentId === studentId && a.date === selectedDate);
     return a ? a.status : null;
+  };
+
+  
+  const handleMarkAllPresent = async () => {
+    try {
+      if (await confirm({ title: 'Diqqat', message: "Hamma belgilanmagan o'quvchilarni 'Keldi' qilib belgilaysizmi?" })) {
+        for (const student of groupStudents) {
+          const status = getStatus(student.id);
+          if (!status) {
+            await addDoc(collection(db, 'attendance'), {
+              studentId: student.id,
+              date: selectedDate,
+              status: 'present',
+              groupId: selectedGroupId
+            });
+          }
+        }
+        toast.success("Barchasi belgilandi");
+      }
+    } catch(e: any) {
+      toast.error(e.message);
+    }
   };
 
   const groupStudents = students.filter(s => s.groupId === selectedGroupId);
@@ -50,7 +84,7 @@ export default function AdminAttendance() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-end mb-2">
+      <div className="flex justify-between items-end mb-4">
         <div className="flex items-center gap-3">
           {selectedGroupId && (
             <button onClick={() => setSelectedGroupId(null)} className="w-8 h-8 flex items-center justify-center bg-white/5 hover:bg-white/10 rounded-full transition-colors text-[color:var(--theme-text-primary)]">
@@ -58,10 +92,15 @@ export default function AdminAttendance() {
             </button>
           )}
           <div>
-            <h2 className="text-[color:var(--theme-text-primary)] font-semibold">Kunlik Davomat {selectedGroup && `- ${selectedGroup.name}`}</h2>
+            <h2 className="text-[color:var(--theme-text-primary)] font-semibold">Davomat {selectedGroup && `- ${selectedGroup.name}`}</h2>
           </div>
         </div>
-        <span className="text-[color:var(--theme-text-primary)]/60 text-xs font-medium border border-[color:var(--glass-border)] px-3 py-1 rounded-full shrink-0">{today}</span>
+        <input 
+          type="date" 
+          value={selectedDate}
+          onChange={e => setSelectedDate(e.target.value)}
+          className="bg-white/5 text-[color:var(--theme-text-primary)] text-xs font-medium border border-[color:var(--glass-border)] px-2 py-1.5 rounded-lg shrink-0 outline-none focus:border-[#FEC204]/50"
+        />
       </div>
       
       {!selectedGroupId ? (
@@ -90,6 +129,13 @@ export default function AdminAttendance() {
         </div>
       ) : (
         <div className="space-y-3">
+          {groupStudents.length > 0 && groupStudents.some(s => !getStatus(s.id)) && (
+            <div className="flex justify-end mb-2">
+              <button onClick={handleMarkAllPresent} className="px-3 py-1.5 bg-[#FEC204]/10 text-[#FEC204] hover:bg-[#FEC204]/20 border border-[#FEC204]/20 rounded-lg text-xs font-bold transition-colors">
+                Hammasini Keldi qilish
+              </button>
+            </div>
+          )}
           {groupStudents.map(student => {
             const status = getStatus(student.id);
             const initials = student.fullName?.substring(0,2).toUpperCase() || 'ST';

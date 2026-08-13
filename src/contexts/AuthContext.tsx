@@ -1,26 +1,15 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { collection, query, where, getDocs } from '../lib/firebase';
-import { db } from '../lib/firebase';
+import { collection, doc, getDocs, getDoc } from '../lib/firebase';
+import { db, auth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from '../lib/firebase';
 import toast from 'react-hot-toast';
 
-export type UserRole = 'student' | 'admin';
-
-export interface User {
-  id: string;
-  fullName?: string;
-  username: string;
-  role: UserRole;
-  subject?: string;
-  groupId?: string;
-  teacherId?: string;
-  monthlyFee?: number;
-}
+import { User, UserRole } from '../types';
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (username: string, pass: string) => Promise<boolean>;
-  logout: () => void;
+  login: (email: string, pass: string) => Promise<boolean>;
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -30,62 +19,98 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check local storage for persistent session
-    const storedUser = localStorage.getItem('wissen_user');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
-    setLoading(false);
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        try {
+          const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+          if (userDoc.exists()) {
+            const data = userDoc.data();
+            setUser({
+              id: firebaseUser.uid,
+              username: data.username || firebaseUser.email,
+              fullName: data.fullName,
+              role: data.role as UserRole,
+              subject: data.subject,
+              groupId: data.groupId,
+              teacherId: data.teacherId,
+              monthlyFee: data.monthlyFee,
+              joinedDate: data.joinedDate,
+              phone: data.phone,
+              createdAt: data.createdAt
+            });
+          } else {
+            console.error('User doc not found in Firestore');
+            setUser(null);
+          }
+        } catch (err) {
+          console.error('Error fetching user:', err);
+          setUser(null);
+        }
+      } else {
+        setUser(null);
+      }
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
   }, []);
 
-  const login = async (username: string, pass: string) => {
+  const login = async (email: string, pass: string) => {
     try {
-      // Hardcoded Admin Check per instructions
-      if (username === 'admin' && pass === '777888') {
-        const adminUser: User = { id: 'admin-1', username: 'admin', role: 'admin', fullName: 'Asosiy Admin' };
-        setUser(adminUser);
-        localStorage.setItem('wissen_user', JSON.stringify(adminUser));
-        toast.success("Xush kelibsiz, Admin!");
-        return true;
-      }
+      // In case they enter username without domain, append it
+      const loginEmail = email.includes('@') ? email : `${email}@wissen.internal`;
+      
+      const userCredential = await signInWithEmailAndPassword(auth, loginEmail, pass);
+      const firebaseUser = userCredential.user;
 
-      // Check students collection in Firestore
-      const usersRef = collection(db, 'users');
-      const q = query(usersRef, where('username', '==', username), where('password', '==', pass));
-      const querySnapshot = await getDocs(q);
-
-      if (!querySnapshot.empty) {
-        const doc = querySnapshot.docs[0];
-        const data = doc.data();
-        const studentUser: User = {
-          id: doc.id,
-          username: data.username,
+      const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+      if (userDoc.exists()) {
+        const data = userDoc.data();
+        const loggedInUser: User = {
+          id: firebaseUser.uid,
+          username: data.username || firebaseUser.email,
           fullName: data.fullName,
-          role: 'student',
+          role: data.role as UserRole,
           subject: data.subject,
           groupId: data.groupId,
           teacherId: data.teacherId,
-          monthlyFee: data.monthlyFee
+          monthlyFee: data.monthlyFee,
+          joinedDate: data.joinedDate,
+          phone: data.phone,
+          createdAt: data.createdAt
         };
-        setUser(studentUser);
-        localStorage.setItem('wissen_user', JSON.stringify(studentUser));
-        toast.success(`Xush kelibsiz, ${data.fullName || "O'quvchi"}!`);
+        setUser(loggedInUser);
+        toast.success(`Xush kelibsiz, ${data.fullName || "Foydalanuvchi"}!`);
         return true;
       }
-
-      toast.error('Login yoki parol xato!');
+      toast.error("Foydalanuvchi ma'lumotlari topilmadi!");
       return false;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Login error:', error);
-      toast.error('Tizimda xatolik yuz berdi.');
+      let errorMessage = "Tizimga kirishda xatolik yuz berdi";
+      
+      if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+        errorMessage = "Parol xato yoki foydalanuvchi topilmadi!";
+      } else if (error.code === 'auth/user-not-found') {
+        errorMessage = "Bunday foydalanuvchi topilmadi!";
+      } else if (error.code === 'auth/too-many-requests') {
+        errorMessage = "Juda ko'p urinish. Iltimos biroz kuting.";
+      }
+      
+      toast.error(errorMessage);
       return false;
     }
   };
 
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem('wissen_user');
-    toast.success('Tizimdan chiqildi');
+  const logout = async () => {
+    try {
+      await signOut(auth);
+      setUser(null);
+      toast.success('Tizimdan chiqildi');
+    } catch (error) {
+      console.error('Logout error:', error);
+      toast.error("Chiqishda xatolik yuz berdi");
+    }
   };
 
   return (

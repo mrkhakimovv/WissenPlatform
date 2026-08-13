@@ -12,7 +12,7 @@ export function RootLayout() {
       <div className="blob blob-blue"></div>
 
       {/* Main app container */}
-      <div id="root" className="w-full h-[100dvh] relative flex flex-col z-10 overflow-hidden bg-transparent">
+      <div className="app-container w-full h-[100dvh] relative flex flex-col z-10 overflow-hidden bg-transparent">
         <Outlet />
       </div>
 

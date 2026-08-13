@@ -1,21 +1,25 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { GraduationCap, Lock, User } from 'lucide-react';
+import { GraduationCap, Lock, User, Eye, EyeOff } from 'lucide-react';
 
 export default function Login() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading) return;
     try {
       setLoading(true);
-      await login(username, password);
-      navigate('/');
+      const ok = await login(username.trim(), password);
+      if (ok) {
+        navigate('/');
+      }
     } catch (error) {
       console.error(error);
     } finally {
@@ -44,6 +48,8 @@ export default function Login() {
             </div>
             <input
               type="text"
+              autoFocus
+              autoComplete="username"
               placeholder="Foydalanuvchi nomi"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
@@ -57,19 +63,27 @@ export default function Login() {
               <Lock size={18} className="text-white/40" />
             </div>
             <input
-              type="password"
+              type={showPassword ? 'text' : 'password'}
+              autoComplete="current-password"
               placeholder="Parol"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-white/5 border border-white/10 rounded-xl h-[48px] md:h-[52px] pl-11 pr-4 outline-none focus:border-[#FEC204] focus:bg-white/10 transition-all font-semibold text-[13px] md:text-[14px] text-white"
+              className="w-full bg-white/5 border border-white/10 rounded-xl h-[48px] md:h-[52px] pl-11 pr-11 outline-none focus:border-[#FEC204] focus:bg-white/10 transition-all font-semibold text-[13px] md:text-[14px] text-white"
               required
             />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40 hover:text-white transition-colors"
+            >
+              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
           </div>
 
           <button
             type="submit"
-            disabled={loading}
-            className="glass-button h-[50px] md:h-[54px] w-full flex justify-center items-center mt-2 tracking-wide text-[14px] md:text-[15px]"
+            disabled={loading || !username.trim() || !password}
+            className="glass-button h-[50px] md:h-[54px] w-full flex justify-center items-center mt-2 tracking-wide text-[14px] md:text-[15px] disabled:opacity-50 disabled:pointer-events-none"
           >
             {loading ? 'Kirilmoqda...' : 'Tizimga kirish'}
           </button>

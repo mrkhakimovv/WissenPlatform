@@ -1,0 +1,11 @@
+--- src/App.tsx
++++ src/App.tsx
+@@ -56,7 +56,7 @@
+           <Routes>
+           <Route element={<RootLayout />}>
+             <Route path="/login" element={<Login />} />
+-            <Route path="/qoshil/:groupId" element={<StudentRegistration />} />
++            <Route path="/qoshil" element={<StudentRegistration />} />
+             <Route path="/" element={<DefaultRoute />} />
+             
+             {/* Admin Routes */}

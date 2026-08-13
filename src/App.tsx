@@ -2,6 +2,8 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { RootLayout } from './components/RootLayout';
+import { ErrorBoundary } from './components/ErrorBoundary';
+import { ConfirmProvider } from './contexts/ConfirmContext';
 import AdminLayout from './components/AdminLayout';
 import StudentLayout from './components/StudentLayout';
 import Login from './pages/Login';
@@ -13,11 +15,14 @@ import AdminAttendance from './pages/admin/AdminAttendance';
 import AdminMore from './pages/admin/AdminMore';
 import AdminExams from './pages/admin/AdminExams';
 import AdminNews from './pages/admin/AdminNews';
+import AdminHomeworks from './pages/admin/AdminHomeworks';
 import StudentDashboard from './pages/student/StudentDashboard';
 import StudentPayments from './pages/student/StudentPayments';
 import StudentAttendance from './pages/student/StudentAttendance';
 import StudentSchedule from './pages/student/StudentSchedule';
 import StudentProfile from './pages/student/StudentProfile';
+import StudentHomeworks from './pages/student/StudentHomeworks';
+import StudentRegistration from './pages/StudentRegistration';
 
 function AuthGuard({ children, roles }: { children: React.ReactNode, roles: string[] }) {
   const { user, loading } = useAuth();
@@ -38,7 +43,7 @@ function DefaultRoute() {
   const { user, loading } = useAuth();
   if (loading) return null;
   if (!user) return <Navigate to="/login" replace />;
-  if (user.role === 'admin') return <Navigate to="/admin" replace />;
+  if (user.role === 'admin' || user.role === 'teacher') return <Navigate to="/admin" replace />;
   return <Navigate to="/student" replace />;
 }
 
@@ -46,14 +51,17 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <Routes>
+        <ConfirmProvider>
+        <ErrorBoundary>
+          <Routes>
           <Route element={<RootLayout />}>
             <Route path="/login" element={<Login />} />
+            <Route path="/qoshil" element={<StudentRegistration />} />
             <Route path="/" element={<DefaultRoute />} />
             
             {/* Admin Routes */}
             <Route path="/admin" element={
-              <AuthGuard roles={['admin']}>
+              <AuthGuard roles={['admin', 'teacher']}>
                 <AdminLayout />
               </AuthGuard>
             }>
@@ -64,6 +72,7 @@ export default function App() {
               <Route path="attendance" element={<AdminAttendance />} />
               <Route path="more" element={<AdminMore />} />
               <Route path="exams" element={<AdminExams />} />
+              <Route path="homeworks" element={<AdminHomeworks />} />
               <Route path="news" element={<AdminNews />} />
             </Route>
 
@@ -77,10 +86,13 @@ export default function App() {
               <Route path="payments" element={<StudentPayments />} />
               <Route path="attendance" element={<StudentAttendance />} />
               <Route path="schedule" element={<StudentSchedule />} />
+              <Route path="homeworks" element={<StudentHomeworks />} />
               <Route path="profile" element={<StudentProfile />} />
             </Route>
           </Route>
-        </Routes>
+          </Routes>
+        </ErrorBoundary>
+      </ConfirmProvider>
       </AuthProvider>
     </BrowserRouter>
   );
