@@ -1,7 +1,9 @@
 import { useConfirm } from '../../contexts/ConfirmContext';
 import React, { useState, useEffect } from 'react';
-import { collection, onSnapshot, query, orderBy, addDoc, updateDoc, deleteDoc, doc } from '../../lib/firebase';
+import { collection, onSnapshot, query, orderBy, addDoc, updateDoc, deleteDoc, doc, setDoc } from '../../lib/firebase';
 import { db } from '../../lib/firebase';
+import AdminTestBuilder from './AdminTestBuilder';
+import { TestData } from '../../types';
 import { Plus, X, Edit2, Trash2, Calendar, Clock, MapPin } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Exam, Group } from '../../types';
@@ -11,8 +13,20 @@ export default function AdminExams() {
   const [exams, setExams] = useState<Exam[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
   const [subjects, setSubjects] = useState<any[]>([]);
+  const [existingTests, setExistingTests] = useState<string[]>([]);
+  const [allTests, setAllTests] = useState<{id: string, title: string, totalCount: number}[]>([]);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isTestConfigOpen, setIsTestConfigOpen] = useState(false);
+  const [isTestBuilderOpen, setIsTestBuilderOpen] = useState(false);
+  const [testConfig, setTestConfig] = useState<TestData>({
+    title: '',
+    questionCount: 10,
+    variantCount: 4,
+    testType: 'Mavzulashtirilgan',
+    questions: [],
+    createdAt: ''
+  });
   const [editingId, setEditingId] = useState<string | null>(null);
   
   const [formData, setFormData] = useState({
@@ -24,7 +38,7 @@ export default function AdminExams() {
     duration: '',
     location: '',
     description: ''
-  });
+  , testSources: [] as {testId: string, name: string, count: number}[]});
 
   useEffect(() => {
     const unsubExams = onSnapshot(query(collection(db, 'exams'), orderBy('createdAt', 'desc')), snap => {
@@ -36,12 +50,25 @@ export default function AdminExams() {
     const unsubSubjects = onSnapshot(collection(db, 'subjects'), snap => {
       setSubjects(snap.docs.map(d => ({ id: d.id, ...d.data() })));
     });
-    return () => { unsubExams(); unsubGroups(); unsubSubjects(); };
+    const unsubTests = onSnapshot(collection(db, 'tests'), snap => {
+      const titles = new Set<string>();
+      const testsData: any[] = [];
+      snap.docs.forEach(d => {
+        const data = d.data();
+        if (data.title) titles.add(data.title);
+        testsData.push({ id: d.id, title: data.title || 'Nomsiz test', totalCount: data.questions?.length || data.questionCount || 0 });
+      });
+      setExistingTests(Array.from(titles));
+      setAllTests(testsData);
+    }, err => {
+      console.error('Error fetching tests:', err);
+    });
+    return () => { unsubExams(); unsubGroups(); unsubSubjects(); unsubTests(); };
   }, []);
 
   const openAdd = () => {
     setEditingId(null);
-    setFormData({ title: '', subject: '', groupId: '', date: '', startTime: '', duration: '', location: '', description: '' });
+    setFormData({ title: '', subject: '', groupId: '', date: '', startTime: '', duration: '', location: '', description: '', testSources: [] });
     setIsModalOpen(true);
   };
 
@@ -55,8 +82,7 @@ export default function AdminExams() {
       startTime: exam.startTime,
       duration: exam.duration.toString(),
       location: exam.location,
-      description: exam.description || ''
-    });
+      description: exam.description || '', testSources: exam.testSources || []});
     setIsModalOpen(true);
   };
 
@@ -85,8 +111,10 @@ export default function AdminExams() {
         await updateDoc(doc(db, 'exams', editingId), dataToSave);
         toast.success("Yangilandi");
       } else {
-        await addDoc(collection(db, 'exams'), {
+        const newDocRef = doc(collection(db, 'exams'));
+        await setDoc(newDocRef, {
           ...dataToSave,
+          id: newDocRef.id,
           createdAt: new Date().toISOString()
         });
         toast.success("Qo'shildi");
@@ -111,9 +139,24 @@ export default function AdminExams() {
           <h1 className="text-[24px] font-black tracking-tight text-white mb-1">Imtihonlar</h1>
           <p className="text-[12px] font-bold text-white/40 uppercase tracking-widest">Markaz ichki olimpiadalari va testlari</p>
         </div>
-        <button onClick={openAdd} className="glass-panel px-6 py-3 font-bold text-[#FEC204] hover:bg-[#FEC204] hover:text-black transition-colors rounded-[12px]">
-          Imtihon qo'shish
-        </button>
+        <div className="flex gap-2">
+          <button onClick={() => {
+            setTestConfig({
+              title: '',
+              questionCount: 10,
+              variantCount: 4,
+              testType: 'Mavzulashtirilgan',
+              questions: [],
+              createdAt: ''
+            });
+            setIsTestConfigOpen(true);
+          }} className="bg-[#FEC204] text-black px-6 py-2.5 rounded-[12px] font-bold hover:bg-[#FEC204]/90 transition-colors shadow-[0_0_15px_rgba(254,194,4,0.3)] flex items-center gap-2 text-[14px] h-[46px]">
+            <span className="text-xl leading-none">+</span> Test yaratish
+          </button>
+          <button onClick={openAdd} className="glass-panel px-6 py-3 font-bold text-[#FEC204] hover:bg-[#FEC204] hover:text-black transition-colors rounded-[12px]">
+            Imtihon qo'shish
+          </button>
+        </div>
       </div>
 
       {exams.length === 0 ? (
@@ -214,6 +257,59 @@ export default function AdminExams() {
                 </div>
               </div>
 
+              
+              <div className="bg-white/5 border border-white/10 rounded-xl p-4 mt-2">
+                <label className="text-[12px] font-bold text-[#FEC204] mb-3 block">Test manbalarini sozlash</label>
+                
+                {formData.testSources.map((ts, idx) => (
+                  <div key={idx} className="flex gap-2 mb-2 items-center">
+                    <select 
+                      value={ts.testId} 
+                      onChange={(e) => {
+                        const newSources = [...formData.testSources];
+                        newSources[idx].testId = e.target.value;
+                        newSources[idx].name = allTests.find(t => t.id === e.target.value)?.title || '';
+                        setFormData({...formData, testSources: newSources});
+                      }}
+                      className="flex-1 glass-panel p-2 outline-none focus:border-[#FEC204]/50 text-xs text-white appearance-none" style={{ colorScheme: "dark" }}
+                    >
+                      <option value="" disabled>Testni tanlang</option>
+                      {allTests.map(t => (
+                        <option key={t.id} value={t.id} className="bg-[#1a1a1a]">{t.title} ({t.totalCount} ta savol)</option>
+                      ))}
+                    </select>
+                    <input 
+                      type="number" 
+                      min="1" 
+                      placeholder="Savol soni" 
+                      value={ts.count} 
+                      onChange={(e) => {
+                        const newSources = [...formData.testSources];
+                        newSources[idx].count = parseInt(e.target.value) || 0;
+                        setFormData({...formData, testSources: newSources});
+                      }}
+                      className="w-20 glass-panel p-2 outline-none focus:border-[#FEC204]/50 text-xs text-center"
+                    />
+                    <button type="button" onClick={() => {
+                        const newSources = [...formData.testSources];
+                        newSources.splice(idx, 1);
+                        setFormData({...formData, testSources: newSources});
+                    }} className="p-2 bg-red-500/10 text-red-500 hover:bg-red-500/20 rounded-lg">
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                ))}
+                
+                <button type="button" onClick={() => {
+                  setFormData({
+                    ...formData,
+                    testSources: [...formData.testSources, {testId: '', name: '', count: 10}]
+                  });
+                }} className="w-full py-2 bg-white/5 hover:bg-white/10 rounded-lg text-xs font-bold text-white/70 transition-colors mt-2 flex justify-center items-center gap-1">
+                  <span className="text-lg leading-none">+</span> Manba qo'shish
+                </button>
+              </div>
+
               <textarea placeholder="Qo'shimcha ma'lumot (ixtiyoriy)" value={formData.description} onChange={e=>setFormData({...formData, description: e.target.value})} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm placeholder-white/30 min-h-[80px] custom-scrollbar" />
               
               <div className="pt-2">
@@ -225,6 +321,76 @@ export default function AdminExams() {
           </div>
         </div>
       )}
+
+      {isTestConfigOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex flex-col items-center justify-center animate-in fade-in duration-200">
+          <div className="w-full md:w-[450px] bg-[#0d0d0d] border border-white/10 rounded-[20px] p-6 shadow-2xl">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-[18px] font-black tracking-tight text-white">Test parametrlarini kiritish</h2>
+              <button onClick={() => setIsTestConfigOpen(false)} className="p-2 bg-white/5 rounded-full text-white/40 hover:bg-white/10 hover:text-white transition-colors"><X size={16} /></button>
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="text-[10px] uppercase font-bold text-white/40 ml-1 mb-1 block">Test nomi</label>
+                <input required list="existing-test-names" value={testConfig.title} onChange={e=>setTestConfig({...testConfig, title: e.target.value})} placeholder="Masalan: Matematika oylik test" className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm text-white" />
+                <datalist id="existing-test-names">
+                  {existingTests.map((t, idx) => (
+                    <option key={idx} value={t} />
+                  ))}
+                </datalist>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[10px] uppercase font-bold text-white/40 ml-1 mb-1 block">Savollar soni</label>
+                  <input required type="number" min="1" max="100" value={testConfig.questionCount} onChange={e=>setTestConfig({...testConfig, questionCount: Number(e.target.value)})} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm text-white" />
+                </div>
+                <div>
+                  <label className="text-[10px] uppercase font-bold text-white/40 ml-1 mb-1 block">Variantlar soni</label>
+                  <select value={testConfig.variantCount} onChange={e=>setTestConfig({...testConfig, variantCount: Number(e.target.value)})} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm text-[color:var(--theme-text-primary)] appearance-none" style={{ colorScheme: "dark" }}>
+                    <option value={3} className="bg-[#1a1a1a]">3 ta (A, B, C)</option>
+                    <option value={4} className="bg-[#1a1a1a]">4 ta (A, B, C, D)</option>
+                    <option value={5} className="bg-[#1a1a1a]">5 ta (A, B, C, D, E)</option>
+                  </select>
+                </div>
+              </div>
+              
+              <div>
+                <label className="text-[10px] uppercase font-bold text-white/40 ml-1 mb-1 block">Test shakli</label>
+                <select value={testConfig.testType} onChange={e=>setTestConfig({...testConfig, testType: e.target.value})} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm text-[color:var(--theme-text-primary)] appearance-none" style={{ colorScheme: "dark" }}>
+                  <option value="Mavzulashtirilgan" className="bg-[#1a1a1a]">Mavzulashtirilgan</option>
+                  <option value="Nazorat testi" className="bg-[#1a1a1a]">Nazorat testi</option>
+                  <option value="Olimpiada" className="bg-[#1a1a1a]">Olimpiada</option>
+                  <option value="Blok test" className="bg-[#1a1a1a]">Blok test</option>
+                </select>
+              </div>
+              
+              <button 
+                onClick={() => {
+                  if(!testConfig.title) return toast.error("Test nomini kiriting");
+                  setIsTestConfigOpen(false);
+                  setIsTestBuilderOpen(true);
+                }} 
+                className="w-full py-3 bg-[#FEC204] text-black font-bold rounded-[12px] text-sm mt-2 hover:opacity-90 active:scale-95 transition-all"
+              >
+                Yaratishni boshlash
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {isTestBuilderOpen && (
+        <AdminTestBuilder 
+          initialData={testConfig} 
+          onClose={() => setIsTestBuilderOpen(false)}
+          onSave={() => {
+             // Handle refresh or state update if needed
+          }}
+        />
+      )}
+
     </div>
   );
 }

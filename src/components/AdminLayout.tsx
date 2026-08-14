@@ -1,7 +1,7 @@
 import { useConfirm } from '../contexts/ConfirmContext';
 import React, { useState, useEffect } from 'react';
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { Home, Users, CreditCard, CalendarCheck, BookOpen, Layers, LogOut, FileText, Megaphone, QrCode, X, Copy, CheckCircle2 } from 'lucide-react';
+import { Home, Users, CreditCard, CalendarCheck, BookOpen, Layers, LogOut, FileText, Megaphone, QrCode, X, Copy, CheckCircle2, Database } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { db, collection, query, getDocs, orderBy, where } from '../lib/firebase';
 import { QRCodeSVG } from 'qrcode.react';
@@ -23,6 +23,7 @@ export default function AdminLayout() {
     { to: "payments", icon: <CreditCard size={22} />, label: "To'lov" },
     { to: "attendance", icon: <CalendarCheck size={22} />, label: "Davomat" },
     { to: "more", icon: <BookOpen size={22} />, label: "Boshqa" },
+    { to: "tests", icon: <Database size={22} />, label: "Testlar bazasi" },
     { to: "exams", icon: <FileText size={22} />, label: "Imtihonlar" },
     { to: "homeworks", icon: <FileText size={22} />, label: "Vazifalar" },
     { to: "news", icon: <Megaphone size={22} />, label: "Yangiliklar" },
@@ -73,7 +74,7 @@ export default function AdminLayout() {
       {/* Main Content Area */}
       <div className="flex flex-col flex-1 h-full overflow-hidden relative">
         {/* Mobile Top Header */}
-        <header className="md:hidden h-[72px] px-5 flex items-center justify-between shrink-0 border-b border-white/5 relative z-20">
+        <header className="md:hidden h-[72px] px-5 flex items-center justify-between shrink-0 border-b border-white/5 ">
           <div className="flex flex-col">
             <h1 className="text-[#FEC204] text-[20px] font-black tracking-[-0.5px] leading-tight">Wissen Edu</h1>
             <p className="text-white/40 text-[9px] uppercase tracking-[2px] font-bold">Admin Panel</p>
@@ -95,7 +96,7 @@ export default function AdminLayout() {
         </header>
 
         {/* Desktop Top Header */}
-        <header className="hidden md:flex h-[80px] px-8 items-center justify-end shrink-0 relative z-20 border-b border-white/5">
+        <header className="hidden md:flex h-[80px] px-8 items-center justify-end shrink-0  border-b border-white/5">
           <div className="flex items-center gap-4">
             {isStudentsPage && (
               <button 
@@ -117,7 +118,7 @@ export default function AdminLayout() {
         </header>
 
         {/* Main Content Scrollable */}
-        <main className="flex-1 overflow-y-auto p-5 md:p-8 scroll-smooth relative z-10 w-full max-w-7xl mx-auto">
+        <main className="flex-1 overflow-y-auto p-5 md:p-8 scroll-smooth  w-full max-w-7xl mx-auto">
           <Outlet />
         </main>
 

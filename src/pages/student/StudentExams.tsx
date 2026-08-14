@@ -5,11 +5,13 @@ import { useAuth } from '../../contexts/AuthContext';
 import { Exam, Group } from '../../types';
 import { Calendar, Clock, MapPin } from 'lucide-react';
 import { motion } from 'motion/react';
+import StudentTestTake from './StudentTestTake';
 
 export default function StudentExams() {
   const { user } = useAuth();
   const [exams, setExams] = useState<Exam[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
+  const [takingExam, setTakingExam] = useState<Exam | null>(null);
 
   useEffect(() => {
     // Load all groups to show names
@@ -80,13 +82,23 @@ export default function StudentExams() {
       </div>
       
       {exam.description && (
-        <p className="text-[12px] text-white/50 bg-white/5 p-3 rounded-lg">{exam.description}</p>
+        <p className="text-[12px] text-white/50 bg-white/5 p-3 rounded-lg mb-4">{exam.description}</p>
+      )}
+      
+      {((exam.isOnline || (exam.testSources && exam.testSources.length > 0) || exam.testId) && !isPast) && (
+        <button onClick={() => setTakingExam(exam)} className="w-full mt-2 py-3 rounded-[12px] font-bold bg-[rgba(254,194,4,0.15)] text-[#FEC204] hover:bg-[rgba(254,194,4,0.25)] transition-colors border border-[#FEC204]/20 flex items-center justify-center gap-2">
+          <MapPin size={16} className="hidden" /> {/* just to align imports */}
+          <span className="text-[18px] mb-1 leading-none">▶</span> Testni boshlash
+        </button>
       )}
     </motion.div>
   );
 
   return (
     <div className="space-y-6 pb-6">
+      {takingExam && (
+        <StudentTestTake exam={takingExam} onClose={() => setTakingExam(null)} />
+      )}
       <div>
         <h1 className="text-[20px] font-black text-white tracking-[-0.5px]">Imtihonlar</h1>
         <p className="text-[12px] text-white/40 font-medium">Sizning kelgusi imtihon va olimpiadalaringiz</p>

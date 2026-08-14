@@ -1,12 +1,16 @@
 import fs from 'fs';
+let code = fs.readFileSync('src/App.tsx', 'utf8');
 
-let code = fs.readFileSync('src/App.tsx', 'utf-8');
-
-// Replace the profile route with a redirect
-code = code.replace(/<Route path="profile" element={<StudentProfile \/>} \/>/, '<Route path="profile" element={<Navigate to="/student" replace />} />');
-
-if (!code.includes('Navigate')) {
-  code = code.replace(/import { Routes, Route } from 'react-router-dom';/, "import { Routes, Route, Navigate } from 'react-router-dom';");
+if (!code.includes("AdminTestsDatabase")) {
+  code = code.replace(
+    "import AdminExams from './pages/admin/AdminExams';",
+    "import AdminExams from './pages/admin/AdminExams';\nimport AdminTestsDatabase from './pages/admin/AdminTestsDatabase';"
+  );
+  
+  code = code.replace(
+    `<Route path="exams" element={<AdminExams />} />`,
+    `<Route path="tests" element={<AdminTestsDatabase />} />\n              <Route path="exams" element={<AdminExams />} />`
+  );
 }
 
 fs.writeFileSync('src/App.tsx', code);

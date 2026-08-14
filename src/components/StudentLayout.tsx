@@ -1,7 +1,7 @@
 import { useConfirm } from '../contexts/ConfirmContext';
 import React, { useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
-import { Home, CreditCard, CalendarCheck, CalendarDays, User, LogOut, FileText, GraduationCap } from 'lucide-react';
+import { Home, CreditCard, CalendarCheck, CalendarDays, User, LogOut, FileText, GraduationCap, BarChart2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import StudentProfile from '../pages/student/StudentProfile';
 import { X } from 'lucide-react';
@@ -29,6 +29,7 @@ export default function StudentLayout() {
     { to: "schedule", icon: <CalendarDays size={22} />, label: "Jadval" },
     { to: "homeworks", icon: <FileText size={22} />, label: "Vazifalar" },
     { to: "exams", icon: <GraduationCap size={22} />, label: "Imtihonlar" },
+    { to: "results", icon: <BarChart2 size={22} />, label: "Natijalar" },
       ];
 
   return (

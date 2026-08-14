@@ -14,6 +14,7 @@ import AdminPayments from './pages/admin/AdminPayments';
 import AdminAttendance from './pages/admin/AdminAttendance';
 import AdminMore from './pages/admin/AdminMore';
 import AdminExams from './pages/admin/AdminExams';
+import AdminTestsDatabase from './pages/admin/AdminTestsDatabase';
 import AdminNews from './pages/admin/AdminNews';
 import AdminHomeworks from './pages/admin/AdminHomeworks';
 import StudentDashboard from './pages/student/StudentDashboard';
@@ -23,6 +24,7 @@ import StudentSchedule from './pages/student/StudentSchedule';
 import StudentProfile from './pages/student/StudentProfile';
 import StudentHomeworks from './pages/student/StudentHomeworks';
 import StudentExams from './pages/student/StudentExams';
+import StudentResults from './pages/student/StudentResults';
 import StudentRegistration from './pages/StudentRegistration';
 import TeacherRegistration from './pages/TeacherRegistration';
 
@@ -74,6 +76,7 @@ export default function App() {
               <Route path="payments" element={<AdminPayments />} />
               <Route path="attendance" element={<AdminAttendance />} />
               <Route path="more" element={<AdminMore />} />
+              <Route path="tests" element={<AdminTestsDatabase />} />
               <Route path="exams" element={<AdminExams />} />
               <Route path="homeworks" element={<AdminHomeworks />} />
               <Route path="news" element={<AdminNews />} />
@@ -91,6 +94,7 @@ export default function App() {
               <Route path="schedule" element={<StudentSchedule />} />
               <Route path="homeworks" element={<StudentHomeworks />} />
               <Route path="exams" element={<StudentExams />} />
+              <Route path="results" element={<StudentResults />} />
               <Route path="profile" element={<Navigate to="/student" replace />} />
             </Route>
           </Route>

@@ -1,5 +1,4 @@
 @import "tailwindcss";
-
 @theme {
   --color-wissen-gold: #FEC204;
   --color-wissen-gold-dark: #f59e0b;
@@ -12,7 +11,6 @@
   --success-color: #22c55e;
   --danger-color: #ef4444;
 }
-
 @layer components {
   .badge-green {
     @apply text-[10px] px-2 py-0.5 bg-green-500/20 text-green-400 border border-green-500/20 rounded-full inline-block font-bold;
@@ -24,7 +22,6 @@
     @apply text-[10px] px-2 py-0.5 bg-[#FEC204]/20 text-[#FEC204] border border-[#FEC204]/30 rounded-full inline-block font-bold;
   }
 }
-
 body {
   margin: 0;
   font-family: var(--font-inter);
@@ -34,7 +31,6 @@ body {
   display: block;
   overflow: hidden;
 }
-
 /* Base App Layout */
 #root {
   width: 100%;
@@ -43,7 +39,6 @@ body {
   display: flex;
   flex-direction: column;
 }
-
 .glass-panel {
   background: rgba(255, 255, 255, 0.05);
   backdrop-filter: blur(20px);
@@ -51,18 +46,15 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 1.5rem;
 }
-
 .glass-panel-list {
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.05);
   border-radius: 1rem;
   transition: all 0.2s ease;
 }
-
 .glass-panel-list:hover {
   border-color: rgba(254, 194, 4, 0.3);
 }
-
 .glass-button {
   background: linear-gradient(to right, var(--color-wissen-gold), var(--color-wissen-gold-dark));
   color: black;
@@ -71,12 +63,10 @@ body {
   box-shadow: 0 10px 15px -3px rgba(254, 194, 4, 0.2), 0 4px 6px -4px rgba(254, 194, 4, 0.1);
   transition: all 0.2s ease;
 }
-
 .glass-button:hover, .glass-button:active {
   transform: translateY(-1px);
   box-shadow: 0 10px 20px -3px rgba(254, 194, 4, 0.4), 0 4px 6px -4px rgba(254, 194, 4, 0.2);
 }
-
 /* Blobs */
 .blob {
   position: absolute;
@@ -85,7 +75,6 @@ body {
   border-radius: 50%;
   animation: float 10s infinite alternate ease-in-out;
 }
-
 .blob-gold {
   background: rgba(254, 194, 4, 0.1);
   width: 300px;
@@ -94,7 +83,6 @@ body {
   right: 10%;
   filter: blur(100px);
 }
-
 .blob-purple {
   background: rgba(147, 51, 234, 0.2);
   width: 500px;
@@ -102,7 +90,6 @@ body {
   bottom: -10%;
   right: -5%;
 }
-
 .blob-blue {
   background: rgba(37, 99, 235, 0.2);
   width: 500px;
@@ -110,13 +97,11 @@ body {
   top: -10%;
   left: -5%;
 }
-
 @keyframes float {
   0% { transform: translate(0, 0) scale(1); }
   50% { transform: translate(20px, 30px) scale(1.1); }
   100% { transform: translate(-20px, 50px) scale(0.9); }
 }
-
 ::-webkit-scrollbar {
   width: 4px;
   height: 4px;
@@ -126,3 +111,26 @@ body {
   background: rgba(255, 255, 255, 0.1);
   border-radius: 10px;
 }
+
+/* Horizontal scrolling for KaTeX on small screens instead of wrapping */
+.katex-display {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 0.5rem;
+  padding-top: 0.5rem;
+}
+
+@media (max-width: 768px) {
+  .katex {
+    font-size: 0.8em !important;
+  }
+}
+@media (max-width: 640px) {
+  .katex {
+    font-size: 0.7em !important;
+  }
+}
+/* Force KaTeX to allow wrapping for long text blocks */
+.katex { white-space: normal !important; word-break: break-word; }
+.katex-html { white-space: normal !important; }
+
