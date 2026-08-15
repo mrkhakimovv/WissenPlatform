@@ -7,7 +7,7 @@ import { analyzeTeacherExamples, evaluateHomework } from "./src/server/evaluator
 
 async function startServer() {
   const app = express();
-  const PORT = 3000;
+  const PORT = process.env.PORT ? Number(process.env.PORT) : 3000;
 
   app.use(cors());
   app.use(express.json({ limit: '15mb' }));
@@ -64,7 +64,7 @@ async function startServer() {
   } else {
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
-    app.get('*', (req, res) => {
+    app.get('/{*splat}', (req, res) => {
       res.sendFile(path.join(distPath, 'index.html'));
     });
   }
