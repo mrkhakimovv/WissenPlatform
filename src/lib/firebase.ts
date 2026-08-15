@@ -1,7 +1,10 @@
 import { initializeApp } from 'firebase/app';
-import { getFirestore, collection, query, where, getDocs, doc, getDoc, setDoc, updateDoc, deleteDoc, onSnapshot, orderBy, addDoc, limit } from 'firebase/firestore';
+import { getFirestore, setLogLevel, collection, query, where, getDocs, doc, getDoc, setDoc, updateDoc, deleteDoc, onSnapshot, orderBy, addDoc, limit } from 'firebase/firestore';
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, createUserWithEmailAndPassword } from 'firebase/auth';
 import firebaseConfig from '../../firebase-applet-config.json';
+
+// Tarmoq uzilishi ogohlantirishlarini yashirish
+setLogLevel('error');
 
 const app = initializeApp(firebaseConfig);
 const secondaryApp = initializeApp(firebaseConfig, 'Secondary');

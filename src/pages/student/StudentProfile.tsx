@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { Phone, Mail, BookOpen, CalendarIcon } from 'lucide-react';
+import { Phone, Mail, BookOpen, CalendarIcon, Download } from 'lucide-react';
+import { usePWAInstall } from '../../hooks/usePWAInstall';
 
 import { db, doc, getDoc, collection, query, where, getDocs } from '../../lib/firebase';
 import { Group, Attendance } from '../../types';
@@ -12,6 +13,7 @@ export default function StudentProfile() {
   const [group, setGroup] = useState<Group | null>(null);
   const [attendanceRate, setAttendanceRate] = useState<number>(0);
   const [monthsCount, setMonthsCount] = useState<number>(0);
+  const { isInstallable, installApp } = usePWAInstall();
 
   useEffect(() => {
     async function loadData() {
@@ -66,7 +68,16 @@ export default function StudentProfile() {
   return (
     <div className="space-y-6 pt-4 pb-6">
       {/* Profile Header Block */}
-      <div className="flex flex-col items-center">
+      <div className="flex flex-col items-center relative">
+        {isInstallable && (
+        <button 
+          onClick={installApp}
+          className="absolute top-0 left-0 flex items-center gap-2 px-3 py-1.5 bg-[#FEC204] text-black font-bold text-[11px] uppercase tracking-wide rounded-full shadow-lg hover:bg-[#e0ab00] transition-colors z-10"
+        >
+          <Download size={14} />
+          APK O'rnatish
+        </button>
+      )}
         <div className="relative mb-4">
           <div className="w-[72px] h-[72px] rounded-full border-[2.5px] border-[#FEC204] p-[1.5px]">
             <div className="w-full h-full rounded-full bg-[#FEC204] flex items-center justify-center text-[22px] font-black text-[#000]">
@@ -143,6 +154,15 @@ export default function StudentProfile() {
 
 
 
+      {isInstallable && (
+        <button 
+          onClick={installApp}
+          className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-[#FEC204] text-black font-bold hover:bg-[#e0ab00] transition-colors mt-6"
+        >
+          <Download size={18} />
+          <span>Ilovani yuklab olish (APK)</span>
+        </button>
+      )}
       <p className="text-center text-[10px] font-bold text-white/40 py-4">Wissen Edu v1.0.0</p>
     </div>
   );
