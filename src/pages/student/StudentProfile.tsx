@@ -164,13 +164,24 @@ export default function StudentProfile() {
 
 
 
-      <button 
-        onClick={handleInstallClick}
-        className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-[#FEC204] text-black font-bold hover:bg-[#e0ab00] transition-colors mt-6"
-      >
-        <Download size={18} />
-        <span>Ilovani yuklab olish (APK)</span>
-      </button>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-6">
+        <button 
+          onClick={handleInstallClick}
+          className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-white/5 border border-white/10 text-white font-bold hover:bg-white/10 transition-colors"
+        >
+          <Download size={18} />
+          <span>Ekranga qo'shish (PWA)</span>
+        </button>
+
+        <a 
+          href="/wissen-edu.apk"
+          download="wissen-edu.apk"
+          className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-[#FEC204] text-black font-bold hover:bg-[#e0ab00] transition-colors"
+        >
+          <Download size={18} />
+          <span>Ilovani yuklab olish (.APK)</span>
+        </a>
+      </div>
       <p className="text-center text-[10px] font-bold text-white/40 py-4">Wissen Edu v1.0.0</p>
     </div>
   );
