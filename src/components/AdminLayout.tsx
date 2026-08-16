@@ -118,19 +118,19 @@ export default function AdminLayout() {
         </header>
 
         {/* Main Content Scrollable */}
-        <main className="flex-1 overflow-y-auto p-5 md:p-8 scroll-smooth  w-full max-w-7xl mx-auto">
+        <main className="flex-1 overflow-y-auto overscroll-y-contain p-5 md:p-8 scroll-smooth  w-full max-w-7xl mx-auto">
           <Outlet />
         </main>
 
         {/* Mobile Bottom Nav */}
-        <nav className="md:hidden w-full h-[80px] glass-panel rounded-t-3xl rounded-b-none border-t border-white/10 flex items-center justify-around px-1 z-30 shrink-0 pb-4 overflow-x-auto gap-2">
+        <nav className="md:hidden w-full glass-panel rounded-t-3xl rounded-b-none border-t border-white/10 flex items-center justify-start px-2 z-30 shrink-0 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-2 overflow-x-auto gap-2 scrollbar-hide">
           {navItems.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
               end={item.to === '.'}
               className={({ isActive }) => 
-                `flex flex-col items-center justify-center min-w-[70px] h-full gap-1 transition-all ${
+                `flex flex-col items-center justify-center min-w-[70px] h-[55px] gap-1 transition-all ${
                   isActive ? 'text-[#FEC204]' : 'text-white/40 hover:text-white/70'
                 }`
               }

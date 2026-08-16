@@ -22,22 +22,36 @@
     @apply text-[10px] px-2 py-0.5 bg-[#FEC204]/20 text-[#FEC204] border border-[#FEC204]/30 rounded-full inline-block font-bold;
   }
 }
+html, body {
+  overscroll-behavior: none;
+  overscroll-behavior-y: none;
+  overscroll-behavior-x: none;
+  width: 100%;
+  height: 100%;
+  position: fixed;
+  overflow: hidden;
+}
+
 body {
   margin: 0;
   font-family: var(--font-inter);
   background-color: var(--color-wissen-dark);
   color: #fff;
-  height: 100vh;
   display: block;
-  overflow: hidden;
 }
+
 /* Base App Layout */
 #root {
   width: 100%;
-  height: 100dvh;
-  position: relative;
+  height: 100%; /* or 100dvh if preferred, but 100% works well with fixed body */
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 .glass-panel {
   background: rgba(255, 255, 255, 0.05);
@@ -102,6 +116,14 @@ body {
   50% { transform: translate(20px, 30px) scale(1.1); }
   100% { transform: translate(-20px, 50px) scale(0.9); }
 }
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
 ::-webkit-scrollbar {
   width: 4px;
   height: 4px;

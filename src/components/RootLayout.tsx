@@ -4,7 +4,7 @@ import { Toaster } from 'react-hot-toast';
 
 export function RootLayout() {
   return (
-    <div className="flex h-screen w-full bg-[color:var(--color-wissen-dark)] overflow-hidden">
+    <div className="flex h-[100dvh] w-full bg-[color:var(--color-wissen-dark)] overflow-hidden">
       
       {/* Background blobs */}
       <div className="blob blob-gold"></div>
