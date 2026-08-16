@@ -1,6 +1,7 @@
 import React from 'react';
 import { Outlet } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
+import InstallPrompt from './InstallPrompt';
 
 export function RootLayout() {
   return (
@@ -16,6 +17,7 @@ export function RootLayout() {
         <Outlet />
       </div>
 
+      <InstallPrompt />
       <Toaster 
         position="top-right"
         toastOptions={{
