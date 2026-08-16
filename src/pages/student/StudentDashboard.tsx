@@ -152,7 +152,7 @@ export default function StudentDashboard() {
             <motion.div 
                initial={{ width: 0 }}
                animate={{ width: `${attendance.length === 0 ? 0 : attendanceRate}%` }}
-               className="bg-[#FEC204] h-full" 
+               className="bg-[#22c55e] h-full" 
             />
           </div>
         </div>
@@ -272,7 +272,7 @@ export default function StudentDashboard() {
               }
               
               let style = "bg-white/5 border-white/10 text-white/40";
-              if (status === 'present') style = "bg-[rgba(254,194,4,0.12)] border-[rgba(254,194,4,0.3)] text-[#FEC204]";
+              if (status === 'present') style = "bg-[#22c55e]/10 border-[#22c55e]/30 text-[#22c55e]";
               if (status === 'absent') style = "bg-[rgba(239,68,68,0.1)] border-[rgba(239,68,68,0.2)] text-red-500";
               if (status === 'excused') style = "bg-[rgba(234,179,8,0.1)] border-[rgba(234,179,8,0.2)] text-yellow-500";
 

@@ -65,7 +65,7 @@ export default function StudentAttendance() {
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-5">
         <div className="glass-panel p-4 md:p-5 flex items-center gap-3 md:gap-4 hover:scale-[1.02] transition-transform">
-          <div className="w-10 h-10 md:w-12 md:h-12 rounded-[10px] md:rounded-xl bg-[rgba(254,194,4,0.12)] border border-[rgba(254,194,4,0.3)] flex items-center justify-center text-[#FEC204] font-black text-[16px] md:text-[20px]">{presentCount}</div>
+          <div className="w-10 h-10 md:w-12 md:h-12 rounded-[10px] md:rounded-xl bg-[#22c55e]/10 border border-[#22c55e]/30 flex items-center justify-center text-[#22c55e] font-black text-[16px] md:text-[20px]">{presentCount}</div>
           <div>
             <p className="text-[10px] md:text-[11px] uppercase font-bold text-white/40 tracking-[1px]">Keldi</p>
             <p className="text-[15px] md:text-[18px] font-black text-white tracking-[-0.5px]">Kunlar</p>
@@ -87,7 +87,7 @@ export default function StudentAttendance() {
           <p className="text-[28px] md:text-[36px] font-[900] tracking-[-1px] text-white leading-none">{presentCount + absentCount === 0 ? 0 : attendanceRate}%</p>
         </div>
         <div className="w-full h-[6px] md:h-[8px] bg-white/10 rounded-full overflow-hidden mt-3 md:mt-4">
-          <div className="bg-[#FEC204] h-full" style={{ width: `${presentCount + absentCount === 0 ? 0 : attendanceRate}%` }}></div>
+          <div className="bg-[#22c55e] h-full" style={{ width: `${presentCount + absentCount === 0 ? 0 : attendanceRate}%` }}></div>
         </div>
       </div>
 
@@ -123,7 +123,7 @@ export default function StudentAttendance() {
               }
               
               let style = "bg-white/5 border-white/5 text-white/40"; // default styling for empty days
-              if (status === 'present') style = "bg-[rgba(254,194,4,0.12)] border-[rgba(254,194,4,0.3)] text-[#FEC204]";
+              if (status === 'present') style = "bg-[#22c55e]/10 border-[#22c55e]/30 text-[#22c55e]";
               else if (status === 'absent') style = "bg-[rgba(239,68,68,0.1)] border-[rgba(239,68,68,0.2)] text-red-500";
               else if (status === 'excused') style = "bg-[rgba(234,179,8,0.1)] border-[rgba(234,179,8,0.2)] text-yellow-500";
 
