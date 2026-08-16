@@ -6,9 +6,10 @@ export function usePWAInstall() {
 
   useEffect(() => {
     const handleBeforeInstallPrompt = (e: any) => {
-      // Prevent the mini-infobar from appearing on mobile
-      e.preventDefault();
-      // Stash the event so it can be triggered later.
+      // Allow the native mini-infobar to appear on mobile
+      // e.preventDefault();
+      
+      // Stash the event so it can be triggered later via our custom buttons.
       setInstallPromptEvent(e);
       setIsInstallable(true);
     };

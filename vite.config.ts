@@ -12,6 +12,7 @@ export default defineConfig(({mode}) => {
       tailwindcss(),
       VitePWA({
         registerType: 'autoUpdate',
+        includeAssets: ['logo-192.png', 'logo-512.png'],
         manifest: {
           name: 'Wissen Edu',
           short_name: 'Wissen Edu',
@@ -20,20 +21,30 @@ export default defineConfig(({mode}) => {
           background_color: '#0d0d0d',
           display: 'standalone',
           start_url: '/',
+          id: '/',
           icons: [
             {
-              src: 'logo-192.png',
+              src: '/logo-192.png',
               sizes: '192x192',
               type: 'image/png',
               purpose: 'any'
             },
             {
-              src: 'logo-512.png',
+              src: '/logo-512.png',
               sizes: '512x512',
               type: 'image/png',
-              purpose: 'any maskable'
+              purpose: 'any'
+            },
+            {
+              src: '/logo-512.png',
+              sizes: '512x512',
+              type: 'image/png',
+              purpose: 'maskable'
             }
           ]
+        },
+        workbox: {
+          globPatterns: ['**/*.{js,css,html,ico,png,svg}']
         }
       })
     ],
