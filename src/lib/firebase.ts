@@ -3,7 +3,7 @@ import { getFirestore, setLogLevel, collection, query, where, getDocs, doc, getD
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, createUserWithEmailAndPassword } from 'firebase/auth';
 import localFirebaseConfig from '../../firebase-applet-config.json';
 
-const configAny = localFirebaseConfig as any;
+const configAny = (localFirebaseConfig as any).default || localFirebaseConfig as any;
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY || configAny.apiKey,
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || configAny.authDomain,
@@ -17,6 +17,7 @@ const firestoreDatabaseId = import.meta.env.VITE_FIREBASE_DATABASE_ID || configA
 // Tarmoq uzilishi ogohlantirishlarini yashirish
 setLogLevel('error');
 
+console.log('Final Firebase Config:', firebaseConfig);
 const app = initializeApp(firebaseConfig);
 const secondaryApp = initializeApp(firebaseConfig, 'Secondary');
 
