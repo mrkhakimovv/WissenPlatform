@@ -12,7 +12,7 @@ export default defineConfig(({mode}) => {
       tailwindcss(),
       VitePWA({
         registerType: 'autoUpdate',
-        includeAssets: ['logo-192.png', 'logo-512.png'],
+        includeAssets: ['logo-192.png', 'logo-512.png', 'logo-512-maskable.png'],
         manifest: {
           name: 'Wissen Edu',
           short_name: 'Wissen Edu',
@@ -36,7 +36,8 @@ export default defineConfig(({mode}) => {
               purpose: 'any'
             },
             {
-              src: '/logo-512.png',
+              // Android uchun maskable icon (xavfsiz-zonali, logo kesilmaydi)
+              src: '/logo-512-maskable.png',
               sizes: '512x512',
               type: 'image/png',
               purpose: 'maskable'
@@ -44,7 +45,10 @@ export default defineConfig(({mode}) => {
           ]
         },
         workbox: {
-          globPatterns: ['**/*.{js,css,html,ico,png,svg}']
+          globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
+          // Katta fayllar (font yoki rasm) buildni to'xtatib qo'ymasligi uchun
+          // precache limitini 5 MB ga oshiramiz.
+          maximumFileSizeToCacheInBytes: 5 * 1024 * 1024
         }
       })
     ],
@@ -55,7 +59,7 @@ export default defineConfig(({mode}) => {
     },
     server: {
       // HMR is disabled in AI Studio via DISABLE_HMR env var.
-      // Do not modifyâfile watching is disabled to prevent flickering during agent edits.
+      // Do not modify—file watching is disabled to prevent flickering during agent edits.
       hmr: process.env.DISABLE_HMR !== 'true',
     },
   };
