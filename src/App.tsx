@@ -25,6 +25,7 @@ import StudentProfile from './pages/student/StudentProfile';
 import StudentHomeworks from './pages/student/StudentHomeworks';
 import StudentExams from './pages/student/StudentExams';
 import StudentResults from './pages/student/StudentResults';
+import StudentNews from './pages/student/StudentNews';
 import StudentRegistration from './pages/StudentRegistration';
 import TeacherRegistration from './pages/TeacherRegistration';
 
@@ -95,6 +96,7 @@ export default function App() {
               <Route path="homeworks" element={<StudentHomeworks />} />
               <Route path="exams" element={<StudentExams />} />
               <Route path="results" element={<StudentResults />} />
+              <Route path="news" element={<StudentNews />} />
               <Route path="profile" element={<Navigate to="/student" replace />} />
             </Route>
           </Route>
