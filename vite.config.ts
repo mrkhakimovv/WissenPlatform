@@ -13,17 +13,23 @@ export default defineConfig(({mode}) => {
       VitePWA({
         registerType: 'autoUpdate',
         manifest: {
-          name: 'Talaba Ilovasi',
-          short_name: 'Talaba',
-          description: 'Talabalar uchun platforma',
+          name: 'Wissen Edu',
+          short_name: 'Wissen Edu',
+          description: "Wissen O'quv Markazi boshqaruv ilovasi",
           theme_color: '#FEC204',
           background_color: '#0d0d0d',
           display: 'standalone',
           icons: [
             {
-              src: 'icon.svg',
+              src: 'logo.png',
+              sizes: '192x192',
+              type: 'image/png'
+            },
+            {
+              src: 'logo.png',
               sizes: '512x512',
-              type: 'image/svg+xml'
+              type: 'image/png',
+              purpose: 'any maskable'
             }
           ]
         }
