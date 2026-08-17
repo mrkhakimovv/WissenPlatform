@@ -1,10 +1,23 @@
 // src/components/MathAnswerField.tsx
-// Bosilganda POPUP (modal) ochiladi: katta matematik maydon + virtual klaviatura
-// + Saqlash/Yopish tugmalari. Telefon uchun qulay (skrinshotdagi kabi).
+// MathLive asosidagi matematik javob maydoni (to'g'ri sozlangan).
+// Bosilganda popup ochiladi: MathLive maydoni + virtual klaviatura + Saqlash/Yopish.
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import 'mathlive';
 import { MathfieldElement } from 'mathlive';
+
+// MUHIM: fontlar va tovushlarni birinchi maydon yaratilishidan OLDIN sozlaymiz.
+// Vite/PWA da nisbiy './fonts' yo'li 404 beradi — shuning uchun CDN ishlatamiz.
+// (Bu sozlama modul import qilinganda bir marta ishlaydi.)
+try {
+  if (MathfieldElement.fontsDirectory !== null) {
+    MathfieldElement.fontsDirectory =
+      'https://cdn.jsdelivr.net/npm/mathlive@0.110.0/fonts';
+  }
+  MathfieldElement.soundsDirectory = null; // tovush 404 larini o'chiramiz
+} catch {
+  /* ba'zi muhitlarda static setterlar bo'lmasligi mumkin */
+}
 
 declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace
@@ -22,7 +35,7 @@ declare global {
 }
 
 interface Props {
-  value: string;
+  value: string; // LaTeX
   onChange: (latex: string) => void;
   placeholder?: string;
   readOnly?: boolean;
@@ -35,37 +48,42 @@ export default function MathAnswerField({
   readOnly = false,
 }: Props) {
   const [open, setOpen] = useState(false);
-  const [draft, setDraft] = useState(value);
+  const [draft, setDraft] = useState('');
   const editRef = useRef<MathfieldElement>(null);
   const displayRef = useRef<MathfieldElement>(null);
 
+  // Chipdagi ko'rinishни sinxronlash
   useEffect(() => {
     const mf = displayRef.current;
     if (mf && mf.value !== value) mf.value = value;
-  }, [value]);
+  }, [value, open]);
 
   const openModal = () => {
     if (readOnly) return;
-    setDraft(value);
+    setDraft(value || '');
     setOpen(true);
   };
 
+  // Modal ochilganда maydon + klaviaturани tayyorlash
   useEffect(() => {
     if (!open) return;
     const mf = editRef.current;
     if (!mf) return;
 
     mf.value = draft;
-    mf.mathVirtualKeyboardPolicy = 'auto';
+    mf.mathVirtualKeyboardPolicy = 'auto'; // touch qurilmalarda avtomatik ochiladi
     window.mathVirtualKeyboard.layouts = ['numeric', 'symbols'];
 
     const handleInput = () => setDraft(mf.value);
     mf.addEventListener('input', handleInput);
 
+    // Fokus + klaviaturani majburan ko'rsatish (desktop uchun ham)
     const t = setTimeout(() => {
       mf.focus();
-      window.mathVirtualKeyboard.show();
-    }, 60);
+      try {
+        window.mathVirtualKeyboard.show();
+      } catch {}
+    }, 80);
 
     return () => {
       clearTimeout(t);
@@ -76,17 +94,22 @@ export default function MathAnswerField({
 
   const save = () => {
     onChange(draft);
-    window.mathVirtualKeyboard.hide();
+    try {
+      window.mathVirtualKeyboard.hide();
+    } catch {}
     setOpen(false);
   };
 
   const close = () => {
-    window.mathVirtualKeyboard.hide();
+    try {
+      window.mathVirtualKeyboard.hide();
+    } catch {}
     setOpen(false);
   };
 
   return (
     <>
+      {/* CHIP */}
       <button
         type="button"
         onClick={openModal}
@@ -118,10 +141,11 @@ export default function MathAnswerField({
         </span>
       </button>
 
+      {/* POPUP */}
       {open &&
         createPortal(
           <div
-            className="fixed inset-0 z-[9998] bg-black/60 flex items-start justify-center pt-24 px-4"
+            className="fixed inset-0 z-[9998] bg-black/70 flex items-start justify-center pt-20 px-4"
             onClick={close}
           >
             <div
@@ -133,13 +157,13 @@ export default function MathAnswerField({
                 style={
                   {
                     width: '100%',
-                    minHeight: '56px',
+                    minHeight: '60px',
                     padding: '12px 14px',
                     borderRadius: '12px',
                     border: '2px solid #FEC204',
                     background: '#0d0d0d',
                     color: '#fafafa',
-                    fontSize: '22px',
+                    fontSize: '24px',
                     '--caret-color': '#FEC204',
                     '--selection-background-color': 'rgba(254,194,4,0.25)',
                   } as React.CSSProperties
@@ -152,14 +176,14 @@ export default function MathAnswerField({
                 <button
                   type="button"
                   onClick={save}
-                  className="px-6 py-2 rounded-lg bg-[#FEC204] text-black font-bold"
+                  className="flex-1 py-3 rounded-lg bg-[#FEC204] text-black font-bold"
                 >
                   Saqlash
                 </button>
                 <button
                   type="button"
                   onClick={close}
-                  className="px-6 py-2 rounded-lg bg-white/10 text-white font-bold"
+                  className="flex-1 py-3 rounded-lg bg-white/10 text-white font-bold"
                 >
                   Yopish
                 </button>
@@ -172,20 +196,28 @@ export default function MathAnswerField({
   );
 }
 
+/**
+ * Javoblarni son sifatida solishtirish.
+ * LaTeX (\frac{1}{2}) va oddiy (0.5) — ikkalasini ham tan oladi.
+ */
 export async function answersEqual(a: string, b: string): Promise<boolean> {
-  const A = (a ?? '').trim();
-  const B = (b ?? '').trim();
-  if (!A || !B) return false;
+  const na = await toNumber(a);
+  const nb = await toNumber(b);
+  if (na !== null && nb !== null) return Math.abs(na - nb) < 1e-9;
+  return (a ?? '').replace(/\s/g, '').toLowerCase() ===
+         (b ?? '').replace(/\s/g, '').toLowerCase();
+}
+
+async function toNumber(x: string): Promise<number | null> {
+  if (!x) return null;
+  // 1) compute-engine orqali LaTeX ni sonига aylantiramiz
   try {
     const { ComputeEngine } = await import('@cortex-js/compute-engine');
     const ce = new ComputeEngine();
-    const na = ce.parse(A).N().valueOf();
-    const nb = ce.parse(B).N().valueOf();
-    if (typeof na === 'number' && typeof nb === 'number') {
-      return Math.abs(na - nb) < 1e-9;
-    }
+    const v = ce.parse(x).N().valueOf();
+    if (typeof v === 'number' && isFinite(v)) return v;
   } catch {
-    /* compute-engine yo'q — matn solishtiruviga o'tamiz */
+    /* fallback */
   }
-  return A.replace(/\s/g, '').toLowerCase() === B.replace(/\s/g, '').toLowerCase();
+  return null;
 }
