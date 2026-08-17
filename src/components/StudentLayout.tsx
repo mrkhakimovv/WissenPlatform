@@ -28,7 +28,7 @@ export default function StudentLayout() {
     { to: "attendance", icon: <CalendarCheck size={22} />, label: "Davomat" },
     { to: "schedule", icon: <CalendarDays size={22} />, label: "Jadval" },
     { to: "homeworks", icon: <FileText size={22} />, label: "Vazifalar" },
-    { to: "sat", icon: <Database size={22} className="text-[#FEC204]" />, label: "SAT" },
+    { to: "sat", icon: <Database size={22} />, label: "SAT" },
     { to: "exams", icon: <GraduationCap size={22} />, label: "Imtihonlar" },
     { to: "results", icon: <BarChart2 size={22} />, label: "Natijalar" },
     { to: "news", icon: <Megaphone size={22} />, label: "Yangiliklar" },
