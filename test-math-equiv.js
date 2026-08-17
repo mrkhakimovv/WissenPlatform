@@ -1,0 +1,10 @@
+import { ComputeEngine } from '@cortex-js/compute-engine';
+const ce = new ComputeEngine();
+const a = "\\frac{1}{2}";
+const b = "0.5";
+const c = "\\sqrt{2} + 3";
+const d = "3 + \\sqrt{2}";
+console.log(ce.parse(a).isEqual(ce.parse(b)));
+console.log(ce.parse(c).isEqual(ce.parse(d)));
+console.log("N value of c:", ce.parse(c).N().valueOf());
+console.log("N value of d:", ce.parse(d).N().valueOf());

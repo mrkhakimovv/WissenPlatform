@@ -203,27 +203,39 @@ export default function MathAnswerField({
 }
 
 /**
- * Javoblarni son sifatida solishtirish.
- * LaTeX (\frac{1}{2}) va oddiy (0.5) — ikkalasini ham tan oladi.
+ * Javoblarni analitik va sonli qilib solishtirish.
+ * LaTeX (\frac{1}{2}) va oddiy (0.5), shuningdek
+ * x+x va 2x kabi algebraik tengliklarni ham tan oladi.
  */
 export async function answersEqual(a: string, b: string): Promise<boolean> {
-  const na = await toNumber(a);
-  const nb = await toNumber(b);
-  if (na !== null && nb !== null) return Math.abs(na - nb) < 1e-9;
-  return (a ?? '').replace(/\s/g, '').toLowerCase() ===
-         (b ?? '').replace(/\s/g, '').toLowerCase();
-}
+  if (!a || !b) return false;
+  
+  const strA = String(a).replace(/\s/g, '').toLowerCase();
+  const strB = String(b).replace(/\s/g, '').toLowerCase();
+  if (strA === strB) return true;
 
-async function toNumber(x: string): Promise<number | null> {
-  if (!x) return null;
-  // 1) compute-engine orqali LaTeX ni sonига aylantiramiz
   try {
     const { ComputeEngine } = await import('@cortex-js/compute-engine');
     const ce = new ComputeEngine();
-    const v = ce.parse(x).N().valueOf();
-    if (typeof v === 'number' && isFinite(v)) return v;
-  } catch {
-    /* fallback */
+    
+    // LaTeX yoki matnni o'qib olish (parse)
+    const exprA = ce.parse(String(a));
+    const exprB = ce.parse(String(b));
+
+    // 1. Algebraik (simvolik) soddalashtirish orqali tenglikni tekshirish
+    const simA = exprA.simplify();
+    const simB = exprB.simplify();
+    if (simA.isEqual(simB) || simA.isSame(simB)) return true;
+
+    // 2. Raqamli qiymat (Numeric) bo'yicha solishtirish (masalan, 1/2 == 0.5)
+    const valA = exprA.N().valueOf();
+    const valB = exprB.N().valueOf();
+    if (typeof valA === 'number' && typeof valB === 'number' && isFinite(valA) && isFinite(valB)) {
+      if (Math.abs(valA - valB) < 1e-9) return true;
+    }
+  } catch (e) {
+    console.error("Compute engine comparison failed:", e);
   }
-  return null;
+
+  return false;
 }
