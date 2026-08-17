@@ -23,6 +23,7 @@ export default function AdminLayout() {
     { to: "payments", icon: <CreditCard size={22} />, label: "To'lov" },
     { to: "attendance", icon: <CalendarCheck size={22} />, label: "Davomat" },
     { to: "more", icon: <BookOpen size={22} />, label: "Boshqa" },
+    { to: "sat", icon: <Database size={22} className="text-[#FEC204]" />, label: "SAT BAZA" },
     { to: "tests", icon: <Database size={22} />, label: "Testlar bazasi" },
     { to: "exams", icon: <FileText size={22} />, label: "Imtihonlar" },
     { to: "homeworks", icon: <FileText size={22} />, label: "Vazifalar" },

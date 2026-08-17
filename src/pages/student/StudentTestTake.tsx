@@ -19,7 +19,7 @@ export default function StudentTestTake({ exam, onClose }: Props) {
   const { user } = useAuth();
   const [testData, setTestData] = useState<TestData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [answers, setAnswers] = useState<Record<number, number>>({});
+  const [answers, setAnswers] = useState<Record<number, any>>({});
   const [marked, setMarked] = useState<Record<number, boolean>>({});
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
@@ -186,8 +186,15 @@ export default function StudentTestTake({ exam, onClose }: Props) {
     if (!testData) return;
     let s = 0;
     testData.questions.forEach((q, idx) => {
-      if (answers[idx] === q.correctOptionIndex) {
-        s += 1;
+      const ans = answers[idx];
+      if (q.isOpenEnded) {
+        if (ans && q.correctAnswerText && String(ans).trim().toLowerCase() === String(q.correctAnswerText).trim().toLowerCase()) {
+          s += 1;
+        }
+      } else {
+        if (ans === q.correctOptionIndex) {
+          s += 1;
+        }
       }
     });
     setScore(s);
@@ -272,13 +279,14 @@ export default function StudentTestTake({ exam, onClose }: Props) {
   }
 
   const q = testData.questions[currentQuestion];
+  const isBubbleMode = testData.satType === "SAT Homework" || testData.satType === "SAT practice";
 
   return <>{createPortal(
     <div ref={containerRef} className="fixed inset-0 bg-[#0d0d0d] z-[99999] flex flex-col select-none">
       <div className="h-[60px] md:h-[72px] border-b border-white/10 flex items-center justify-between px-4 md:px-6 shrink-0">
         <div className="flex-1 min-w-0 pr-4">
           <h2 className="text-white font-bold text-[14px] md:text-[16px] truncate">{exam.title}</h2>
-          <p className="text-white/40 text-[11px] md:text-[12px] truncate">{testData.title}</p>
+          <p className="text-white/40 text-[11px] md:text-[12px] truncate">{testData.title} ({testData.satType || "Oddiy"})</p>
         </div>
         <div className="flex items-center gap-3 md:gap-6 shrink-0">
           <div className="flex flex-col items-end">
@@ -294,9 +302,62 @@ export default function StudentTestTake({ exam, onClose }: Props) {
       </div>
       
       <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
-      
-      {/* Left Sidebar - Progress */}
-      <div className="w-full md:w-[260px] lg:w-[300px] shrink-0 border-b md:border-b-0 md:border-r border-white/10 flex flex-col bg-[#0d0d0d]/80 z-10">
+      {isBubbleMode ? (
+        <div className="flex-1 overflow-y-auto p-4 md:p-8 bg-[#0a0a0a] custom-scrollbar">
+          <div className="max-w-4xl mx-auto">
+            <div className="flex items-center justify-between mb-6 md:mb-8">
+              <div>
+                <h3 className="text-xl md:text-2xl font-bold text-white mb-2">Javoblar varaqasi</h3>
+                <p className="text-white/50 text-sm">Savollarning javoblarini belgilang.</p>
+              </div>
+              <button
+                onClick={() => {
+                  if (Object.keys(answers).length < testData.questions.length) {
+                    setShowSubmitConfirm(true);
+                  } else {
+                    handleSubmit();
+                  }
+                }}
+                className="px-6 py-3 rounded-xl bg-[#FEC204] text-black font-bold hover:bg-[#e6b003] transition-colors shadow-[0_0_15px_rgba(254,194,4,0.3)]"
+              >
+                Testni yakunlash
+              </button>
+            </div>
+            
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+              {testData.questions.map((q, idx) => (
+                <div key={idx} className="bg-white/5 rounded-xl p-4 flex flex-col items-center gap-3 border border-white/10">
+                  <span className="font-bold text-white/70">{idx + 1}-savol</span>
+                  <div className="flex flex-col gap-2 w-full">
+                    {q.isOpenEnded ? (
+                      <input
+                        type="text"
+                        value={answers[idx] || ''}
+                        onChange={(e) => setAnswers(prev => ({ ...prev, [idx]: e.target.value }))}
+                        placeholder="Javobingiz"
+                        className="w-full glass-panel p-2 outline-none focus:border-[#FEC204]/50 text-sm text-white text-center font-bold h-10"
+                      />
+                    ) : (
+                      Array.from({length: testData.variantCount}).map((_, optIdx) => (
+                        <button 
+                          key={optIdx}
+                          onClick={() => setAnswers(prev => ({ ...prev, [idx]: optIdx }))}
+                          className={`w-full py-2 rounded-lg border-2 flex items-center justify-center font-bold text-sm transition-all duration-200 ${answers[idx] === optIdx ? 'border-[#FEC204] bg-[#FEC204] text-black' : 'border-white/10 text-white/40 hover:border-white/30 hover:text-white'}`}
+                        >
+                          {String.fromCharCode(65 + optIdx)}
+                        </button>
+                      ))
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      ) : (
+        <>
+        {/* Left Sidebar - Progress */}
+        <div className="w-full md:w-[260px] lg:w-[300px] shrink-0 border-b md:border-b-0 md:border-r border-white/10 flex flex-col bg-[#0d0d0d]/80 z-10">
         <div className="p-4 md:p-6 overflow-y-auto custom-scrollbar md:h-full">
           <h3 className="text-white/60 font-bold mb-4 text-[13px] uppercase tracking-widest hidden md:block">Savollar</h3>
           <div className="flex md:grid md:grid-cols-4 lg:grid-cols-5 gap-2 md:gap-3 overflow-x-auto md:overflow-visible pb-2 md:pb-0 custom-scrollbar">
@@ -307,7 +368,7 @@ export default function StudentTestTake({ exam, onClose }: Props) {
                 className={`relative shrink-0 w-10 h-10 md:w-full md:h-auto md:aspect-square rounded-lg flex items-center justify-center text-[13px] md:text-[14px] font-bold transition-all ${
                   currentQuestion === idx 
                     ? 'bg-[#FEC204] text-black shadow-[0_0_15px_rgba(254,194,4,0.3)] md:scale-105' 
-                    : answers[idx] !== undefined
+                    : (answers[idx] !== undefined && answers[idx] !== "")
                       ? 'bg-white/20 text-white border border-white/10'
                       : 'bg-white/5 text-white/40 hover:bg-white/10 hover:text-white border border-transparent'
                 }`}
@@ -365,28 +426,41 @@ export default function StudentTestTake({ exam, onClose }: Props) {
             )}
 
             <div className="space-y-2 md:space-y-3">
-              {q.options.map((opt, oIdx) => (
-                <button
-                  key={oIdx}
-                  onClick={() => {
-                    setAnswers(prev => ({ ...prev, [currentQuestion]: oIdx }));
-                  }}
-                  className={`w-full text-left p-3 md:p-4 rounded-[14px] md:rounded-xl border transition-all ${
-                    answers[currentQuestion] === oIdx
-                      ? 'bg-[rgba(254,194,4,0.1)] border-[#FEC204] text-white'
-                      : 'bg-white/5 border-white/10 text-white/70 hover:bg-white/10'
-                  }`}
-                >
-                  <div className="flex items-start gap-3">
-                    <div className={`w-6 h-6 md:w-7 md:h-7 rounded border flex items-center justify-center shrink-0 mt-0 md:mt-0 text-[12px] md:text-[13px] font-bold ${
-                      answers[currentQuestion] === oIdx ? 'border-[#FEC204] bg-[#FEC204] text-black' : 'border-white/20 text-white/50'
-                    }`}>
-                      {String.fromCharCode(65 + oIdx)}
+              {q.isOpenEnded ? (
+                <div className="w-full text-left p-3 md:p-4 rounded-[14px] md:rounded-xl border transition-all bg-white/5 border-white/10">
+                   <p className="text-white/70 text-sm mb-3">O'z javobingizni kiriting:</p>
+                   <input
+                     type="text"
+                     value={answers[currentQuestion] || ''}
+                     onChange={(e) => setAnswers(prev => ({ ...prev, [currentQuestion]: e.target.value }))}
+                     placeholder="Javobingizni shu yerga yozing..."
+                     className="w-full glass-panel p-4 rounded-lg outline-none focus:border-[#FEC204] border border-white/10 text-white font-bold"
+                   />
+                </div>
+              ) : (
+                q.options.map((opt, oIdx) => (
+                  <button
+                    key={oIdx}
+                    onClick={() => {
+                      setAnswers(prev => ({ ...prev, [currentQuestion]: oIdx }));
+                    }}
+                    className={`w-full text-left p-3 md:p-4 rounded-[14px] md:rounded-xl border transition-all ${
+                      answers[currentQuestion] === oIdx
+                        ? 'bg-[rgba(254,194,4,0.1)] border-[#FEC204] text-white'
+                        : 'bg-white/5 border-white/10 text-white/70 hover:bg-white/10'
+                    }`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className={`w-6 h-6 md:w-7 md:h-7 rounded border flex items-center justify-center shrink-0 mt-0 md:mt-0 text-[12px] md:text-[13px] font-bold ${
+                        answers[currentQuestion] === oIdx ? 'border-[#FEC204] bg-[#FEC204] text-black' : 'border-white/20 text-white/50'
+                      }`}>
+                        {String.fromCharCode(65 + oIdx)}
+                      </div>
+                      <span className="text-[13px] md:text-[15px] leading-snug overflow-x-auto"><Latex>{opt}</Latex></span>
                     </div>
-                    <span className="text-[13px] md:text-[15px] leading-snug overflow-x-auto"><Latex>{opt}</Latex></span>
-                  </div>
-                </button>
-              ))}
+                  </button>
+                ))
+              )}
             </div>
             
             <div className="flex flex-row items-center justify-between mt-8 md:mt-10 gap-2 md:gap-3">
@@ -411,6 +485,8 @@ export default function StudentTestTake({ exam, onClose }: Props) {
           </motion.div>
         </div>
         </div>
+        </>
+      )}
       </div>
 
       {showExitConfirm && (

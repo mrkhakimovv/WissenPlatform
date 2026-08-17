@@ -87,7 +87,7 @@ export default function AdminTestsDatabase() {
       setExistingTests(Array.from(titles));
       // Sort by createdAt descending locally if not using query orderBy due to missing index
       testsArr.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
-      setTests(testsArr);
+      setTests(testsArr.filter(t => t.testType !== 'sat'));
     }, err => {
       console.error('Error fetching tests:', err);
     });

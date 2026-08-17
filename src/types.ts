@@ -76,6 +76,7 @@ export interface Exam {
   testId?: string;
   testSources?: { testId: string; name: string; count: number }[];
   isOnline?: boolean;
+  examType?: string;
   createdAt: string;
 }
 
@@ -85,6 +86,8 @@ export interface TestQuestion {
   imageUrl?: string;
   options: string[];
   correctOptionIndex: number;
+  isOpenEnded?: boolean;
+  correctAnswerText?: string;
 }
 
 export interface TestData {
@@ -93,6 +96,7 @@ export interface TestData {
   questionCount: number;
   variantCount: number;
   testType: string;
+  satType?: string;
   questions: TestQuestion[];
   createdAt: string;
 }

@@ -42,7 +42,8 @@ export default function AdminExams() {
 
   useEffect(() => {
     const unsubExams = onSnapshot(query(collection(db, 'exams'), orderBy('createdAt', 'desc')), snap => {
-      setExams(snap.docs.map(d => ({ id: d.id, ...d.data() } as Exam)));
+      const allExams = snap.docs.map(d => ({ id: d.id, ...d.data() } as Exam));
+      setExams(allExams.filter(e => e.examType !== 'sat'));
     });
     const unsubGroups = onSnapshot(collection(db, 'groups'), snap => {
       setGroups(snap.docs.map(d => ({ id: d.id, ...d.data() } as Group)));
@@ -56,7 +57,7 @@ export default function AdminExams() {
       snap.docs.forEach(d => {
         const data = d.data();
         if (data.title) titles.add(data.title);
-        testsData.push({ id: d.id, title: data.title || 'Nomsiz test', totalCount: data.questions?.length || data.questionCount || 0 });
+        testsData.push({ id: d.id, title: data.title || 'Nomsiz test', totalCount: data.questions?.length || data.questionCount || 0, testType: data.testType });
       });
       setExistingTests(Array.from(titles));
       setAllTests(testsData);
@@ -275,7 +276,7 @@ export default function AdminExams() {
                     >
                       <option value="" disabled>Testni tanlang</option>
                       {allTests.map(t => (
-                        <option key={t.id} value={t.id} className="bg-[#1a1a1a]">{t.title} ({t.totalCount} ta savol)</option>
+                        <option key={t.id} value={t.id} className="bg-[#1a1a1a]">{t.title} {t.testType === 'sat' ? '(SAT) ' : ''}({t.totalCount} ta savol)</option>
                       ))}
                     </select>
                     <input 

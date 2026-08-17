@@ -7,7 +7,7 @@ import { Calendar, Clock, MapPin } from 'lucide-react';
 import { motion } from 'motion/react';
 import StudentTestTake from './StudentTestTake';
 
-export default function StudentExams() {
+export default function StudentSAT() {
   const { user } = useAuth();
   const [exams, setExams] = useState<Exam[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
@@ -27,7 +27,7 @@ export default function StudentExams() {
       const userGroups = user?.groups?.length ? user.groups : (user?.groupId ? [user.groupId] : []);
       
       // Filter exams: either no group (all) or matches one of student's groups
-      const myExams = allExams.filter(e => e.examType !== 'sat' && (!e.groupId || userGroups.includes(e.groupId)));
+      const myExams = allExams.filter(e => e.examType === 'sat' && (!e.groupId || userGroups.includes(e.groupId)));
       
       // Sort by date (closest upcoming first, past ones later or grouped differently)
       // Actually let's just sort descending or ascending by date
@@ -100,13 +100,13 @@ export default function StudentExams() {
         <StudentTestTake exam={takingExam} onClose={() => setTakingExam(null)} />
       )}
       <div>
-        <h1 className="text-[20px] font-black text-white tracking-[-0.5px]">Imtihonlar</h1>
+        <h1 className="text-[20px] font-black text-white tracking-[-0.5px]">SAT Imtihonlar</h1>
         <p className="text-[12px] text-white/40 font-medium">Sizning kelgusi imtihon va olimpiadalaringiz</p>
       </div>
 
       {upcomingExams.length > 0 && (
         <div className="space-y-4">
-          <h2 className="text-[13px] font-bold text-white/60 uppercase tracking-wider">Kelgusi Imtihonlar</h2>
+          <h2 className="text-[13px] font-bold text-white/60 uppercase tracking-wider">Kelgusi SAT Imtihonlar</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {upcomingExams.map(exam => renderExamCard(exam, false))}
           </div>
@@ -115,7 +115,7 @@ export default function StudentExams() {
 
       {pastExams.length > 0 && (
         <div className="space-y-4 mt-8">
-          <h2 className="text-[13px] font-bold text-white/60 uppercase tracking-wider">O'tgan Imtihonlar</h2>
+          <h2 className="text-[13px] font-bold text-white/60 uppercase tracking-wider">O'tgan SAT Imtihonlar</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {pastExams.map(exam => renderExamCard(exam, true))}
           </div>

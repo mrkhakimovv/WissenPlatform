@@ -1,7 +1,7 @@
 import { useConfirm } from '../contexts/ConfirmContext';
 import React, { useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
-import { Home, CreditCard, CalendarCheck, CalendarDays, User, LogOut, FileText, GraduationCap, BarChart2, Megaphone } from 'lucide-react';
+import { Database, Home, CreditCard, CalendarCheck, CalendarDays, User, LogOut, FileText, GraduationCap, BarChart2, Megaphone } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import StudentProfile from '../pages/student/StudentProfile';
 import { X } from 'lucide-react';
@@ -28,6 +28,7 @@ export default function StudentLayout() {
     { to: "attendance", icon: <CalendarCheck size={22} />, label: "Davomat" },
     { to: "schedule", icon: <CalendarDays size={22} />, label: "Jadval" },
     { to: "homeworks", icon: <FileText size={22} />, label: "Vazifalar" },
+    { to: "sat", icon: <Database size={22} className="text-[#FEC204]" />, label: "SAT" },
     { to: "exams", icon: <GraduationCap size={22} />, label: "Imtihonlar" },
     { to: "results", icon: <BarChart2 size={22} />, label: "Natijalar" },
     { to: "news", icon: <Megaphone size={22} />, label: "Yangiliklar" },
