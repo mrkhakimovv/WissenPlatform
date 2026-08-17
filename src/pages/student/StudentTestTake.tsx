@@ -327,7 +327,7 @@ export default function StudentTestTake({ exam, onClose }: Props) {
               </button>
             </div>
             
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
               {testData.questions.map((q, idx) => (
                 <div key={idx} className="bg-white/5 rounded-xl p-4 flex flex-col items-center gap-3 border border-white/10">
                   <span className="font-bold text-white/70">{idx + 1}-savol</span>

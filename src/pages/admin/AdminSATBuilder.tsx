@@ -101,7 +101,7 @@ export default function AdminSATBuilder({ initialData, onClose, onSave }: Props)
             <h3 className="text-xl font-bold text-white mb-2">Javoblar varaqasi (Kalitlarni belgilash)</h3>
             <p className="text-white/50 mb-8 text-sm">Ushbu test "Uyga vazifa" yoki "Amaliyot" turida bo'lgani uchun, faqat to'g'ri javob kalitlarini kiritish kifoya. O'quvchilar testni qog'ozda ishlashadi va faqat javoblarni onlayn tizimga kiritishadi.</p>
             
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
               {testData.questions.map((q, i) => (
                 <div key={q.id} className="bg-white/5 rounded-xl p-4 flex flex-col items-center gap-3 border border-white/10 relative">
                   <div className="flex items-center gap-2">
