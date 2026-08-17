@@ -1,2 +1,2 @@
-import 'mathlive';
-console.log("Success")
+const { mathVirtualKeyboard } = require('mathlive');
+console.log(typeof mathVirtualKeyboard);

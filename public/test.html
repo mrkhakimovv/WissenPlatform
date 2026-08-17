@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>MathLive Test</title>
+</head>
+<body>
+    <math-field id="mf">123</math-field>
+    <button onclick="window.mathVirtualKeyboard.show()">Show KB</button>
+    <script type="module">
+        import 'https://unpkg.com/mathlive?module';
+        window.mathVirtualKeyboard.layouts = 'default';
+        console.log(window.mathVirtualKeyboard);
+    </script>
+</body>
+</html>

@@ -3,22 +3,11 @@
 // Bosilganda popup ochiladi: MathLive maydoni + virtual klaviatura + Saqlash/Yopish.
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import 'mathlive';
 import { MathfieldElement } from 'mathlive';
+import { initMathLive, showVirtualKeyboard, hideVirtualKeyboard } from '../services/MathLiveConfig';
 
 // MUHIM: fontlar va tovushlarni birinchi maydon yaratilishidan OLDIN sozlaymiz.
-// Endi CDN emas, balki /public papkasidagi mahalliy (local) mathlive resurslari ishlatiladi.
-// (Bu sozlama modul import qilinganda bir marta ishlaydi.)
-try {
-  if (MathfieldElement.fontsDirectory !== null) {
-    MathfieldElement.fontsDirectory = '/mathlive/fonts';
-  }
-  if (MathfieldElement.soundsDirectory !== null) {
-    MathfieldElement.soundsDirectory = '/mathlive/sounds';
-  }
-} catch {
-  /* ba'zi muhitlarda static setterlar bo'lmasligi mumkin */
-}
+initMathLive();
 
 declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace
@@ -71,19 +60,12 @@ export default function MathAnswerField({
 
     mf.value = draft;
     mf.mathVirtualKeyboardPolicy = 'manual'; // Majburiy o'zimiz boshqaramiz
-    
-    // Klaviaturani z-index ini modal (99999) dan balandroq qilib belgilaymiz
-    document.body.style.setProperty('--keyboard-zindex', '100000');
-    
-    // Asl holatdagi, to'liq MathLive klaviaturasidan (Barcha funksiyalari, qatlamlari bilan)
-    // foydalanish uchun maxsus cheklovlarni olib tashlaymiz.
-    window.mathVirtualKeyboard.layouts = 'default';
 
     const handleInput = () => setDraft(mf.value);
     
     // Foydalanuvchi maydonni bossa ham, klaviatura yo'qolib qolmasligi uchun
     const showKb = () => {
-       try { window.mathVirtualKeyboard.show(); } catch {}
+       showVirtualKeyboard();
     };
 
     mf.addEventListener('input', handleInput);
@@ -107,16 +89,12 @@ export default function MathAnswerField({
 
   const save = () => {
     onChange(draft);
-    try {
-      window.mathVirtualKeyboard.hide();
-    } catch {}
+    hideVirtualKeyboard();
     setOpen(false);
   };
 
   const close = () => {
-    try {
-      window.mathVirtualKeyboard.hide();
-    } catch {}
+    hideVirtualKeyboard();
     setOpen(false);
   };
 
@@ -188,7 +166,14 @@ export default function MathAnswerField({
               <div className="flex items-center justify-center gap-3 mt-4">
                 <button
                   type="button"
-                  onClick={() => { try { window.mathVirtualKeyboard.show(); } catch {} }}
+                  onMouseDown={(e) => {
+                    e.preventDefault(); // Maydondan fokus yo'qolmasligi uchun
+                    if (editRef.current) editRef.current.focus();
+                  }}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    showVirtualKeyboard();
+                  }}
                   className="px-4 py-3 rounded-lg bg-blue-500/20 text-blue-400 font-bold"
                   title="Klaviaturani ochish"
                 >
