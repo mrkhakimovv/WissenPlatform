@@ -11,9 +11,20 @@ export default function TeacherRegistration() {
   
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
-  const [phone, setPhone] = useState('');
+  const [phone, setPhone] = useState('+998 ');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let val = e.target.value;
+    if (!val.startsWith('+998')) {
+      val = '+998 ' + val.replace(/\D/g, '');
+    }
+    if (val.length > 4 && val[4] !== ' ') {
+      val = '+998 ' + val.substring(4).trimStart();
+    }
+    setPhone(val);
+  };
   
   const [usernameStatus, setUsernameStatus] = useState<'idle' | 'checking' | 'available' | 'taken'>('idle');
   const [suggestedUsernames, setSuggestedUsernames] = useState<string[]>([]);
@@ -184,8 +195,8 @@ export default function TeacherRegistration() {
     <div className="min-h-screen bg-[#000] flex items-center justify-center p-4 py-12">
       <div className="w-full max-w-[440px] glass-panel p-6 md:p-8 rounded-[24px] shadow-2xl">
         <div className="text-center mb-8">
-          <div className="w-16 h-16 rounded-[18px] bg-[rgba(254,194,4,0.1)] flex items-center justify-center mx-auto mb-4 border border-[rgba(254,194,4,0.2)]">
-            <span className="text-2xl font-black text-[#FEC204]">W</span>
+          <div className="w-16 h-16 rounded-[18px] bg-[rgba(254,194,4,0.1)] flex items-center justify-center mx-auto mb-4 border border-[rgba(254,194,4,0.2)] overflow-hidden">
+            <img src="/logo.png" alt="Logo" className="w-full h-full object-cover" />
           </div>
           <h1 className="text-[24px] font-black tracking-tight text-white mb-1">Ro'yxatdan o'tish</h1>
           <p className="text-white/50 text-sm font-medium">Platformaga o'qituvchi sifatida qo'shilish</p>
@@ -205,7 +216,7 @@ export default function TeacherRegistration() {
           
           <div className="space-y-1.5">
             <label className="text-[11px] uppercase tracking-[1px] font-bold text-white/40 ml-1">Telefon raqam</label>
-            <input required type="tel" value={phone} onChange={e=>setPhone(e.target.value)} className="w-full glass-panel p-3.5 outline-none focus:border-[#FEC204]/50 text-sm text-white/90 !rounded-[12px]" placeholder="+998 90 123 45 67" />
+            <input required type="tel" value={phone} onChange={handlePhoneChange} className="w-full glass-panel p-3.5 outline-none focus:border-[#FEC204]/50 text-sm text-white/90 !rounded-[12px]" placeholder="+998 90 123 45 67" />
           </div>
 
           <div className="space-y-1.5">
