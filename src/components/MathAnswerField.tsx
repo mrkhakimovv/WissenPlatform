@@ -7,14 +7,15 @@ import 'mathlive';
 import { MathfieldElement } from 'mathlive';
 
 // MUHIM: fontlar va tovushlarni birinchi maydon yaratilishidan OLDIN sozlaymiz.
-// Vite/PWA da nisbiy './fonts' yo'li 404 beradi — shuning uchun CDN ishlatamiz.
+// Endi CDN emas, balki /public papkasidagi mahalliy (local) mathlive resurslari ishlatiladi.
 // (Bu sozlama modul import qilinganda bir marta ishlaydi.)
 try {
   if (MathfieldElement.fontsDirectory !== null) {
-    MathfieldElement.fontsDirectory =
-      'https://cdn.jsdelivr.net/npm/mathlive@0.110.0/fonts';
+    MathfieldElement.fontsDirectory = '/mathlive/fonts';
   }
-  MathfieldElement.soundsDirectory = null; // tovush 404 larini o'chiramiz
+  if (MathfieldElement.soundsDirectory !== null) {
+    MathfieldElement.soundsDirectory = '/mathlive/sounds';
+  }
 } catch {
   /* ba'zi muhitlarda static setterlar bo'lmasligi mumkin */
 }
@@ -29,9 +30,6 @@ declare global {
       >;
     }
   }
-  interface Window {
-    mathVirtualKeyboard: any;
-  }
 }
 
 interface Props {
@@ -39,6 +37,7 @@ interface Props {
   onChange: (latex: string) => void;
   placeholder?: string;
   readOnly?: boolean;
+  className?: string;
 }
 
 export default function MathAnswerField({
@@ -71,23 +70,37 @@ export default function MathAnswerField({
     if (!mf) return;
 
     mf.value = draft;
-    mf.mathVirtualKeyboardPolicy = 'auto'; // touch qurilmalarda avtomatik ochiladi
-    window.mathVirtualKeyboard.layouts = ['numeric', 'symbols'];
+    mf.mathVirtualKeyboardPolicy = 'manual'; // Majburiy o'zimiz boshqaramiz
+    
+    // Klaviaturani z-index ini modal (99999) dan balandroq qilib belgilaymiz
+    document.body.style.setProperty('--keyboard-zindex', '100000');
+    
+    // Asl holatdagi, to'liq MathLive klaviaturasidan (Barcha funksiyalari, qatlamlari bilan)
+    // foydalanish uchun maxsus cheklovlarni olib tashlaymiz.
+    window.mathVirtualKeyboard.layouts = 'default';
 
     const handleInput = () => setDraft(mf.value);
+    
+    // Foydalanuvchi maydonni bossa ham, klaviatura yo'qolib qolmasligi uchun
+    const showKb = () => {
+       try { window.mathVirtualKeyboard.show(); } catch {}
+    };
+
     mf.addEventListener('input', handleInput);
+    mf.addEventListener('focusin', showKb);
+    mf.addEventListener('click', showKb);
 
     // Fokus + klaviaturani majburan ko'rsatish (desktop uchun ham)
     const t = setTimeout(() => {
       mf.focus();
-      try {
-        window.mathVirtualKeyboard.show();
-      } catch {}
-    }, 80);
+      showKb();
+    }, 150);
 
     return () => {
       clearTimeout(t);
       mf.removeEventListener('input', handleInput);
+      mf.removeEventListener('focusin', showKb);
+      mf.removeEventListener('click', showKb);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
@@ -145,7 +158,7 @@ export default function MathAnswerField({
       {open &&
         createPortal(
           <div
-            className="fixed inset-0 z-[9998] bg-black/70 flex items-start justify-center pt-20 px-4"
+            className="fixed inset-0 z-[99999] bg-black/70 flex items-start justify-center pt-20 px-4"
             onClick={close}
           >
             <div
@@ -173,6 +186,14 @@ export default function MathAnswerField({
               </math-field>
 
               <div className="flex items-center justify-center gap-3 mt-4">
+                <button
+                  type="button"
+                  onClick={() => { try { window.mathVirtualKeyboard.show(); } catch {} }}
+                  className="px-4 py-3 rounded-lg bg-blue-500/20 text-blue-400 font-bold"
+                  title="Klaviaturani ochish"
+                >
+                  ⌨ Klaviatura
+                </button>
                 <button
                   type="button"
                   onClick={save}

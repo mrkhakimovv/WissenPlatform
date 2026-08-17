@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <meta charset="utf-8" />
+    <title>MathLive Basic Example</title>
+    <style>
+      body {
+        color: #444;
+        background-color: #f9f9f9;
+      }
+
+      main {
+        max-width: 820px;
+        margin: auto;
+      }
+
+      math-field {
+        border: 1px solid #ddd;
+        padding: 5px;
+        margin: 10px 0 10px 0;
+        border-radius: 5px;
+        background-color: #fff;
+      }
+
+      #value,
+      #result {
+        padding: 5px;
+        border-radius: 5px;
+        border: 1px solid #000;
+
+        color: rgb(241, 188, 91);
+        background: #35434e;
+
+        font-family: monospace;
+        margin-bottom: 1em;
+      }
+    </style>
+  </head>
+
+  <body>
+    <main>
+      <h2>MathLive Basic Example</h2>
+      <math-field id="mf" virtual-keyboard-mode="manual">f(x)=</math-field>
+      <div id="value"></div>
+      <div id="result"></div>
+    </main>
+
+    <script type="module">
+      // import { renderMathInElement } from '/dist/mathlive.mjs';
+      import { renderMathInElement } from 'https://unpkg.com/mathlive?module';
+      document.getElementById('mf').addEventListener('input', (ev) => {
+        const mf = ev.target;
+        document.getElementById('value').innerHTML = mf.getValue();
+        document.getElementById('result').innerText = `$$${
+          mf.expression.evaluate().latex
+        }$$`;
+
+        renderMathInElement('result');
+      });
+    </script>
+  </body>
+</html>

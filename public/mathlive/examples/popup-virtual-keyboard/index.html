@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <meta charset="utf-8" />
+    <title>Popup Virtual Keyboard</title>
+    <link rel="stylesheet" href="../style.css" />
+    <style>
+      math-field {
+        max-width: 320px;
+        width: 100%;
+        padding: 5px;
+        margin: 10px 0 10px 0;
+        border-radius: 5px;
+
+        border: 1px solid var(--editable-border);
+        background: var(--editable);
+        color: var(--on-editable);
+      }
+
+      math-field::part(virtual-keyboard-toggle) {
+        display: none;
+      }
+
+      math-field:not(:defined) {
+        visibility: hidden;
+      }
+
+      h2 {
+        font-size: 1em;
+        padding: 0;
+        margin: 0;
+        color: #666;
+      }
+
+      #keyboard-container {
+        display: none;
+        position: fixed;
+
+        border-radius: 8px;
+        height: 500px;
+        width: 50vw;
+        min-width: 320px;
+
+        background: #ddd;
+        filter: drop-shadow(0 0 10px #33333350);
+        z-index: 1;
+
+        --keyboard-background: transparent;
+      }
+
+      div#keyboard-container {
+        --keyboard-padding-horizontal: 10px;
+        --keyboard-padding-bottom: 10px;
+      }
+
+      #keyboard-container::before {
+        content: '';
+        position: absolute;
+        display: block;
+        width: 0;
+        left: 50%;
+        top: 0;
+        border: 20px solid transparent;
+        border-top: 0;
+        border-bottom: 20px solid #ddd;
+        transform: translate(-50%, -19px);
+      }
+    </style>
+  </head>
+
+  <body>
+    <header><h1>MathLive Virtual Keyboard Container</h1></header>
+    <main class="centered" tabindex="0">
+      <div id="keyboard-container"></div>
+
+      <math-field id="mf">a+b</math-field>
+
+      <math-field id="mf2">2+3</math-field>
+    </main>
+
+    <script type="module">
+      import '/dist/mathlive.mjs';
+      // To use the CDN version instead:
+      // import 'https://unpkg.com/mathlive?module';
+
+      window.mathVirtualKeyboard.container =
+        document.getElementById('keyboard-container');
+
+      // Force the virtual keyboard open (for debugging)
+      // window.mathVirtualKeyboard.addEventListener(
+      //   'before-virtual-keyboard-toggle',
+      //   (ev) => {
+      //     if (virtualKeyboard.visible) ev.preventDefault();
+      //   }
+      // );
+
+      window.mathVirtualKeyboard.addEventListener('geometrychange', (ev) => {
+        const kbdPanel = document.getElementById('keyboard-container');
+        kbdPanel.style.height = `${mathVirtualKeyboard.boundingRect.height}px`;
+      });
+
+      document.addEventListener('focusout', (ev) => {
+        const kbdPanel = document.getElementById('keyboard-container');
+        if (ev.target.tagName === 'MATH-FIELD') {
+          const kbdPanel = document.getElementById('keyboard-container');
+          kbdPanel.style.display = 'none';
+          mathVirtualKeyboard.visible = false;
+        }
+      });
+
+      document.addEventListener('focusin', (ev) => {
+        if (ev.target.tagName === 'MATH-FIELD') {
+          positionPopupKeyboard(ev.target);
+        } else {
+          const kbdPanel = document.getElementById('keyboard-container');
+          kbdPanel.style.display = 'none';
+          mathVirtualKeyboard.visible = false;
+        }
+      });
+
+      window.addEventListener('resize', () => positionPopupKeyboard());
+
+      function positionPopupKeyboard() {
+        const mf = document.activeElement;
+        const kbdPanel = document.getElementById('keyboard-container');
+
+        if (mf.tagName !== 'MATH-FIELD') {
+          kbdPanel.style.display = 'none';
+          return;
+        }
+        const r = mf.getBoundingClientRect();
+        kbdPanel.style.display = 'block';
+        const w = kbdPanel.offsetWidth;
+        kbdPanel.style.top = `${r.bottom + 16}px`;
+        kbdPanel.style.left = `${r.left + r.width / 2 - w / 2}px`;
+        mathVirtualKeyboard.show();
+      }
+    </script>
+  </body>
+</html>

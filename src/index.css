@@ -156,3 +156,8 @@ body {
 .katex { white-space: normal !important; word-break: break-word; }
 .katex-html { white-space: normal !important; }
 
+/* Force MathLive virtual keyboard to be on top of our custom modals */
+math-virtual-keyboard, .ML__keyboard {
+  z-index: 999999 !important;
+}
+
