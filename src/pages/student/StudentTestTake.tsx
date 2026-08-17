@@ -9,6 +9,7 @@ import { motion } from 'motion/react';
 import { createPortal } from 'react-dom';
 import Latex from 'react-latex-next';
 import 'katex/dist/katex.min.css';
+import MathAnswerField, { answersEqual } from '../../components/MathAnswerField';
 
 interface Props {
   exam: Exam;
@@ -185,10 +186,12 @@ export default function StudentTestTake({ exam, onClose }: Props) {
   const handleSubmit = async () => {
     if (!testData) return;
     let s = 0;
-    testData.questions.forEach((q, idx) => {
+    for (let idx = 0; idx < testData.questions.length; idx++) {
+      const q = testData.questions[idx];
       const ans = answers[idx];
       if (q.isOpenEnded) {
-        if (ans && q.correctAnswerText && String(ans).trim().toLowerCase() === String(q.correctAnswerText).trim().toLowerCase()) {
+        // Matematik javoblarni son sifatida solishtiramiz (1/2 == 0.5)
+        if (ans && q.correctAnswerText && await answersEqual(String(ans), String(q.correctAnswerText))) {
           s += 1;
         }
       } else {
@@ -196,7 +199,7 @@ export default function StudentTestTake({ exam, onClose }: Props) {
           s += 1;
         }
       }
-    });
+    }
     setScore(s);
     setSubmitted(true);
     
@@ -330,12 +333,10 @@ export default function StudentTestTake({ exam, onClose }: Props) {
                   <span className="font-bold text-white/70">{idx + 1}-savol</span>
                   <div className="flex flex-col gap-2 w-full">
                     {q.isOpenEnded ? (
-                      <input
-                        type="text"
+                      <MathAnswerField
                         value={answers[idx] || ''}
-                        onChange={(e) => setAnswers(prev => ({ ...prev, [idx]: e.target.value }))}
+                        onChange={(latex) => setAnswers(prev => ({ ...prev, [idx]: latex }))}
                         placeholder="Javobingiz"
-                        className="w-full glass-panel p-2 outline-none focus:border-[#FEC204]/50 text-sm text-white text-center font-bold h-10"
                       />
                     ) : (
                       Array.from({length: testData.variantCount}).map((_, optIdx) => (
@@ -429,10 +430,9 @@ export default function StudentTestTake({ exam, onClose }: Props) {
               {q.isOpenEnded ? (
                 <div className="w-full text-left p-3 md:p-4 rounded-[14px] md:rounded-xl border transition-all bg-white/5 border-white/10">
                    <p className="text-white/70 text-sm mb-3">O'z javobingizni kiriting:</p>
-                   <input
-                     type="text"
+                   <MathAnswerField
                      value={answers[currentQuestion] || ''}
-                     onChange={(e) => setAnswers(prev => ({ ...prev, [currentQuestion]: e.target.value }))}
+                     onChange={(latex) => setAnswers(prev => ({ ...prev, [currentQuestion]: latex }))}
                      placeholder="Javobingizni shu yerga yozing..."
                      className="w-full glass-panel p-4 rounded-lg outline-none focus:border-[#FEC204] border border-white/10 text-white font-bold"
                    />

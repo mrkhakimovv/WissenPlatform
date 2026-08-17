@@ -5,6 +5,7 @@ import { TestData, TestQuestion } from '../../types';
 import toast from 'react-hot-toast';
 import 'katex/dist/katex.min.css';
 import Latex from 'react-latex-next';
+import MathAnswerField from '../../components/MathAnswerField';
 import { collection, addDoc, updateDoc, doc, setDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 
@@ -115,12 +116,10 @@ export default function AdminSATBuilder({ initialData, onClose, onSave }: Props)
                   </div>
                   <div className="flex gap-2 w-full justify-center">
                     {q.isOpenEnded ? (
-                      <input 
-                        type="text" 
-                        value={q.correctAnswerText || ''} 
-                        onChange={(e) => updateQuestion(i, 'correctAnswerText', e.target.value)}
+                      <MathAnswerField
+                        value={q.correctAnswerText || ''}
+                        onChange={(latex) => updateQuestion(i, 'correctAnswerText', latex)}
                         placeholder="To'g'ri javobni kiriting"
-                        className="w-full glass-panel p-2 outline-none focus:border-[#FEC204]/50 text-sm text-white text-center font-bold h-10"
                       />
                     ) : (
                       Array.from({length: testData.variantCount}).map((_, optIdx) => (
