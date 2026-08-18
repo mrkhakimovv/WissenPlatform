@@ -1,11 +1,13 @@
 import { useConfirm } from '../contexts/ConfirmContext';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { Database, Home, CreditCard, CalendarCheck, CalendarDays, User, LogOut, FileText, GraduationCap, BarChart2, Megaphone } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import StudentProfile from '../pages/student/StudentProfile';
 import { X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { collection, onSnapshot, query, where } from 'firebase/firestore';
+import { db } from '../lib/firebase';
 
 export default function StudentLayout() {
   const { confirm } = useConfirm();
@@ -18,10 +20,51 @@ export default function StudentLayout() {
       navigate('/login');
     }
   };
+
   const location = useLocation();
   const isProfile = location.pathname.endsWith('/profile');
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   
+  const [unattemptedExamsCount, setUnattemptedExamsCount] = useState(0);
+
+  useEffect(() => {
+    if (!user) return;
+
+    let allExams: any[] = [];
+    let results: any[] = [];
+
+    const calculateBadge = () => {
+      const now = new Date();
+      const userGroups = user?.groups?.length ? user.groups : (user?.groupId ? [user.groupId] : []);
+      
+      const myExams = allExams.filter(e => e.examType !== 'sat' && (!e.groupId || userGroups.includes(e.groupId)));
+      const upcomingExams = myExams.filter(e => new Date(e.date) >= new Date(now.getFullYear(), now.getMonth(), now.getDate()));
+      
+      const unattempted = upcomingExams.filter(exam => {
+        const isOnlineTest = exam.isOnline || (exam.testSources && exam.testSources.length > 0) || exam.testId;
+        const attempted = results.some(r => r.examId === exam.id);
+        return isOnlineTest && !attempted;
+      });
+      
+      setUnattemptedExamsCount(unattempted.length);
+    };
+
+    const unsubExams = onSnapshot(query(collection(db, 'exams')), snap => {
+      allExams = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      calculateBadge();
+    });
+
+    const unsubResults = onSnapshot(query(collection(db, 'exam_results'), where('studentId', '==', user.id)), snap => {
+      results = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      calculateBadge();
+    });
+
+    return () => {
+      unsubExams();
+      unsubResults();
+    };
+  }, [user]);
+
   const navItems = [
     { to: ".", icon: <Home size={22} />, label: "Asosiy" },
     { to: "payments", icon: <CreditCard size={22} />, label: "To'lov" },
@@ -29,7 +72,7 @@ export default function StudentLayout() {
     { to: "schedule", icon: <CalendarDays size={22} />, label: "Jadval" },
     { to: "homeworks", icon: <FileText size={22} />, label: "Vazifalar" },
     { to: "sat", icon: <Database size={22} />, label: "SAT" },
-    { to: "exams", icon: <GraduationCap size={22} />, label: "Imtihonlar" },
+    { to: "exams", icon: <GraduationCap size={22} />, label: "Imtihonlar", badgeCount: unattemptedExamsCount },
     { to: "results", icon: <BarChart2 size={22} />, label: "Natijalar" },
     { to: "news", icon: <Megaphone size={22} />, label: "Yangiliklar" },
   ];
@@ -50,13 +93,18 @@ export default function StudentLayout() {
               to={item.to}
               end={item.to === '.'}
               className={({ isActive }) => 
-                `flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
+                `flex items-center gap-3 px-4 py-3 rounded-xl transition-all relative ${
                   isActive ? 'bg-[#FEC204] text-black font-bold shadow-[0_0_15px_rgba(254,194,4,0.3)]' : 'text-white/60 hover:text-white/90 hover:bg-white/5'
                 }`
               }
             >
               {item.icon}
               <span className="text-[14px] font-bold tracking-wide">{item.label}</span>
+              {item.badgeCount ? (
+                <div className="absolute top-2 right-2 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center shadow-[0_0_8px_rgba(239,68,68,0.6)] animate-pulse">
+                  <span className="text-white text-[10px] font-bold">{item.badgeCount}</span>
+                </div>
+              ) : null}
             </NavLink>
           ))}
         </div>
@@ -113,13 +161,18 @@ export default function StudentLayout() {
               to={item.to}
               end={item.to === '.'}
               className={({ isActive }) => 
-                `flex flex-col items-center justify-center min-w-[65px] h-[55px] gap-1 transition-all ${
+                `flex flex-col items-center justify-center min-w-[65px] h-[55px] gap-1 transition-all relative ${
                   isActive ? 'text-[#FEC204]' : 'text-white/40 hover:text-white/70'
                 }`
               }
             >
               {item.icon}
               <span className="text-[9px] font-bold uppercase tracking-[0.5px] truncate max-w-full">{item.label}</span>
+              {item.badgeCount ? (
+                <div className="absolute top-1 right-2 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center shadow-[0_0_8px_rgba(239,68,68,0.6)] animate-pulse">
+                  <span className="text-white text-[8px] font-bold">{item.badgeCount}</span>
+                </div>
+              ) : null}
             </NavLink>
           ))}
         </nav>
