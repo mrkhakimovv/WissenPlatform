@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { collection, query, where, getDocs, getDoc, doc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { Exam, Group, User, TestData } from '../types';
-import { X, Clock, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
+import { X, Clock, CheckCircle2, XCircle, AlertCircle, Download } from 'lucide-react';
+import * as XLSX from 'xlsx';
 
 interface Props {
   exam: Exam;
@@ -83,6 +84,48 @@ export default function ExamStatsModal({ exam, groupName, onClose }: Props) {
     return wrong;
   };
 
+  const exportToExcel = () => {
+    // Topshirganlar
+    const submittedData = results.map(r => {
+      const wrongAnswers = getWrongAnswers(r);
+      return {
+        'Ism-sharifi': r.studentName,
+        'Natija (To\'g\'ri javoblar)': `${r.score}/${r.total}`,
+        'Foiz': `${Math.round((r.score / r.total) * 100)}%`,
+        'Vaqt': formatTime(r.timeSpent),
+        'Urinishlar soni': r.attempts || 1,
+        'Xato qilingan savollar': wrongAnswers.join(', '),
+        'Topshirilgan vaqt': new Date(r.submittedAt).toLocaleString('uz-UZ')
+      };
+    });
+
+    // Topshirmaganlar
+    const unsubmittedStudents = students.filter(s => !results.some(r => r.studentId === s.id));
+    const unsubmittedData = unsubmittedStudents.map(s => ({
+      'Ism-sharifi': s.fullName,
+      'Holat': 'Topshirmagan'
+    }));
+
+    const wb = XLSX.utils.book_new();
+    
+    if (submittedData.length > 0) {
+      const wsSubmitted = XLSX.utils.json_to_sheet(submittedData);
+      XLSX.utils.book_append_sheet(wb, wsSubmitted, "Topshirganlar");
+    }
+
+    if (unsubmittedData.length > 0) {
+      const wsUnsubmitted = XLSX.utils.json_to_sheet(unsubmittedData);
+      XLSX.utils.book_append_sheet(wb, wsUnsubmitted, "Topshirmaganlar");
+    }
+
+    if (submittedData.length === 0 && unsubmittedData.length === 0) {
+       const wsEmpty = XLSX.utils.json_to_sheet([{'Xabar': "Ma'lumot topilmadi"}]);
+       XLSX.utils.book_append_sheet(wb, wsEmpty, "Natijalar");
+    }
+
+    XLSX.writeFile(wb, `${exam.title} - Natijalar.xlsx`);
+  };
+
   return (
     <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
       <div className="bg-[#1a1a1a] rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col border border-white/10">
@@ -91,9 +134,15 @@ export default function ExamStatsModal({ exam, groupName, onClose }: Props) {
             <h2 className="text-xl font-bold text-white">{exam.title} - Statistikalar</h2>
             <p className="text-sm text-white/50 mt-1">Guruh: {groupName || 'Barcha guruhlar'}</p>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-white/5 rounded-full transition-colors text-white/50 hover:text-white">
-            <X size={20} />
-          </button>
+          <div className="flex items-center gap-2">
+            <button onClick={exportToExcel} className="flex items-center gap-2 px-3 py-1.5 bg-[#FEC204]/10 hover:bg-[#FEC204]/20 text-[#FEC204] rounded-lg transition-colors text-sm font-bold">
+              <Download size={16} />
+              Excel (.xlsx)
+            </button>
+            <button onClick={onClose} className="p-2 hover:bg-white/5 rounded-full transition-colors text-white/50 hover:text-white">
+              <X size={20} />
+            </button>
+          </div>
         </div>
 
         <div className="flex-1 overflow-y-auto p-6 space-y-8">
