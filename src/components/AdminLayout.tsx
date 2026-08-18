@@ -16,7 +16,7 @@ export default function AdminLayout() {
   const isStudentsPage = location.pathname.includes('/admin/students');
 
   
-  const navItems = [
+  let navItems = [
     { to: ".", icon: <Home size={22} />, label: "Asosiy" },
     { to: "groups", icon: <Layers size={22} />, label: "Guruhlar" },
     { to: "students", icon: <Users size={22} />, label: "O'quvchilar" },
@@ -29,6 +29,12 @@ export default function AdminLayout() {
     { to: "homeworks", icon: <FileText size={22} />, label: "Vazifalar" },
     { to: "news", icon: <Megaphone size={22} />, label: "Yangiliklar" },
   ];
+
+  if (user?.role === 'teacher') {
+    navItems = navItems.filter(item => 
+      ['.', 'students', 'attendance', 'homeworks', 'tests', 'sat', 'exams'].includes(item.to)
+    );
+  }
 
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [copied, setCopied] = useState(false);

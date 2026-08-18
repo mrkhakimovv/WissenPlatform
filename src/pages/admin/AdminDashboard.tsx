@@ -3,8 +3,10 @@ import { collection, onSnapshot, query, orderBy, limit, where, getDoc, doc } fro
 import { db } from '../../lib/firebase';
 import { Users, TrendingUp, Calendar, BookOpen } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
 
 export default function AdminDashboard() {
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [stats, setStats] = useState({
     students: 0,
@@ -16,6 +18,10 @@ export default function AdminDashboard() {
   const [recentPayments, setRecentPayments] = useState<any[]>([]);
 
   useEffect(() => {
+    if (user?.role === 'teacher') {
+      navigate('/admin/students', { replace: true });
+      return;
+    }
     const currentMonth = new Date().getMonth() + 1;
     const currentYear = new Date().getFullYear();
     const startOfMonth = new Date(currentYear, currentMonth - 1, 1).toISOString().split('T')[0];

@@ -6,8 +6,10 @@ import { Plus, Search, Trash2, Edit2, X, ChevronRight, CheckCircle2, Layers } fr
 import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'motion/react';
 import { Payment, Attendance } from '../../types';
+import { useAuth } from '../../contexts/AuthContext';
 
 export default function AdminStudents() {
+  const { user } = useAuth();
   const { confirm } = useConfirm();
   const [students, setStudents] = useState<any[]>([]);
   const [groups, setGroups] = useState<any[]>([]);
@@ -32,7 +34,7 @@ export default function AdminStudents() {
   useEffect(() => {
     const q = query(collection(db, 'users'));
     const unsubStudents = onSnapshot(q, (snap) => {
-      const studs = snap.docs.map(d => ({ id: d.id, ...(d.data() as any) })).filter(s => s.role !== 'admin');
+      const studs = snap.docs.map(d => ({ id: d.id, ...(d.data() as any) })).filter(s => s.role !== 'admin' && s.role !== 'teacher');
       setStudents(studs);
     });
     
@@ -176,7 +178,14 @@ export default function AdminStudents() {
     }
   };
 
-  const filtered = students.filter(s => s.fullName?.toLowerCase().includes(search.toLowerCase()) || s.username?.toLowerCase().includes(search.toLowerCase()));
+  const filtered = students.filter(s => {
+    if (user?.role === 'teacher') {
+      const sGroupsIds = s.groups || (s.groupId ? [s.groupId] : []);
+      const belongsToTeacher = groups.some(g => sGroupsIds.includes(g.id) && g.teacherName === user.fullName);
+      if (!belongsToTeacher) return false;
+    }
+    return s.fullName?.toLowerCase().includes(search.toLowerCase()) || s.username?.toLowerCase().includes(search.toLowerCase());
+  });
 
   return (
     <div className="space-y-6 flex-1 flex flex-col h-full">

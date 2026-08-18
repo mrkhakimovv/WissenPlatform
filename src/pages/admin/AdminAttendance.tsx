@@ -6,8 +6,10 @@ import { format } from 'date-fns';
 import toast from 'react-hot-toast';
 import { ChevronLeft, Users } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { useAuth } from '../../contexts/AuthContext';
 
 export default function AdminAttendance() {
+  const { user } = useAuth();
   const { confirm } = useConfirm();
   const [students, setStudents] = useState<any[]>([]);
   const [groups, setGroups] = useState<any[]>([]);
@@ -124,7 +126,7 @@ export default function AdminAttendance() {
             </div>
             
             <div className="space-y-3">
-              {groups.map(group => {
+              {groups.filter(g => user?.role !== 'teacher' || g.teacherName === user?.fullName).map(group => {
                 const groupStudentCount = students.filter(s => s.groups?.includes(group.id) || s.groupId === group.id).length;
                 return (
                   <motion.div 

@@ -194,7 +194,7 @@ export default function AdminGroups() {
 
               <select value={formData.teacherName} onChange={e=>setFormData({...formData, teacherName: e.target.value})} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm text-[color:var(--theme-text-primary)] appearance-none" style={{ colorScheme: "dark" }}>
                 <option value="" disabled>O'qituvchini tanlang</option>
-                {teachers.map(t => <option key={t.id} value={t.name} className="bg-[#1a1a1a]">{t.name}</option>)}
+                {teachers.map(t => <option key={t.id} value={t.fullName} className="bg-[#1a1a1a]">{t.fullName}</option>)}
               </select>
 
               <div className="space-y-2">

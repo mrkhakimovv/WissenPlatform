@@ -3,12 +3,15 @@ import React, { useState, useEffect } from 'react';
 import { collection, onSnapshot, query, orderBy, addDoc, updateDoc, deleteDoc, doc, setDoc } from '../../lib/firebase';
 import { db } from '../../lib/firebase';
 import AdminTestBuilder from './AdminTestBuilder';
+import ExamStatsModal from '../../components/ExamStatsModal';
 import { TestData } from '../../types';
 import { Plus, X, Edit2, Trash2, Calendar, Clock, MapPin } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Exam, Group } from '../../types';
+import { useAuth } from '../../contexts/AuthContext';
 
 export default function AdminExams() {
+  const { user } = useAuth();
   const { confirm } = useConfirm();
   const [exams, setExams] = useState<Exam[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
@@ -16,6 +19,7 @@ export default function AdminExams() {
   const [existingTests, setExistingTests] = useState<string[]>([]);
   const [allTests, setAllTests] = useState<{id: string, title: string, totalCount: number}[]>([]);
 
+  const [selectedExamForStats, setSelectedExamForStats] = useState<Exam | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isTestConfigOpen, setIsTestConfigOpen] = useState(false);
   const [isTestBuilderOpen, setIsTestBuilderOpen] = useState(false);
@@ -133,6 +137,9 @@ export default function AdminExams() {
     return groups.find(g => g.id === id)?.name || 'Noma\'lum guruh';
   };
 
+  const teacherGroups = groups.filter(g => user?.role !== 'teacher' || g.teacherName === user?.fullName);
+  const filteredExams = exams.filter(ex => user?.role !== 'teacher' || !ex.groupId || teacherGroups.some(g => g.id === ex.groupId));
+
   return (
     <div className="space-y-6 pb-6">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
@@ -170,13 +177,13 @@ export default function AdminExams() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {exams.map(exam => (
-            <div key={exam.id} className="glass-panel p-5 relative group">
+          {filteredExams.map(exam => (
+            <div key={exam.id} onClick={() => setSelectedExamForStats(exam)} className="glass-panel p-5 relative group cursor-pointer hover:border-[#FEC204]/50 transition-colors">
               <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button onClick={() => openEdit(exam)} className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center text-white/70 hover:text-white transition-colors">
+                <button onClick={(e) => { e.stopPropagation(); openEdit(exam); }} className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center text-white/70 hover:text-white transition-colors">
                   <Edit2 size={14} />
                 </button>
-                <button onClick={() => handleDelete(exam.id)} className="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center text-red-500 hover:bg-red-500/20 transition-colors">
+                <button onClick={(e) => { e.stopPropagation(); handleDelete(exam.id); }} className="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center text-red-500 hover:bg-red-500/20 transition-colors">
                   <Trash2 size={14} />
                 </button>
               </div>
@@ -232,7 +239,7 @@ export default function AdminExams() {
 
                 <select value={formData.groupId} onChange={e=>setFormData({...formData, groupId: e.target.value})} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm text-[color:var(--theme-text-primary)] appearance-none" style={{ colorScheme: "dark" }}>
                   <option value="">Barcha uchun</option>
-                  {groups.map(g => <option key={g.id} value={g.id} className="bg-[#1a1a1a]">{g.name}</option>)}
+                  {teacherGroups.map(g => <option key={g.id} value={g.id} className="bg-[#1a1a1a]">{g.name}</option>)}
                 </select>
               </div>
 
@@ -392,6 +399,13 @@ export default function AdminExams() {
         />
       )}
 
+      {selectedExamForStats && (
+        <ExamStatsModal
+          exam={selectedExamForStats}
+          groupName={getGroupName(selectedExamForStats.groupId)}
+          onClose={() => setSelectedExamForStats(null)}
+        />
+      )}
     </div>
   );
 }

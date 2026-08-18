@@ -204,7 +204,11 @@ export default function StudentTestTake({ exam, onClose }: Props) {
     setSubmitted(true);
     
     try {
-      await setDoc(doc(db, 'exam_results', `${exam.id}_${user?.id}`), {
+      const resultRef = doc(db, 'exam_results', `${exam.id}_${user?.id}`);
+      const existingResult = await getDoc(resultRef);
+      const attempts = existingResult.exists() ? (existingResult.data().attempts || 1) + 1 : 1;
+
+      await setDoc(resultRef, {
         examId: exam.id,
         testId: exam.testId || exam.id,
         studentId: user?.id || null,
@@ -213,6 +217,8 @@ export default function StudentTestTake({ exam, onClose }: Props) {
         score: s,
         total: testData.questions.length,
         answers,
+        timeSpent: (exam.duration * 60) - timeLeft,
+        attempts,
         submittedAt: new Date().toISOString()
       });
       toast.success("Natija saqlandi!");

@@ -95,6 +95,7 @@ export default function TeacherRegistration() {
           await signInWithEmailAndPassword(auth, email, password);
           toast.success("Sizning eski akkauntingiz topildi va tizimga kirdingiz!");
           await login(email, password);
+          navigate('/admin');
           return;
         } catch (loginErr) {
           toast.error("Ushbu username band yoki parol noto'g'ri. Agar bu sizning akkauntingiz bo'lsa, to'g'ri parolni kiritib kiring.");
@@ -118,6 +119,7 @@ export default function TeacherRegistration() {
         
         toast.success("Muvaffaqiyatli ro'yxatdan o'tdingiz!");
         await login(email, password);
+        navigate('/admin');
       } catch (createErr: any) {
         if (createErr.code === 'auth/email-already-in-use') {
           // Bu holat username Firestore'da yo'q, lekin Firebase Auth'da (parollar bazasida) qolib ketganda yuz beradi.
@@ -138,6 +140,7 @@ export default function TeacherRegistration() {
             
             toast.success("Muvaffaqiyatli ro'yxatdan o'tdingiz (eski profil tiklandi)!");
             await login(email, password);
+            navigate('/admin');
             return;
           } catch (loginErr) {
             // Parol xato bo'lsa, demak bu nom rostdan ham boshqa birovga tegishli yoki parol unutilgan.
@@ -161,34 +164,46 @@ export default function TeacherRegistration() {
     }
   };
 
+  useEffect(() => {
+    if (user && (user.role === 'admin' || user.role === 'teacher')) {
+      navigate('/admin');
+    }
+  }, [user, navigate]);
+
   // If already logged in
-  if (user && user.role === 'student') {
-    return (
-      <div className="min-h-screen bg-[#000] flex flex-col items-center justify-center p-6">
-        <div className="w-full max-w-[400px] glass-panel p-8 rounded-[24px] text-center">
-          <div className="w-16 h-16 rounded-full bg-[rgba(254,194,4,0.15)] text-[#FEC204] flex items-center justify-center mx-auto mb-4">
-            <CheckCircle2 size={32} />
-          </div>
-          <h2 className="text-xl font-black text-white mb-2">Siz tizimga kiritilgansiz</h2>
-          <p className="text-[15px] font-bold text-[#FEC204] mb-8">{user.fullName}</p>
-          
-          <div className="flex flex-col gap-3">
-            <Link 
-              to="/"
-              className="w-full py-3.5 bg-[#FEC204] text-black font-bold rounded-[14px] active:scale-[0.98] transition-all flex justify-center items-center h-[52px]"
-            >
-              Asosiy sahifaga o'tish
-            </Link>
-            <button 
-              onClick={() => useAuth().logout?.()}
-              className="w-full py-3.5 bg-white/5 text-white/60 font-bold rounded-[14px] hover:bg-white/10 active:scale-[0.98] transition-all h-[52px]"
-            >
-              Boshqa akkaunt yaratish
-            </button>
+  if (user) {
+    if (user.role === 'admin' || user.role === 'teacher') {
+      return null;
+    }
+    
+    if (user.role === 'student') {
+      return (
+        <div className="min-h-screen bg-[#000] flex flex-col items-center justify-center p-6">
+          <div className="w-full max-w-[400px] glass-panel p-8 rounded-[24px] text-center">
+            <div className="w-16 h-16 rounded-full bg-[rgba(254,194,4,0.15)] text-[#FEC204] flex items-center justify-center mx-auto mb-4">
+              <CheckCircle2 size={32} />
+            </div>
+            <h2 className="text-xl font-black text-white mb-2">Siz tizimga kiritilgansiz</h2>
+            <p className="text-[15px] font-bold text-[#FEC204] mb-8">{user.fullName}</p>
+            
+            <div className="flex flex-col gap-3">
+              <Link 
+                to="/"
+                className="w-full py-3.5 bg-[#FEC204] text-black font-bold rounded-[14px] active:scale-[0.98] transition-all flex justify-center items-center h-[52px]"
+              >
+                Asosiy sahifaga o'tish
+              </Link>
+              <button 
+                onClick={() => useAuth().logout?.()}
+                className="w-full py-3.5 bg-white/5 text-white/60 font-bold rounded-[14px] hover:bg-white/10 active:scale-[0.98] transition-all h-[52px]"
+              >
+                Boshqa akkaunt yaratish
+              </button>
+            </div>
           </div>
         </div>
-      </div>
-    );
+      );
+    }
   }
 
   return (

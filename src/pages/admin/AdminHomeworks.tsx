@@ -5,8 +5,10 @@ import { db } from '../../lib/firebase';
 import { Plus, X, Trash2, Calendar, FileText, Loader2, Image as ImageIcon } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Group } from '../../types';
+import { useAuth } from '../../contexts/AuthContext';
 
 export default function AdminHomeworks() {
+  const { user } = useAuth();
   const { confirm } = useConfirm();
   const [homeworks, setHomeworks] = useState<any[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
@@ -103,6 +105,9 @@ export default function AdminHomeworks() {
     }
   };
 
+  const teacherGroups = groups.filter(g => user?.role !== 'teacher' || g.teacherName === user?.fullName);
+  const filteredHomeworks = homeworks.filter(hw => user?.role !== 'teacher' || teacherGroups.some(g => g.id === hw.groupId));
+
   return (
     <div className="space-y-6 flex-1 flex flex-col h-full relative">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 shrink-0">
@@ -121,7 +126,7 @@ export default function AdminHomeworks() {
       </div>
 
       <div className="space-y-3 pb-24 md:space-y-0 md:grid md:grid-cols-2 lg:grid-cols-3 md:gap-4 flex-1">
-        {homeworks.map(hw => (
+        {filteredHomeworks.map(hw => (
           <div key={hw.id} className="glass-panel-list p-5 flex flex-col group relative overflow-hidden rounded-2xl border border-white/5 bg-white/5">
             <div className="flex items-start justify-between mb-3">
               <div>
@@ -176,7 +181,7 @@ export default function AdminHomeworks() {
                   <label className="block text-[11px] uppercase tracking-[1px] font-bold text-white/40 mb-1.5 ml-1">Guruh</label>
                   <select required value={formData.groupId} onChange={e=>setFormData({...formData, groupId: e.target.value})} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm text-white appearance-none" style={{ colorScheme: "dark" }}>
                     <option value="" disabled className="bg-[#1a1a1a]">Tanlang</option>
-                    {groups.map(g => <option key={g.id} value={g.id} className="bg-[#1a1a1a]">{g.name}</option>)}
+                    {teacherGroups.map(g => <option key={g.id} value={g.id} className="bg-[#1a1a1a]">{g.name}</option>)}
                   </select>
                 </div>
                 <div>

@@ -6,8 +6,10 @@ import { db } from '../../lib/firebase';
 import { useConfirm } from '../../contexts/ConfirmContext';
 import toast from 'react-hot-toast';
 import AdminTestBuilder from './AdminTestBuilder';
+import { useAuth } from '../../contexts/AuthContext';
 
 export default function AdminTestsDatabase() {
+  const { user } = useAuth();
   const { confirm } = useConfirm();
   const [tests, setTests] = useState<TestData[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
@@ -201,7 +203,7 @@ export default function AdminTestsDatabase() {
                   className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-[14px] outline-none focus:border-[#FEC204] transition-colors appearance-none"
                 >
                   <option value="" className="bg-[#1a1a1a]">Tanlang</option>
-                  {groups.map(g => (
+                  {groups.filter(g => user?.role !== 'teacher' || g.teacherName === user?.fullName).map(g => (
                     <option key={g.id} value={g.id} className="bg-[#1a1a1a]">{g.name}</option>
                   ))}
                 </select>

@@ -6,8 +6,10 @@ import { db } from '../../lib/firebase';
 import { useConfirm } from '../../contexts/ConfirmContext';
 import toast from 'react-hot-toast';
 import AdminSATBuilder from './AdminSATBuilder';
+import { useAuth } from '../../contexts/AuthContext';
 
 export default function AdminSATDatabase() {
+  const { user } = useAuth();
   const { confirm } = useConfirm();
   const [tests, setTests] = useState<TestData[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
@@ -292,7 +294,7 @@ export default function AdminSATDatabase() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {satExams.map(exam => (
+          {(user?.role === 'teacher' ? satExams.filter(ex => !ex.groupId || groups.some(g => g.id === ex.groupId && g.teacherName === user.fullName)) : satExams).map(exam => (
             <div key={exam.id} className="glass-panel p-5 relative group border border-white/5 hover:border-[#FEC204]/50 transition-colors">
               <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                 <button onClick={() => openExamEdit(exam)} className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center text-white/70 hover:text-white transition-colors">
@@ -349,7 +351,7 @@ export default function AdminSATDatabase() {
                 </select>
                 <select value={examFormData.groupId} onChange={e=>setExamFormData({...examFormData, groupId: e.target.value})} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm text-[color:var(--theme-text-primary)] appearance-none" style={{ colorScheme: "dark" }}>
                   <option value="">Barcha uchun</option>
-                  {groups.map(g => <option key={g.id} value={g.id} className="bg-[#1a1a1a]">{g.name}</option>)}
+                  {groups.filter(g => user?.role !== 'teacher' || g.teacherName === user?.fullName).map(g => <option key={g.id} value={g.id} className="bg-[#1a1a1a]">{g.name}</option>)}
                 </select>
               </div>
               <div className="grid grid-cols-2 gap-3">
@@ -454,7 +456,7 @@ export default function AdminSATDatabase() {
                   className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-[14px] outline-none focus:border-[#FEC204] transition-colors appearance-none"
                 >
                   <option value="" className="bg-[#1a1a1a]">Tanlang</option>
-                  {groups.map(g => (
+                  {groups.filter(g => user?.role !== 'teacher' || g.teacherName === user?.fullName).map(g => (
                     <option key={g.id} value={g.id} className="bg-[#1a1a1a]">{g.name}</option>
                   ))}
                 </select>
