@@ -174,7 +174,9 @@ export default function StudentTestTake({ exam, onClose }: Props) {
       setTimeLeft(prev => {
         if (prev <= 1) {
           clearInterval(timer);
-          handleSubmit();
+          if (handleSubmitRef.current) {
+            handleSubmitRef.current();
+          }
           return 0;
         }
         return prev - 1;
@@ -184,13 +186,13 @@ export default function StudentTestTake({ exam, onClose }: Props) {
   }, [loading, submitted, hasStarted]);
 
   const handleSubmit = async () => {
-    if (!testData) return;
+    if (!testData || submitted) return;
+    setSubmitted(true);
     let s = 0;
     for (let idx = 0; idx < testData.questions.length; idx++) {
       const q = testData.questions[idx];
       const ans = answers[idx];
       if (q.isOpenEnded) {
-        // Matematik javoblarni son sifatida solishtiramiz (1/2 == 0.5)
         if (ans && q.correctAnswerText && await answersEqual(String(ans), String(q.correctAnswerText))) {
           s += 1;
         }
@@ -201,29 +203,41 @@ export default function StudentTestTake({ exam, onClose }: Props) {
       }
     }
     setScore(s);
-    setSubmitted(true);
     
     try {
+      const cleanAnswers: Record<string, any> = {};
+      Object.entries(answers).forEach(([k, v]) => {
+        if (v !== undefined) cleanAnswers[String(k)] = v;
+      });
+
       const resultRef = doc(db, 'exam_results', `${exam.id}_${user?.id}`);
-      const existingResult = await getDoc(resultRef);
-      const attempts = existingResult.exists() ? (existingResult.data().attempts || 1) + 1 : 1;
+      let attempts = 1;
+      try {
+        const existingResult = await getDoc(resultRef);
+        if (existingResult.exists()) {
+           attempts = (existingResult.data().attempts || 1) + 1;
+        }
+      } catch (e) {
+         console.warn("Failed to get previous attempts, defaulting to 1", e);
+      }
 
       await setDoc(resultRef, {
         examId: exam.id,
         testId: exam.testId || exam.id,
-        studentId: user?.id || null,
+        studentId: user?.id || 'unknown_student',
         studentName: user?.fullName || 'Unknown',
         groupId: user?.groupId || null,
         score: s,
         total: testData.questions.length,
-        answers,
+        answers: cleanAnswers,
         timeSpent: (exam.duration * 60) - timeLeft,
         attempts,
         submittedAt: new Date().toISOString()
       });
       toast.success("Natija saqlandi!");
     } catch (err) {
-      console.error(err);
+      console.error('Error saving result:', err);
+      toast.error("Natijani saqlashda xatolik yuz berdi!");
     }
   };
 
