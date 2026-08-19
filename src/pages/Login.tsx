@@ -32,16 +32,7 @@ export default function Login() {
   return (
     <div className="flex-1 flex flex-col px-6 relative overflow-y-auto z-20">
 
-      {isInstallable && (
-        <button 
-          onClick={installApp}
-          type="button"
-          className="absolute top-4 right-4 flex items-center gap-2 px-4 py-2 bg-[#FEC204] text-black font-bold text-[12px] uppercase tracking-wide rounded-full shadow-lg hover:bg-[#e0ab00] transition-colors z-50"
-        >
-          <Download size={16} />
-          APK O'rnatish
-        </button>
-      )}
+
   
       <div className="flex flex-col items-center justify-center min-h-full max-w-[340px] md:max-w-[400px] mx-auto w-full py-10 md:py-16">
         

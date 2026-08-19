@@ -50,6 +50,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setLoading(false);
           } else {
             console.error('User doc not found in Firestore');
+            signOut(auth);
             setUser(null);
             setLoading(false);
           }
@@ -116,6 +117,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         errorMessage = "Bunday foydalanuvchi topilmadi!";
       } else if (error.code === 'auth/too-many-requests') {
         errorMessage = "Juda ko'p urinish. Iltimos biroz kuting.";
+      } else if (error.code === 'auth/network-request-failed') {
+        errorMessage = "Tarmoq xatosi. Internet aloqasini tekshiring yoki Adblockerni o'chiring.";
       }
       
       toast.error(errorMessage);

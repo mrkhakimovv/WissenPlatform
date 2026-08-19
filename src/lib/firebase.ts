@@ -15,14 +15,20 @@ const firebaseConfig = {
 const firestoreDatabaseId = import.meta.env.VITE_FIREBASE_DATABASE_ID || configAny.firestoreDatabaseId || undefined;
 
 // Tarmoq uzilishi ogohlantirishlarini yashirish
-setLogLevel('error');
+setLogLevel('silent');
 
 console.log('Final Firebase Config:', firebaseConfig);
 const app = initializeApp(firebaseConfig);
 const secondaryApp = initializeApp(firebaseConfig, 'Secondary');
 
-export const db = getFirestore(app, firestoreDatabaseId);
-export const auth = getAuth(app);
-export const secondaryAuth = getAuth(secondaryApp);
+import { initializeFirestore } from 'firebase/firestore';
+export const db = initializeFirestore(app, { experimentalAutoDetectLongPolling: true }, firestoreDatabaseId);
+import { initializeAuth, browserLocalPersistence, browserSessionPersistence, indexedDBLocalPersistence } from 'firebase/auth';
+export const auth = initializeAuth(app, {
+  persistence: [indexedDBLocalPersistence, browserLocalPersistence, browserSessionPersistence]
+});
+export const secondaryAuth = initializeAuth(secondaryApp, {
+  persistence: [indexedDBLocalPersistence, browserLocalPersistence, browserSessionPersistence]
+});
 
 export { collection, query, where, getDocs, doc, getDoc, setDoc, updateDoc, deleteDoc, onSnapshot, orderBy, addDoc, limit, signInWithEmailAndPassword, onAuthStateChanged, signOut, createUserWithEmailAndPassword };

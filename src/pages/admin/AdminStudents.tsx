@@ -70,10 +70,8 @@ export default function AdminStudents() {
       
       const userCred = await createUserWithEmailAndPassword(secondaryAuth, email, formData.password);
       
-      const { password, ...dataToSave } = formData;
-      
       await setDoc(doc(db, 'users', userCred.user.uid), {
-        ...dataToSave,
+        ...formData,
         role: 'student',
         monthlyFee: Number(formData.monthlyFee),
         createdAt: new Date().toISOString()
@@ -268,7 +266,7 @@ export default function AdminStudents() {
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-[13px] text-white/50">Parol:</span>
-                  <span className="text-[13px] text-white/90 font-medium">***</span>
+                  <span className="text-[13px] text-white/90 font-medium">{student.password || '***'}</span>
                 </div>
               </div>
 
@@ -285,14 +283,7 @@ export default function AdminStudents() {
         {filtered.length === 0 && <p className="text-center text-[color:var(--theme-text-primary)]/40 py-6 text-sm col-span-full">Topilmadi</p>}
       </div>
 
-      <div className="fixed bottom-[100px] left-0 w-full max-w-[430px] px-6 mx-auto right-0 sm:absolute z-20">
-        <button 
-          onClick={() => setIsModalOpen(true)}
-          className="w-full py-4 rounded-2xl bg-gradient-to-r from-[#FEC204] to-[#f59e0b] text-[#0d0d0d] font-bold shadow-lg shadow-[#FEC204]/20 flex items-center justify-center gap-2 transition-transform active:scale-95"
-        >
-          <span className="text-xl leading-none">+</span> O'quvchi Qo'shish
-        </button>
-      </div>
+
 
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm sm:absolute">

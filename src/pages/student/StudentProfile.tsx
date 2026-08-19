@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { Phone, Mail, BookOpen, CalendarIcon, Download } from 'lucide-react';
+import { Phone, Mail, BookOpen, CalendarIcon, Download, Users } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { usePWAInstall } from '../../hooks/usePWAInstall';
 import toast from 'react-hot-toast';
 
@@ -9,7 +10,8 @@ import { Group, Attendance } from '../../types';
 import { format } from 'date-fns';
 
 export default function StudentProfile() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
   
   const [group, setGroup] = useState<Group | null>(null);
   const [attendanceRate, setAttendanceRate] = useState<number>(0);
@@ -66,28 +68,18 @@ export default function StudentProfile() {
   const joinedDateFormatted = user?.joinedDate ? format(new Date(user.joinedDate), 'dd.MM.yyyy') : 'Noma\'lum';
   const groupText = group ? `${group.subject} • ${group.name}` : (user?.subject ? user.subject : 'Biriktirilmagan');
 
-  const handleInstallClick = () => {
-    if (isInstallable) {
-      installApp();
-    } else {
-      toast('Ilovani o\'rnatish uchun brauzeringizning menyusidan (⋮) "Add to Home Screen" (Yoki "Ilovani o\'rnatish") tugmasini bosing', {
-        icon: '📱',
-        duration: 5000,
-      });
-    }
+  const handleInstallClick = () => {};
+  
+  const handleSwitchAccount = async () => {
+    await logout();
+    navigate('/login', { replace: true });
   };
 
   return (
     <div className="space-y-6 pt-4 pb-6">
       {/* Profile Header Block */}
       <div className="flex flex-col items-center relative">
-        <button 
-          onClick={handleInstallClick}
-          className="absolute top-0 left-0 flex items-center gap-2 px-3 py-1.5 bg-[#FEC204] text-black font-bold text-[11px] uppercase tracking-wide rounded-full shadow-lg hover:bg-[#e0ab00] transition-colors z-10"
-        >
-          <Download size={14} />
-          APK O'rnatish
-        </button>
+
         <div className="relative mb-4">
           <div className="w-[72px] h-[72px] rounded-full border-[2.5px] border-[#FEC204] p-[1.5px]">
             <div className="w-full h-full rounded-full bg-[#FEC204] flex items-center justify-center text-[22px] font-black text-[#000]">
@@ -164,24 +156,7 @@ export default function StudentProfile() {
 
 
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-6">
-        <button 
-          onClick={handleInstallClick}
-          className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-white/5 border border-white/10 text-white font-bold hover:bg-white/10 transition-colors"
-        >
-          <Download size={18} />
-          <span>Ekranga qo'shish (PWA)</span>
-        </button>
 
-        <a 
-          href="/wissen-edu.apk"
-          download="wissen-edu.apk"
-          className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-[#FEC204] text-black font-bold hover:bg-[#e0ab00] transition-colors"
-        >
-          <Download size={18} />
-          <span>Ilovani yuklab olish (.APK)</span>
-        </a>
-      </div>
       <p className="text-center text-[10px] font-bold text-white/40 py-4">Wissen Edu v1.0.0</p>
     </div>
   );
