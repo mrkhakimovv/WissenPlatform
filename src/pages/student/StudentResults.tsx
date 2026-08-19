@@ -27,13 +27,14 @@ export default function StudentResults() {
 
         const resData = snap.docs.map(d => {
           const data = d.data();
+          // Prefer saved title/subject, fallback to map if it exists
           return {
             id: d.id,
             ...data,
-            examTitle: examsMap.get(data.examId)?.title || "Noma'lum imtihon",
-            examSubject: examsMap.get(data.examId)?.subject || '',
-            examDate: examsMap.get(data.examId)?.date || '',
-            examTestId: examsMap.get(data.examId)?.testId || null,
+            examTitle: data.examTitle || examsMap.get(data.examId)?.title || "Noma'lum imtihon",
+            examSubject: data.examSubject || examsMap.get(data.examId)?.subject || '',
+            examDate: data.examDate || examsMap.get(data.examId)?.date || data.submittedAt || '',
+            examTestId: data.testId || examsMap.get(data.examId)?.testId || null,
           };
         });
 

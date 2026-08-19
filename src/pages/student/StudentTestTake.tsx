@@ -26,6 +26,8 @@ export default function StudentTestTake({ exam, onClose }: Props) {
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [submitted, setSubmitted] = useState(false);
+  const [wrongAnswersList, setWrongAnswersList] = useState<any[]>([]);
+  const [allResultsList, setAllResultsList] = useState<any[]>([]);
   const [score, setScore] = useState(0);
   const [hasStarted, setHasStarted] = useState(false);
   const containerRef = React.useRef<HTMLDivElement>(null);
@@ -189,25 +191,52 @@ export default function StudentTestTake({ exam, onClose }: Props) {
     if (!testData || submitted) return;
     setSubmitted(true);
     let s = 0;
+    const wrongAnswersData = [];
+    const allAnswersData = [];
     for (let idx = 0; idx < testData.questions.length; idx++) {
       const q = testData.questions[idx];
       const ans = answers[idx];
+      let isCorrect = false;
       if (q.isOpenEnded) {
         if (ans && q.correctAnswerText && await answersEqual(String(ans), String(q.correctAnswerText))) {
-          s += 1;
+          isCorrect = true;
         }
       } else {
         if (ans === q.correctOptionIndex) {
-          s += 1;
+          isCorrect = true;
         }
+      }
+      
+      allAnswersData.push({
+        questionIndex: idx + 1,
+        isCorrect,
+        studentAnswer: ans === undefined ? null : ans,
+        correctAnswer: q.isOpenEnded ? (q.correctAnswerText || null) : (q.correctOptionIndex !== undefined ? q.correctOptionIndex : null),
+        isOpenEnded: !!q.isOpenEnded,
+        options: q.options || []
+      });
+      
+      if (isCorrect) {
+        s += 1;
+      } else {
+        wrongAnswersData.push({
+          questionIndex: idx + 1,
+          studentAnswer: ans === undefined ? null : ans,
+          correctAnswer: q.isOpenEnded ? (q.correctAnswerText || null) : (q.correctOptionIndex !== undefined ? q.correctOptionIndex : null),
+          isOpenEnded: !!q.isOpenEnded,
+          options: q.options || []
+        });
       }
     }
     setScore(s);
+    setWrongAnswersList(wrongAnswersData);
+    setAllResultsList(allAnswersData);
     
     try {
       const cleanAnswers: Record<string, any> = {};
       Object.entries(answers).forEach(([k, v]) => {
         if (v !== undefined) cleanAnswers[String(k)] = v;
+        else cleanAnswers[String(k)] = null;
       });
 
       let attemptsCount = 0;
@@ -219,8 +248,11 @@ export default function StudentTestTake({ exam, onClose }: Props) {
          console.warn("Failed to get previous attempts", e);
       }
 
-      await addDoc(collection(db, 'exam_results'), {
+      // Sanitize undefined values before saving to Firestore
+      const docData = JSON.parse(JSON.stringify({
         examId: exam.id,
+        examTitle: exam.title || "Noma'lum imtihon",
+        examSubject: exam.subject || '',
         testId: exam.testId || exam.id,
         studentId: user?.id || 'unknown_student',
         studentName: user?.fullName || 'Unknown',
@@ -228,10 +260,13 @@ export default function StudentTestTake({ exam, onClose }: Props) {
         score: s,
         total: testData.questions.length,
         answers: cleanAnswers,
+        wrongAnswers: wrongAnswersData,
         timeSpent: (exam.duration * 60) - timeLeft,
         attempts: attemptsCount + 1,
         submittedAt: new Date().toISOString()
-      });
+      }));
+
+      await addDoc(collection(db, 'exam_results'), docData);
 
       toast.success("Natija saqlandi!");
     } catch (err) {
@@ -284,15 +319,25 @@ export default function StudentTestTake({ exam, onClose }: Props) {
           <h2 className="text-[20px] md:text-[24px] font-black text-white mb-2">Imtihon yakunlandi</h2>
           <p className="text-[14px] md:text-base text-white/60 mb-6">Sizning natijangiz muvaffaqiyatli saqlandi.</p>
           
-          <div className="bg-white/5 border border-white/10 rounded-[16px] w-full p-5 md:p-6 mb-8">
+          <div className="bg-white/5 border border-white/10 rounded-[16px] w-full p-5 md:p-6 mb-6">
             <div className="text-[40px] md:text-[48px] font-black text-[#FEC204] leading-none mb-2">
               {score} <span className="text-[18px] md:text-[20px] text-white/40">/ {testData.questions.length}</span>
             </div>
             <p className="text-[12px] md:text-[14px] font-bold text-white/60 uppercase tracking-widest">To'g'ri javoblar</p>
           </div>
+
+                    <div className="flex flex-wrap gap-2 justify-center mb-6">
+            {allResultsList.map((r, i) => (
+              <div key={i} title={`${r.questionIndex}-savol`} className={`w-8 h-8 flex items-center justify-center rounded-lg text-xs font-bold ${r.isCorrect ? 'bg-green-500/20 text-green-500 border border-green-500/30' : 'bg-red-500/20 text-red-500 border border-red-500/30'}`}>
+                {r.questionIndex}
+              </div>
+            ))}
+          </div>
+
+
           
           <button onClick={() => { if(document.fullscreenElement) document.exitFullscreen().catch(()=>{}); onClose(); }} className="w-full py-3 md:py-4 rounded-[12px] bg-white/10 text-white font-bold hover:bg-white/20 transition-colors">
-            Ortga qaytish
+            Bosh sahifaga qaytish
           </button>
         </div>
       </div>,
