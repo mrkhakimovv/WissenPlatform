@@ -46,7 +46,30 @@ export default function ExamStatsModal({ exam, groupName, onClose }: Props) {
         const resDocs = await getDocs(resultsQ);
         const rData: any[] = [];
         resDocs.forEach(d => rData.push({ id: d.id, ...d.data() }));
-        setResults(rData);
+        
+        // Group by studentId and keep the best score, but also save all attempts info
+        const groupedResults = new Map();
+        rData.forEach(r => {
+          if (!groupedResults.has(r.studentId)) {
+            groupedResults.set(r.studentId, { ...r, allAttemptsDetails: [r] });
+          } else {
+            const existing = groupedResults.get(r.studentId);
+            const currentPercent = existing.total > 0 ? existing.score / existing.total : 0;
+            const newPercent = r.total > 0 ? r.score / r.total : 0;
+            
+            existing.allAttemptsDetails.push(r);
+            
+            if (newPercent > currentPercent || (newPercent === currentPercent && new Date(r.submittedAt).getTime() > new Date(existing.submittedAt).getTime())) {
+              r.attempts = Math.max(r.attempts || 1, existing.attempts || 1);
+              r.allAttemptsDetails = existing.allAttemptsDetails;
+              groupedResults.set(r.studentId, r);
+            } else {
+              existing.attempts = Math.max(r.attempts || 1, existing.attempts || 1);
+            }
+          }
+        });
+        
+        setResults(Array.from(groupedResults.values()).sort((a, b) => b.score - a.score));
 
       } catch (err) {
         console.error(err);
@@ -75,6 +98,13 @@ export default function ExamStatsModal({ exam, groupName, onClose }: Props) {
     const wrong: number[] = [];
     testData.questions.forEach((q: any, idx: number) => {
       const ans = result.answers[idx];
+      
+      // We also need to check if the student missed the question entirely
+      if (ans === undefined || ans === null) {
+        wrong.push(idx + 1);
+        return;
+      }
+      
       if (q.isOpenEnded) {
         if (String(ans).trim() !== String(q.correctAnswerText).trim()) {
           wrong.push(idx + 1);
@@ -169,14 +199,35 @@ export default function ExamStatsModal({ exam, groupName, onClose }: Props) {
                     {results.map(r => {
                       const wrongAnswers = getWrongAnswers(r);
                       return (
-                        <div key={r.id} className="bg-white/5 p-4 rounded-xl border border-white/5 flex flex-col md:flex-row gap-4 md:items-center">
+                        <div key={r.id} className={`p-4 rounded-xl border flex flex-col md:flex-row gap-4 md:items-center ${wrongAnswers.length > 0 ? 'bg-red-500/5 border-red-500/10' : 'bg-white/5 border-white/5'}`}>
                           <div className="flex-1">
                             <div className="font-bold text-white text-[15px]">{r.studentName}</div>
                             <div className="text-xs text-white/40 mt-1 flex flex-wrap items-center gap-3">
                               <span className="flex items-center gap-1"><Clock size={12}/> {new Date(r.submittedAt).toLocaleString('uz-UZ')}</span>
                               <span>Vaqt: {formatTime(r.timeSpent)}</span>
-                              <span>Urinishlar: {r.attempts || 1} marta</span>
+                              {r.attempts > 1 ? (
+                                <span>Eng yuqori natija ({r.attempts} ta urinishdan)</span>
+                              ) : (
+                                <span>1 ta urinish</span>
+                              )}
                             </div>
+                            
+                            {r.allAttemptsDetails && r.allAttemptsDetails.length > 1 && (
+                               <div className="mt-2 flex flex-col gap-1">
+                                 <div className="text-[10px] uppercase font-bold text-white/30">Barcha urinishlar tarixi:</div>
+                                 <div className="flex flex-col gap-1 max-h-[80px] overflow-y-auto custom-scrollbar">
+                                   {r.allAttemptsDetails
+                                     .sort((a: any, b: any) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime())
+                                     .map((att: any, idx: number) => (
+                                     <div key={idx} className="flex items-center gap-3 text-[11px] text-white/40 bg-[#0d0d0d] p-1.5 rounded">
+                                       <span className="font-bold text-white/60">{att.score}/{att.total}</span>
+                                       <span className="flex items-center gap-1"><Clock size={10}/> {new Date(att.submittedAt).toLocaleString('uz-UZ')}</span>
+                                       <span>Vaqt: {formatTime(att.timeSpent)}</span>
+                                     </div>
+                                   ))}
+                                 </div>
+                               </div>
+                            )}
                           </div>
                           
                           {wrongAnswers.length > 0 ? (
