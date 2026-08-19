@@ -91,6 +91,21 @@ export default function AdminExams() {
     setIsModalOpen(true);
   };
 
+  const handleEndExam = async (exam: any) => {
+    if (exam.status === 'ended') {
+      toast.error('Ushbu imtihon allaqachon yakunlangan!');
+      return;
+    }
+    if (await confirm({ title: 'Diqqat', message: "Imtihonni yakunlashni tasdiqlaysizmi? Yakunlangandan so'ng o'quvchilar bu imtihonni ishlay olmaydi." })) {
+      try {
+        await updateDoc(doc(db, 'exams', exam.id), { status: 'ended' });
+        toast.success('Imtihon yakunlandi');
+      } catch (err: any) {
+        toast.error(err.message || 'Xatolik yuz berdi');
+      }
+    }
+  };
+
   const handleDelete = async (id: string) => {
     if (await confirm({ title: 'Diqqat', message: "Imtihonni o'chirishni tasdiqlaysizmi?" })) {
       try {
@@ -179,7 +194,17 @@ export default function AdminExams() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {filteredExams.map(exam => (
             <div key={exam.id} onClick={() => setSelectedExamForStats(exam)} className="glass-panel p-5 relative group cursor-pointer hover:border-[#FEC204]/50 transition-colors">
-              <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                {exam.status !== 'ended' && (
+                  <button onClick={(e) => { e.stopPropagation(); handleEndExam(exam); }} className="px-3 h-8 rounded-lg bg-red-500/10 flex items-center justify-center text-red-500 hover:bg-red-500/20 transition-colors text-xs font-bold">
+                    Yakunlash
+                  </button>
+                )}
+                {exam.status === 'ended' && (
+                  <span className="px-3 h-8 rounded-lg bg-white/5 flex items-center justify-center text-white/40 text-xs font-bold">
+                    Yakunlangan
+                  </span>
+                )}
                 <button onClick={(e) => { e.stopPropagation(); openEdit(exam); }} className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center text-white/70 hover:text-white transition-colors">
                   <Edit2 size={14} />
                 </button>
