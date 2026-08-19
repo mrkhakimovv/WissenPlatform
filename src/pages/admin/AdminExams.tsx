@@ -14,6 +14,7 @@ export default function AdminExams() {
   const { user } = useAuth();
   const { confirm } = useConfirm();
   const [exams, setExams] = useState<Exam[]>([]);
+  const [selectedGroupId, setSelectedGroupId] = useState<string | 'all'>('all');
   const [groups, setGroups] = useState<Group[]>([]);
   const [subjects, setSubjects] = useState<any[]>([]);
   const [existingTests, setExistingTests] = useState<string[]>([]);
@@ -153,7 +154,10 @@ export default function AdminExams() {
   };
 
   const teacherGroups = groups.filter(g => user?.role !== 'teacher' || g.teacherName === user?.fullName);
-  const filteredExams = exams.filter(ex => user?.role !== 'teacher' || !ex.groupId || teacherGroups.some(g => g.id === ex.groupId));
+  let filteredExams = exams.filter(ex => user?.role !== 'teacher' || !ex.groupId || teacherGroups.some(g => g.id === ex.groupId));
+  if (selectedGroupId !== 'all') {
+    filteredExams = filteredExams.filter(ex => selectedGroupId === 'global' ? !ex.groupId : ex.groupId === selectedGroupId);
+  }
 
   return (
     <div className="space-y-6 pb-6">
@@ -180,6 +184,31 @@ export default function AdminExams() {
             Imtihon qo'shish
           </button>
         </div>
+      </div>
+
+      {/* Guruhlar filtri */}
+      <div className="flex gap-2 overflow-x-auto custom-scrollbar pb-2 -mx-2 px-2 sm:mx-0 sm:px-0">
+        <button
+          onClick={() => setSelectedGroupId('all')}
+          className={`px-4 py-2 rounded-full text-[13px] font-bold whitespace-nowrap transition-colors ${selectedGroupId === 'all' ? 'bg-[#FEC204] text-black' : 'bg-white/5 text-white/60 hover:bg-white/10'}`}
+        >
+          Barchasi
+        </button>
+        <button
+          onClick={() => setSelectedGroupId('global')}
+          className={`px-4 py-2 rounded-full text-[13px] font-bold whitespace-nowrap transition-colors ${selectedGroupId === 'global' ? 'bg-[#FEC204] text-black' : 'bg-white/5 text-white/60 hover:bg-white/10'}`}
+        >
+          Umumiy (Guruhsiz)
+        </button>
+        {teacherGroups.map(g => (
+          <button
+            key={g.id}
+            onClick={() => setSelectedGroupId(g.id)}
+            className={`px-4 py-2 rounded-full text-[13px] font-bold whitespace-nowrap transition-colors ${selectedGroupId === g.id ? 'bg-[#FEC204] text-black' : 'bg-white/5 text-white/60 hover:bg-white/10'}`}
+          >
+            {g.name}
+          </button>
+        ))}
       </div>
 
       {exams.length === 0 ? (
