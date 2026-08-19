@@ -17,7 +17,7 @@ export default function StudentLayout() {
   const handleLogout = async () => {
     if (await confirm({ title: 'Diqqat', message: `Rostdan tizimdan chiqmoqchimisiz?` })) {
       await logout();
-      navigate('/login');
+      navigate('/login', { replace: true });
     }
   };
 
@@ -91,6 +91,7 @@ export default function StudentLayout() {
             <NavLink
               key={item.to}
               to={item.to}
+              replace
               end={item.to === '.'}
               className={({ isActive }) => 
                 `flex items-center gap-3 px-4 py-3 rounded-xl transition-all relative ${
@@ -159,6 +160,7 @@ export default function StudentLayout() {
             <NavLink
               key={item.to}
               to={item.to}
+              replace
               end={item.to === '.'}
               className={({ isActive }) => 
                 `flex flex-col items-center justify-center min-w-[65px] h-[55px] gap-1 transition-all relative ${

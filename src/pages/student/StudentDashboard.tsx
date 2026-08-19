@@ -50,30 +50,7 @@ export default function StudentDashboard() {
          setGroup(fetchedGroups[0]); // Set primary for any legacy usage
       }
 
-      // Build schedules from groups
-      let schedules: any[] = [];
-      fetchedGroups.forEach(g => {
-          if (g.days && g.days.length > 0) {
-              g.days.forEach(dayStr => {
-                  const sched = g.schedule?.[dayStr] || { startTime: g.startTime || '', endTime: g.endTime || '' };
-                  schedules.push({
-                      id: Math.random().toString(),
-                      groupId: g.id,
-                      subject: g.subject || '',
-                      teacherName: g.teacherName || '',
-                      dayOfWeek: Number(dayStr),
-                      startTime: sched.startTime || '',
-                      endTime: sched.endTime || '',
-                      location: 'Asosiy xona'
-                  });
-              });
-          }
-      });
-      
-      const todayDayOfWeek = new Date().getDay() || 7; // 1-7
-      const todays = schedules.filter(s => Number(s.dayOfWeek) === todayDayOfWeek);
-      todays.sort((a, b) => (a.startTime || '').localeCompare(b.startTime || ''));
-      setTodaySchedules(todays);
+
 
       const unsubExams = onSnapshot(query(collection(db, 'exams')), snap => {
         const allExams = snap.docs.map(d => ({ id: d.id, ...d.data() } as Exam));
@@ -224,39 +201,7 @@ export default function StudentDashboard() {
         )}
       </div>
 
-      <div>
-        <h2 className="text-[13px] text-white font-bold mb-3 px-1 uppercase tracking-[1px]">Bugungi Darslar</h2>
-        
-        {todaySchedules.length > 0 ? (
-          <div className="space-y-3">
-            {todaySchedules.map(sched => (
-              <div key={sched.id} className="glass-panel p-4 border-none shadow-sm ring-1 ring-[color:white/10]">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-[40px] h-[40px] rounded-[10px] bg-[#FEC204] flex items-center justify-center">
-                    <BookOpen size={20} color="#000" />
-                  </div>
-                  <div>
-                    <p className="text-[15px] font-black text-white">{sched.subject}</p>
-                    <p className="text-[11px] font-bold text-white/40">Guruh: {groups.find(g => g.id === sched.groupId)?.name || 'Biriktirilmagan'}</p>
-                  </div>
-                </div>
-                <div className="bg-[color:var(--surface-color)] p-3 rounded-xl flex items-center justify-between border border-white/10">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-[#FEC204]"></div>
-                    <span className="text-[12px] font-bold text-white">{sched.location}</span>
-                  </div>
-                  <span className="badge-gold">{sched.startTime} - {sched.endTime}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="glass-panel p-6 text-center flex flex-col items-center justify-center gap-2">
-            <SearchX size={24} className="text-white/20" />
-            <p className="text-white/40 font-bold text-sm">Bugun darslar yo'q</p>
-          </div>
-        )}
-      </div>
+
 
       <div>
         <h2 className="text-[13px] text-white font-bold mb-3 px-1 uppercase tracking-[1px]">Davomat</h2>

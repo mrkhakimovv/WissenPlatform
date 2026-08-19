@@ -91,13 +91,13 @@ export default function AdminDashboard() {
   return (
     <div className="space-y-6 md:space-y-8">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 w-full">
-        <div onClick={() => navigate('/admin/students')} className="glass-panel p-4 md:p-6 border-l-4 border-[#FEC204] hover:scale-[1.02] transition-transform cursor-pointer">
+        <div onClick={() => navigate('/admin/students', { replace: true })} className="glass-panel p-4 md:p-6 border-l-4 border-[#FEC204] hover:scale-[1.02] transition-transform cursor-pointer">
           <p className="text-[9px] md:text-[11px] uppercase tracking-[2px] font-bold text-white/40 mb-1">O'quvchilar</p>
           <p className="text-[26px] md:text-[32px] font-[900] tracking-[-1px] text-white">{stats.students}</p>
           <p className="text-xs font-bold text-white/40 mt-1.5">+ Barcha</p>
         </div>
         
-        <div onClick={() => navigate('/admin/attendance')} className="glass-panel p-4 md:p-6 border-l-4 border-[#FEC204] hover:scale-[1.02] transition-transform cursor-pointer">
+        <div onClick={() => navigate('/admin/attendance', { replace: true })} className="glass-panel p-4 md:p-6 border-l-4 border-[#FEC204] hover:scale-[1.02] transition-transform cursor-pointer">
           <p className="text-[9px] md:text-[11px] uppercase tracking-[2px] font-bold text-white/40 mb-1">Davomat %</p>
           <p className="text-[26px] md:text-[32px] font-[900] tracking-[-1px] text-white">{stats.attendanceRate}%</p>
           <div className="w-full h-1.5 bg-[#f0f0f0]/20 rounded-full mt-2 overflow-hidden">
@@ -105,13 +105,13 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        <div onClick={() => navigate('/admin/more')} className="glass-panel p-4 md:p-6 border-l-4 border-[#FEC204] hover:scale-[1.02] transition-transform cursor-pointer">
+        <div onClick={() => navigate('/admin/more', { replace: true })} className="glass-panel p-4 md:p-6 border-l-4 border-[#FEC204] hover:scale-[1.02] transition-transform cursor-pointer">
           <p className="text-[9px] md:text-[11px] uppercase tracking-[2px] font-bold text-white/40 mb-1">Fanlar</p>
           <p className="text-[26px] md:text-[32px] font-[900] tracking-[-1px] text-white">{stats.subjects}</p>
           <p className="text-xs font-bold text-white/40 mt-1.5">Aktiv kurslar</p>
         </div>
 
-        <div onClick={() => navigate('/admin/payments')} className="glass-panel p-4 md:p-6 border-l-4 border-[#FEC204] hover:scale-[1.02] transition-transform cursor-pointer">
+        <div onClick={() => navigate('/admin/payments', { replace: true })} className="glass-panel p-4 md:p-6 border-l-4 border-[#FEC204] hover:scale-[1.02] transition-transform cursor-pointer">
           <p className="text-[9px] md:text-[11px] uppercase tracking-[2px] font-bold text-white/40 mb-1">To'lovlar</p>
           <p className="text-[26px] md:text-[32px] font-[900] tracking-[-1px] text-white">{stats.paidThisMonth}</p>
           <p className="text-xs font-bold text-white/40 mt-1.5">Shu oyda to'laganlar</p>
@@ -123,7 +123,7 @@ export default function AdminDashboard() {
       <div className="flex flex-col min-h-0">
         <div className="flex justify-between items-center mb-4 md:mb-6 px-1">
           <h2 className="text-[13px] md:text-[16px] text-white font-bold tracking-wide">So'nggi to'lovlar</h2>
-          <button onClick={() => navigate('/admin/payments')} className="text-[#FEC204] text-[13px] md:text-[14px] font-bold hover:underline transition-all">Barchasi &rarr;</button>
+          <button onClick={() => navigate('/admin/payments', { replace: true })} className="text-[#FEC204] text-[13px] md:text-[14px] font-bold hover:underline transition-all">Barchasi &rarr;</button>
         </div>
         
         <div className="space-y-3 md:space-y-0 md:grid md:grid-cols-2 md:gap-5">
@@ -131,7 +131,7 @@ export default function AdminDashboard() {
           {recentPayments.map((p) => {
             const initials = p.studentName ? p.studentName.split(' ').map((n: string) => n[0]).join('') : 'U';
             return (
-              <div key={p.id} onClick={() => navigate('/admin/students')} className="glass-panel p-4 md:p-5 flex items-center gap-3 md:gap-4 hover:border-[#FEC204]/50 cursor-pointer group transition-all">
+              <div key={p.id} onClick={() => navigate('/admin/students', { replace: true })} className="glass-panel p-4 md:p-5 flex items-center gap-3 md:gap-4 hover:border-[#FEC204]/50 cursor-pointer group transition-all">
                 <div className="w-[38px] h-[38px] md:w-[48px] md:h-[48px] rounded-[10px] md:rounded-[14px] bg-gradient-to-br from-[#FEC204] to-amber-500 shadow-md flex items-center justify-center font-[800] text-[#000] text-[13px] md:text-[16px] group-hover:scale-105 transition-transform uppercase">{initials.substring(0, 2)}</div>
                 <div className="flex-1">
                   <p className="text-white text-[13px] md:text-[15px] font-bold tracking-wide">{p.studentName}</p>

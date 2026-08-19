@@ -95,7 +95,7 @@ export default function StudentRegistration() {
           await signInWithEmailAndPassword(auth, email, password);
           toast.success("Sizning eski akkauntingiz topildi va tizimga kirdingiz!");
           await login(email, password);
-          navigate('/student');
+          navigate('/student', { replace: true });
           return;
         } catch (loginErr) {
           toast.error("Ushbu username band yoki parol noto'g'ri. Agar bu sizning akkauntingiz bo'lsa, to'g'ri parolni kiritib kiring.");
@@ -119,7 +119,7 @@ export default function StudentRegistration() {
         
         toast.success("Muvaffaqiyatli ro'yxatdan o'tdingiz!");
         await login(email, password);
-        navigate('/student');
+        navigate('/student', { replace: true });
       } catch (createErr: any) {
         if (createErr.code === 'auth/email-already-in-use') {
           // Bu holat username Firestore'da yo'q, lekin Firebase Auth'da (parollar bazasida) qolib ketganda yuz beradi.
@@ -140,7 +140,7 @@ export default function StudentRegistration() {
             
             toast.success("Muvaffaqiyatli ro'yxatdan o'tdingiz (eski profil tiklandi)!");
             await login(email, password);
-            navigate('/student');
+            navigate('/student', { replace: true });
             return;
           } catch (loginErr) {
             // Parol xato bo'lsa, demak bu nom rostdan ham boshqa birovga tegishli yoki parol unutilgan.
@@ -166,7 +166,7 @@ export default function StudentRegistration() {
 
   useEffect(() => {
     if (user && user.role === 'student') {
-      navigate('/student');
+      navigate('/student', { replace: true });
     }
   }, [user, navigate]);
 

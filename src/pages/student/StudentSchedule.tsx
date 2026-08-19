@@ -65,12 +65,13 @@ export default function StudentSchedule() {
 
   const today = new Date();
   const currentDayOfWeek = today.getDay() || 7;
+  const MONTHS = ['yanvar', 'fevral', 'mart', 'aprel', 'may', 'iyun', 'iyul', 'avgust', 'sentyabr', 'oktyabr', 'noyabr', 'dekabr'];
   
   const scheduleData = DAYS.map(dayInfo => {
     const diff = dayInfo.id - currentDayOfWeek;
     const dateForDay = new Date(today);
     dateForDay.setDate(today.getDate() + diff);
-    const dateStr = dateForDay.toLocaleDateString('uz-UZ', { day: 'numeric', month: 'long' });
+    const dateStr = `${dateForDay.getDate()}-${MONTHS[dateForDay.getMonth()]}, ${dateForDay.getFullYear()}`;
     const isToday = diff === 0;
 
     const daySchedules = schedules
@@ -121,11 +122,10 @@ export default function StudentSchedule() {
                             <div key={i} className="bg-white/5 rounded-[10px] p-3 border border-white/5">
                                <div className="flex justify-between items-start mb-2">
                                  <div>
-                                   <h4 className="text-[14px] font-[800] text-white">{lesson.subject}</h4>
+                                   <h4 className="text-[15px] font-[900] text-white uppercase tracking-wider">{getGroupName(lesson.groupId)}</h4>
                                    <p className="text-[11px] font-bold text-white/40 mt-0.5">{lesson.teacherName ? `O'qituvchi: ${lesson.teacherName}` : ''}</p>
                                    <div className="flex items-center gap-1.5 mt-1.5">
-                                      <Users size={10} className="text-[#FEC204]" />
-                                      <span className="text-[10px] font-bold text-[#FEC204]/80 uppercase tracking-wide">{getGroupName(lesson.groupId)}</span>
+                                      <span className="text-[11px] font-bold text-[#FEC204] lowercase">{lesson.subject}</span>
                                    </div>
                                  </div>
                                  <div className="text-right">

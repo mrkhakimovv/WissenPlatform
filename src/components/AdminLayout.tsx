@@ -60,6 +60,7 @@ export default function AdminLayout() {
             <NavLink
               key={item.to}
               to={item.to}
+              replace
               end={item.to === '.'}
               className={({ isActive }) => 
                 `flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
@@ -72,7 +73,7 @@ export default function AdminLayout() {
             </NavLink>
           ))}
         </div>
-        <button onClick={async () => { if (await confirm({ title: 'Diqqat', message: `Rostdan tizimdan chiqmoqchimisiz?` })) { logout().then(() => navigate('/login')); } }} className="flex items-center gap-3 px-4 py-3 rounded-xl text-white/50 hover:text-white/90 hover:bg-white/5 transition-all mt-auto mb-2 text-left w-full group">
+        <button onClick={async () => { if (await confirm({ title: 'Diqqat', message: `Rostdan tizimdan chiqmoqchimisiz?` })) { logout().then(() => navigate('/login', { replace: true })); } }} className="flex items-center gap-3 px-4 py-3 rounded-xl text-white/50 hover:text-white/90 hover:bg-white/5 transition-all mt-auto mb-2 text-left w-full group">
           <LogOut size={22} className="group-hover:text-red-400 transition-colors" />
           <span className="text-[14px] font-bold tracking-wide group-hover:text-red-400 transition-colors">Chiqish</span>
         </button>
@@ -96,7 +97,7 @@ export default function AdminLayout() {
                 <QrCode size={18} />
               </button>
             )}
-            <button onClick={async () => { if (await confirm({ title: 'Diqqat', message: `Rostdan tizimdan chiqmoqchimisiz?` })) { logout().then(() => navigate('/login')); } }} className="w-10 h-10 rounded-2xl glass-panel flex items-center justify-center text-white/70 hover:text-[#FEC204] active:scale-95 transition-all">
+            <button onClick={async () => { if (await confirm({ title: 'Diqqat', message: `Rostdan tizimdan chiqmoqchimisiz?` })) { logout().then(() => navigate('/login', { replace: true })); } }} className="w-10 h-10 rounded-2xl glass-panel flex items-center justify-center text-white/70 hover:text-[#FEC204] active:scale-95 transition-all">
               <LogOut size={18} />
             </button>
           </div>
@@ -135,6 +136,7 @@ export default function AdminLayout() {
             <NavLink
               key={item.to}
               to={item.to}
+              replace
               end={item.to === '.'}
               className={({ isActive }) => 
                 `flex flex-col items-center justify-center min-w-[70px] h-[55px] gap-1 transition-all ${

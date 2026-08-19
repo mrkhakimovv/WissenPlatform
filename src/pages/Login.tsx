@@ -20,7 +20,7 @@ export default function Login() {
       setLoading(true);
       const ok = await login(username.trim(), password);
       if (ok) {
-        navigate('/');
+        navigate('/', { replace: true });
       }
     } catch (error) {
       console.error(error);
