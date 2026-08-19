@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { TestData, Exam } from '../../types';
-import { doc, getDoc, setDoc, addDoc, collection } from 'firebase/firestore';
+import { doc, getDoc, setDoc, addDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { useAuth } from '../../contexts/AuthContext';
 import { X, CheckCircle, ChevronRight, ChevronLeft, Bookmark, AlertTriangle } from 'lucide-react';
@@ -185,7 +185,7 @@ export default function StudentTestTake({ exam, onClose }: Props) {
     return () => clearInterval(timer);
   }, [loading, submitted, hasStarted]);
 
-  const handleSubmit = async () => {
+    const handleSubmit = async () => {
     if (!testData || submitted) return;
     setSubmitted(true);
     let s = 0;
@@ -210,18 +210,16 @@ export default function StudentTestTake({ exam, onClose }: Props) {
         if (v !== undefined) cleanAnswers[String(k)] = v;
       });
 
-      const resultRef = doc(db, 'exam_results', `${exam.id}_${user?.id}`);
-      let attempts = 1;
+      let attemptsCount = 0;
       try {
-        const existingResult = await getDoc(resultRef);
-        if (existingResult.exists()) {
-           attempts = (existingResult.data().attempts || 1) + 1;
-        }
+        const q = query(collection(db, 'exam_results'), where('examId', '==', exam.id), where('studentId', '==', user?.id));
+        const snap = await getDocs(q);
+        attemptsCount = snap.size;
       } catch (e) {
-         console.warn("Failed to get previous attempts, defaulting to 1", e);
+         console.warn("Failed to get previous attempts", e);
       }
 
-      await setDoc(resultRef, {
+      await addDoc(collection(db, 'exam_results'), {
         examId: exam.id,
         testId: exam.testId || exam.id,
         studentId: user?.id || 'unknown_student',
@@ -231,9 +229,10 @@ export default function StudentTestTake({ exam, onClose }: Props) {
         total: testData.questions.length,
         answers: cleanAnswers,
         timeSpent: (exam.duration * 60) - timeLeft,
-        attempts,
+        attempts: attemptsCount + 1,
         submittedAt: new Date().toISOString()
       });
+
       toast.success("Natija saqlandi!");
     } catch (err) {
       console.error('Error saving result:', err);
@@ -309,6 +308,13 @@ export default function StudentTestTake({ exam, onClose }: Props) {
       <div className="h-[60px] md:h-[72px] border-b border-white/10 flex items-center justify-between px-4 md:px-6 shrink-0">
         <div className="flex-1 min-w-0 pr-4">
           <h2 className="text-white font-bold text-[14px] md:text-[16px] truncate">{exam.title}</h2>
+          <div className="flex gap-2 text-[10px] font-bold mt-0.5">
+            <span className="text-[#FEC204] uppercase tracking-wider">
+              {exam.testId 
+                ? (exam.subject === 'Mavzulashtirilgan' ? 'Mavzulashtirilgan test' : exam.subject)
+                : 'Imtihon'}
+            </span>
+          </div>
           <p className="text-white/40 text-[11px] md:text-[12px] truncate">{testData.title} ({testData.satType || "Oddiy"})</p>
         </div>
         <div className="flex items-center gap-3 md:gap-6 shrink-0">
@@ -335,12 +341,12 @@ export default function StudentTestTake({ exam, onClose }: Props) {
               </div>
               <button
                 onClick={() => {
-                  if (Object.keys(answers).length < testData.questions.length) {
-                    setShowSubmitConfirm(true);
-                  } else {
-                    handleSubmit();
-                  }
-                }}
+                if (Object.keys(answers).length < testData.questions.length) {
+                  setShowSubmitConfirm(true);
+                } else {
+                  handleSubmit();
+                }
+              }}
                 className="px-6 py-3 rounded-xl bg-[#FEC204] text-black font-bold hover:bg-[#e6b003] transition-colors shadow-[0_0_15px_rgba(254,194,4,0.3)]"
               >
                 Testni yakunlash

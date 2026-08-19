@@ -22,7 +22,8 @@ export default function AdminGroups() {
     teacherName: '',
     days: [] as string[],
     startTime: '',
-    endTime: ''
+    endTime: '',
+    schedule: {} as Record<string, {startTime: string, endTime: string}>
   });
 
   const WEEKDAYS = [
@@ -70,7 +71,7 @@ export default function AdminGroups() {
       }
       setIsModalOpen(false);
       setEditingGroup(null);
-      setFormData({ name: '', subject: '', teacherName: '', days: [], startTime: '', endTime: '' });
+      setFormData({ name: '', subject: '', teacherName: '', days: [], startTime: '', endTime: '', schedule: {} });
     } catch (err) {
       console.error('Kontekst:', err);
       const msg = err instanceof Error ? err.message : "Noma'lum xatolik";
@@ -86,7 +87,8 @@ export default function AdminGroups() {
       teacherName: group.teacherName || '',
       days: group.days || [],
       startTime: group.startTime || '',
-      endTime: group.endTime || ''
+      endTime: group.endTime || '',
+      schedule: group.schedule || {}
     });
     setIsModalOpen(true);
   };
@@ -116,7 +118,7 @@ export default function AdminGroups() {
         <button 
           onClick={() => {
             setEditingGroup(null);
-            setFormData({ name: '', subject: '', teacherName: '', days: [], startTime: '', endTime: '' });
+            setFormData({ name: '', subject: '', teacherName: '', days: [], startTime: '', endTime: '', schedule: {} });
             setIsModalOpen(true);
           }}
           className="w-10 h-10 rounded-[12px] bg-[#FEC204] flex items-center justify-center text-[#000] shadow-sm transform active:scale-95 transition-all"
@@ -151,10 +153,16 @@ export default function AdminGroups() {
                 <h3 className="text-[14px] font-[700] text-white">{group.name || "Nomsiz guruh"}</h3>
                 <p className="text-[11px] text-white/40 mt-1 font-medium flex items-center gap-2 flex-wrap">
                   {group.subject || "Fan ko'rsatilmagan"} • {group.teacherName || "O'qituvchi tanlanmagan"}
-                  {(group.days?.length > 0 || group.startTime) && (
-                    <span className="inline-flex items-center gap-1 bg-white/5 px-2 py-0.5 rounded text-[10px]">
-                      {group.days?.length > 0 && WEEKDAYS.filter(w => group.days.includes(w.id)).map(w => w.label).join(', ')}
-                      {group.startTime && ` ${group.startTime}${group.endTime ? ` - ${group.endTime}` : ''}`}
+                  {(group.days?.length > 0) && (
+                    <span className="inline-flex items-center gap-1 flex-wrap">
+                      {WEEKDAYS.filter(w => group.days.includes(w.id)).map(w => {
+                        const sched = group.schedule?.[w.id] || { startTime: group.startTime || '', endTime: group.endTime || '' };
+                        return (
+                          <span key={w.id} className="bg-white/5 px-2 py-0.5 rounded text-[10px]">
+                            {w.label} {sched.startTime ? `${sched.startTime}${sched.endTime ? `-${sched.endTime}` : ''}` : ''}
+                          </span>
+                        );
+                      })}
                     </span>
                   )}
                 </p>
@@ -222,16 +230,44 @@ export default function AdminGroups() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-[11px] text-white/50 px-1 uppercase tracking-wider font-bold mb-1 block">Boshlanishi</label>
-                  <input type="time" value={formData.startTime} onChange={e=>setFormData({...formData, startTime: e.target.value})} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm placeholder-white/30" style={{ colorScheme: "dark" }} />
+              {formData.days.length > 0 && (
+                <div className="space-y-3 mt-4">
+                  <label className="text-[11px] text-white/50 px-1 uppercase tracking-wider font-bold block mb-2">Dars vaqtlari</label>
+                  {WEEKDAYS.filter(w => formData.days.includes(w.id)).map(day => {
+                    const sched = formData.schedule[day.id] || { startTime: formData.startTime || '', endTime: formData.endTime || '' };
+                    return (
+                      <div key={day.id} className="flex items-center gap-3 bg-white/5 p-2 rounded-xl border border-white/10">
+                        <span className="text-[12px] font-bold text-[#FEC204] w-8 text-center">{day.label}</span>
+                        <div className="flex-1">
+                          <input 
+                            type="time" 
+                            value={sched.startTime} 
+                            onChange={e => setFormData({
+                              ...formData, 
+                              schedule: { ...formData.schedule, [day.id]: { ...sched, startTime: e.target.value } }
+                            })} 
+                            className="w-full bg-black/20 rounded-lg p-2 outline-none focus:border-[#FEC204]/50 border border-transparent text-sm text-white" 
+                            style={{ colorScheme: "dark" }} 
+                          />
+                        </div>
+                        <span className="text-white/40">-</span>
+                        <div className="flex-1">
+                          <input 
+                            type="time" 
+                            value={sched.endTime} 
+                            onChange={e => setFormData({
+                              ...formData, 
+                              schedule: { ...formData.schedule, [day.id]: { ...sched, endTime: e.target.value } }
+                            })} 
+                            className="w-full bg-black/20 rounded-lg p-2 outline-none focus:border-[#FEC204]/50 border border-transparent text-sm text-white" 
+                            style={{ colorScheme: "dark" }} 
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
-                <div>
-                  <label className="text-[11px] text-white/50 px-1 uppercase tracking-wider font-bold mb-1 block">Tugashi</label>
-                  <input type="time" value={formData.endTime} onChange={e=>setFormData({...formData, endTime: e.target.value})} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm placeholder-white/30" style={{ colorScheme: "dark" }} />
-                </div>
-              </div>
+              )}
               
               <div className="pt-2">
                 <button type="submit" className="w-full py-3 bg-[#FEC204] text-black font-bold rounded-[12px] text-sm active:scale-[0.98] transition-transform">

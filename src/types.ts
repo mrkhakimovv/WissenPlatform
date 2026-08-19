@@ -25,6 +25,7 @@ export interface Group {
   days?: string[];
   startTime?: string;
   endTime?: string;
+  schedule?: Record<string, { startTime: string; endTime: string }>;
 }
 export interface Payment {
   id: string;
@@ -77,6 +78,7 @@ export interface Exam {
   testSources?: { testId: string; name: string; count: number }[];
   isOnline?: boolean;
   examType?: string;
+  maxAttempts?: number;
   createdAt: string;
 }
 
@@ -97,6 +99,7 @@ export interface TestData {
   variantCount: number;
   testType: string;
   satType?: string;
+  maxAttempts?: number;
   questions: TestQuestion[];
   createdAt: string;
 }

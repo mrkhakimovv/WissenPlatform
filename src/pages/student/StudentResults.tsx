@@ -33,12 +33,13 @@ export default function StudentResults() {
             examTitle: examsMap.get(data.examId)?.title || "Noma'lum imtihon",
             examSubject: examsMap.get(data.examId)?.subject || '',
             examDate: examsMap.get(data.examId)?.date || '',
+            examTestId: examsMap.get(data.examId)?.testId || null,
           };
         });
 
         // sort by submittedAt descending
         const grouped = new Map();
-        resData.forEach(res => {
+        resData.forEach((res: any) => {
           if (!grouped.has(res.examId)) {
             grouped.set(res.examId, res);
           } else {
@@ -99,8 +100,18 @@ export default function StudentResults() {
                 <div className="flex justify-between items-start mb-4">
                   <div>
                     <h3 className="text-[16px] font-bold text-white mb-1">{res.examTitle}</h3>
-                    <div className="flex items-center gap-2 text-[11px] font-bold">
-                      <span className="text-[#FEC204]">{res.examSubject}</span>
+                    <div className="flex items-center gap-2 text-[11px] font-bold flex-wrap">
+                      <span className="text-[#FEC204]">
+                        {res.examTestId 
+                          ? (res.examSubject === 'Mavzulashtirilgan' ? 'Mavzulashtirilgan test' : res.examSubject)
+                          : 'Imtihon'}
+                      </span>
+                      {!res.examTestId && res.examSubject && (
+                        <>
+                          <span className="text-white/40">•</span>
+                          <span className="text-[#FEC204]">{res.examSubject}</span>
+                        </>
+                      )}
                     </div>
                   </div>
                   <div className="text-right">
@@ -111,9 +122,17 @@ export default function StudentResults() {
                   </div>
                 </div>
                 
-                <div className="flex items-center gap-2 text-[12px] text-white/40 font-medium bg-white/5 p-2 rounded-lg">
-                  <Clock size={14} className="text-white/30" />
-                  <span>Topshirildi: {dateStr}</span>
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center gap-2 text-[12px] text-white/40 font-medium bg-white/5 p-2 rounded-lg">
+                    <Clock size={14} className="text-white/30" />
+                    <span>Topshirildi: {dateStr}</span>
+                  </div>
+                  {res.attempts > 0 && (
+                    <div className="flex items-center gap-2 text-[12px] text-white/40 font-medium bg-white/5 p-2 rounded-lg">
+                      <span className="text-white/30 w-[14px] flex justify-center text-[10px]">🔄</span>
+                      <span>Eng yuqori natija ({res.attempts}-urinishda ko'rsatilgan)</span>
+                    </div>
+                  )}
                 </div>
               </motion.div>
             );

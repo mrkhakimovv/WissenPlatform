@@ -185,7 +185,7 @@ export default function AdminStudents() {
       if (!belongsToTeacher) return false;
     }
     return s.fullName?.toLowerCase().includes(search.toLowerCase()) || s.username?.toLowerCase().includes(search.toLowerCase());
-  });
+  }).sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
 
   return (
     <div className="space-y-6 flex-1 flex flex-col h-full">
@@ -209,7 +209,7 @@ export default function AdminStudents() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.2, delay: i*0.05 }}
               key={student.id} 
-              className="glass-panel p-5 flex flex-col relative group hover:border-[#FEC204]/30 transition-colors"
+              className={`glass-panel p-5 flex flex-col relative group hover:border-[#FEC204]/30 transition-colors ${(!student.groups?.length && !student.groupId) ? 'ring-2 ring-[#FEC204] shadow-[0_0_20px_rgba(254,194,4,0.1)]' : ''}`}
             >
               {/* Header: Avatar & Actions */}
               <div className="flex justify-between items-start mb-3">

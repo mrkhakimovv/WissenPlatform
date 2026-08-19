@@ -41,7 +41,7 @@ export default function AdminExams() {
     startTime: '',
     duration: '',
     location: '',
-    description: ''
+    description: '',    maxAttempts: 1
   , testSources: [] as {testId: string, name: string, count: number}[]});
 
   useEffect(() => {
@@ -73,7 +73,7 @@ export default function AdminExams() {
 
   const openAdd = () => {
     setEditingId(null);
-    setFormData({ title: '', subject: '', groupId: '', date: '', startTime: '', duration: '', location: '', description: '', testSources: [] });
+    setFormData({ title: '', subject: '', groupId: '', date: '', startTime: '', duration: '', location: '', description: '', testSources: [], maxAttempts: 1 });
     setIsModalOpen(true);
   };
 
@@ -87,7 +87,7 @@ export default function AdminExams() {
       startTime: exam.startTime,
       duration: exam.duration.toString(),
       location: exam.location,
-      description: exam.description || '', testSources: exam.testSources || []});
+      description: exam.description || '', testSources: exam.testSources || [], maxAttempts: exam.maxAttempts || 1});
     setIsModalOpen(true);
   };
 
@@ -206,10 +206,7 @@ export default function AdminExams() {
                   <Clock size={14} className="text-white/40" />
                   <span>{exam.startTime} (Davomiyligi: {exam.duration} daqiqa)</span>
                 </div>
-                <div className="flex items-center gap-2 text-sm text-white/70">
-                  <MapPin size={14} className="text-white/40" />
-                  <span>{exam.location}</span>
-                </div>
+                
               </div>
               
               {exam.description && (
@@ -256,12 +253,12 @@ export default function AdminExams() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[10px] uppercase font-bold text-white/40 ml-1 mb-1 block">Davomiyligi (daqiqa)</label>
+                  <label className="text-[10px] uppercase font-bold text-white/40 ml-1 mb-1 block">Daqiqa</label>
                   <input required type="number" placeholder="90" value={formData.duration} onChange={e=>setFormData({...formData, duration: e.target.value})} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm placeholder-white/30" />
                 </div>
                 <div>
-                  <label className="text-[10px] uppercase font-bold text-white/40 ml-1 mb-1 block">Manzil</label>
-                  <input required placeholder="1-xona" value={formData.location} onChange={e=>setFormData({...formData, location: e.target.value})} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm placeholder-white/30" />
+                  <label className="text-[10px] uppercase font-bold text-white/40 ml-1 mb-1 block">Urinishlar</label>
+                  <input required type="number" min="1" max="100" value={formData.maxAttempts || 1} onChange={e=>setFormData({...formData, maxAttempts: Number(e.target.value)})} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm text-white" />
                 </div>
               </div>
 

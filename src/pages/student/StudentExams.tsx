@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import { collection, onSnapshot, query, getDocs, where } from '../../lib/firebase';
 import { db } from '../../lib/firebase';
 import { useAuth } from '../../contexts/AuthContext';
@@ -61,9 +62,12 @@ export default function StudentExams() {
   const pastExams = exams.filter(e => new Date(e.date) < new Date(now.getFullYear(), now.getMonth(), now.getDate())).reverse();
 
   const renderExamCard = (exam: Exam, isPast: boolean) => {
-    const hasAttempted = results.some(r => r.examId === exam.id);
+    const attemptsCount = results.filter(r => r.examId === exam.id).length;
+    const maxAttempts = exam.maxAttempts || 1;
+    const canAttempt = attemptsCount < maxAttempts;
+    
     const isOnlineTest = exam.isOnline || (exam.testSources && exam.testSources.length > 0) || exam.testId;
-    const showRedDot = !isPast && isOnlineTest && !hasAttempted;
+    const showRedDot = !isPast && isOnlineTest && attemptsCount === 0;
 
     return (
       <motion.div 
@@ -79,8 +83,18 @@ export default function StudentExams() {
         )}
         <div className="mb-3 pr-4">
           <h3 className="text-[16px] font-bold text-white mb-1">{exam.title}</h3>
-          <div className="flex gap-2 text-[11px] font-bold">
-            <span className="text-[#FEC204]">{exam.subject}</span>
+          <div className="flex gap-2 text-[11px] font-bold flex-wrap">
+            <span className="text-[#FEC204]">
+              {exam.testId 
+                ? (exam.subject === 'Mavzulashtirilgan' ? 'Mavzulashtirilgan test' : exam.subject)
+                : 'Imtihon'}
+            </span>
+            {!exam.testId && exam.subject && (
+              <>
+                <span className="text-white/40">•</span>
+                <span className="text-[#FEC204]">{exam.subject}</span>
+              </>
+            )}
             <span className="text-white/40">•</span>
             <span className="text-white/60">{getGroupName(exam.groupId)}</span>
           </div>
@@ -95,10 +109,13 @@ export default function StudentExams() {
             <Clock size={14} className="text-white/40" />
             <span>{exam.startTime} (Davomiyligi: {exam.duration} daqiqa)</span>
           </div>
-          <div className="flex items-center gap-2 text-sm text-white/70">
-            <MapPin size={14} className="text-white/40" />
-            <span>{exam.location}</span>
-          </div>
+          
+          {isOnlineTest && (
+            <div className="flex items-center gap-2 text-sm text-white/70">
+              <span className="text-white/40 w-[14px] flex justify-center text-[10px]">🔄</span>
+              <span>Urinishlar: {attemptsCount} / {maxAttempts}</span>
+            </div>
+          )}
         </div>
         
         {exam.description && (
@@ -107,12 +124,18 @@ export default function StudentExams() {
         
         {(isOnlineTest && !isPast) && (
           <button 
-            onClick={() => setTakingExam(exam)} 
-            className={`w-full mt-2 py-3 rounded-[12px] font-bold flex items-center justify-center gap-2 transition-colors border ${hasAttempted ? 'bg-white/5 text-white/50 border-white/10 hover:bg-white/10' : 'bg-[rgba(254,194,4,0.15)] text-[#FEC204] border-[#FEC204]/20 hover:bg-[rgba(254,194,4,0.25)]'}`}
+            onClick={() => {
+              if (canAttempt) {
+                setTakingExam(exam);
+              } else {
+                toast.error(`Siz ushbu testni ${maxAttempts} marta ishlagansiz. Boshqa urinish qolmadi.`);
+              }
+            }}
+            className={`w-full mt-2 py-3 rounded-[12px] font-bold flex items-center justify-center gap-2 transition-colors border ${!canAttempt ? 'bg-white/5 text-white/30 border-white/5 cursor-not-allowed opacity-60' : attemptsCount > 0 ? 'bg-white/5 text-white/50 border-white/10 hover:bg-white/10' : 'bg-[rgba(254,194,4,0.15)] text-[#FEC204] border-[#FEC204]/20 hover:bg-[rgba(254,194,4,0.25)]'}`}
           >
             <MapPin size={16} className="hidden" /> {/* just to align imports */}
-            {hasAttempted ? (
-              <>Qayta ishlash</>
+            {attemptsCount > 0 ? (
+              canAttempt ? <>Qayta ishlash</> : <>Urinishlar tugagan</>
             ) : (
               <><span className="text-[18px] mb-1 leading-none">▶</span> Testni boshlash</>
             )}

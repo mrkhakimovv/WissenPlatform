@@ -15,7 +15,7 @@ export default function AdminTestsDatabase() {
   const [groups, setGroups] = useState<Group[]>([]);
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
   const [assigningTest, setAssigningTest] = useState<TestData | null>(null);
-  const [assignForm, setAssignForm] = useState({ groupId: '', date: '', startTime: '', duration: '60' });
+  const [assignForm, setAssignForm] = useState({ groupId: '', date: '', startTime: '', duration: '60', maxAttempts: 1 });
 
   useEffect(() => {
     const fetchGroups = async () => {
@@ -33,7 +33,7 @@ export default function AdminTestsDatabase() {
 
   const handleAssignClick = (t: TestData) => {
     setAssigningTest(t);
-    setAssignForm({ groupId: '', date: '', startTime: '', duration: '60' });
+    setAssignForm({ groupId: '', date: '', startTime: '', duration: '60', maxAttempts: t.maxAttempts || 1 });
     setIsAssignModalOpen(true);
   };
 
@@ -56,6 +56,7 @@ export default function AdminTestsDatabase() {
         description: assigningTest.title + ' (Online)',
         testId: assigningTest.id,
         isOnline: true,
+        maxAttempts: assignForm.maxAttempts || 1,
         createdAt: new Date().toISOString()
       });
       toast.success("Online test guruhga biriktirildi!");
@@ -72,6 +73,7 @@ export default function AdminTestsDatabase() {
     questionCount: 10,
     variantCount: 4,
     testType: 'Mavzulashtirilgan',
+    maxAttempts: 1,
     questions: [],
     createdAt: ''
   });
@@ -127,6 +129,7 @@ export default function AdminTestsDatabase() {
               questionCount: 10,
               variantCount: 4,
               testType: 'Mavzulashtirilgan',
+              maxAttempts: 1,
               questions: [],
               createdAt: ''
             });
@@ -230,16 +233,30 @@ export default function AdminTestsDatabase() {
                   />
                 </div>
               </div>
-              <div>
-                <label className="block text-[12px] font-bold text-white/60 uppercase tracking-wider mb-2">Davomiyligi (daqiqa) *</label>
-                <input
-                  required
-                  type="number"
-                  min="1"
-                  value={assignForm.duration}
-                  onChange={e => setAssignForm({ ...assignForm, duration: e.target.value })}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-[14px] outline-none focus:border-[#FEC204] transition-colors"
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[12px] font-bold text-white/60 uppercase tracking-wider mb-2">Davomiyligi (daqiqa) *</label>
+                  <input
+                    required
+                    type="number"
+                    min="1"
+                    value={assignForm.duration}
+                    onChange={e => setAssignForm({ ...assignForm, duration: e.target.value })}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-[14px] outline-none focus:border-[#FEC204] transition-colors"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[12px] font-bold text-white/60 uppercase tracking-wider mb-2">Urinishlar soni *</label>
+                  <input
+                    required
+                    type="number"
+                    min="1"
+                    max="10"
+                    value={assignForm.maxAttempts || 1}
+                    onChange={e => setAssignForm({ ...assignForm, maxAttempts: Number(e.target.value) })}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-[14px] outline-none focus:border-[#FEC204] transition-colors"
+                  />
+                </div>
               </div>
               
               <div className="pt-2 flex gap-3">
@@ -290,14 +307,20 @@ export default function AdminTestsDatabase() {
                 </div>
               </div>
               
-              <div>
-                <label className="text-[10px] uppercase font-bold text-white/40 ml-1 mb-1 block">Test shakli</label>
-                <select value={testConfig.testType} onChange={e=>setTestConfig({...testConfig, testType: e.target.value})} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm text-[color:var(--theme-text-primary)] appearance-none" style={{ colorScheme: "dark" }}>
-                  <option value="Mavzulashtirilgan" className="bg-[#1a1a1a]">Mavzulashtirilgan</option>
-                  <option value="Nazorat testi" className="bg-[#1a1a1a]">Nazorat testi</option>
-                  <option value="Olimpiada" className="bg-[#1a1a1a]">Olimpiada</option>
-                  <option value="Blok test" className="bg-[#1a1a1a]">Blok test</option>
-                </select>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[10px] uppercase font-bold text-white/40 ml-1 mb-1 block">Test shakli</label>
+                  <select value={testConfig.testType} onChange={e=>setTestConfig({...testConfig, testType: e.target.value})} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm text-[color:var(--theme-text-primary)] appearance-none" style={{ colorScheme: "dark" }}>
+                    <option value="Mavzulashtirilgan" className="bg-[#1a1a1a]">Mavzulashtirilgan</option>
+                    <option value="Nazorat testi" className="bg-[#1a1a1a]">Nazorat testi</option>
+                    <option value="Olimpiada" className="bg-[#1a1a1a]">Olimpiada</option>
+                    <option value="Blok test" className="bg-[#1a1a1a]">Blok test</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-[10px] uppercase font-bold text-white/40 ml-1 mb-1 block">Urinishlar soni</label>
+                  <input required type="number" min="1" max="100" value={testConfig.maxAttempts || 1} onChange={e=>setTestConfig({...testConfig, maxAttempts: Number(e.target.value)})} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm text-white" />
+                </div>
               </div>
 
               <div className="pt-4 flex gap-3">
