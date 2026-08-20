@@ -57,9 +57,9 @@ export default function StudentExams() {
   };
 
   const now = new Date();
-  // We can separate upcoming vs past exams
-  const upcomingExams = exams.filter(e => new Date(e.date) >= new Date(now.getFullYear(), now.getMonth(), now.getDate()));
-  const pastExams = exams.filter(e => new Date(e.date) < new Date(now.getFullYear(), now.getMonth(), now.getDate())).reverse();
+  // Separate by explicit status instead of passing date
+  const upcomingExams = exams.filter(e => e.status !== 'ended');
+  const pastExams = exams.filter(e => e.status === 'ended').reverse();
 
   const renderExamCard = (exam: Exam, isPast: boolean) => {
     const attemptsCount = results.filter(r => r.examId === exam.id).length;
@@ -122,7 +122,7 @@ export default function StudentExams() {
           <p className="text-[12px] text-white/50 bg-white/5 p-3 rounded-lg mb-4">{exam.description}</p>
         )}
         
-        {(isOnlineTest && !isPast) && (
+        {isOnlineTest && (
           <button 
             onClick={() => {
               if (exam.status === 'ended') {
@@ -161,7 +161,7 @@ export default function StudentExams() {
 
       {upcomingExams.length > 0 && (
         <div className="space-y-4">
-          <h2 className="text-[13px] font-bold text-white/60 uppercase tracking-wider">Kelgusi Imtihonlar</h2>
+          <h2 className="text-[13px] font-bold text-white/60 uppercase tracking-wider">Faol Imtihonlar</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {upcomingExams.map(exam => renderExamCard(exam, false))}
           </div>
