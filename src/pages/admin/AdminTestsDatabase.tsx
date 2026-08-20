@@ -12,6 +12,7 @@ export default function AdminTestsDatabase() {
   const { user } = useAuth();
   const { confirm } = useConfirm();
   const [tests, setTests] = useState<TestData[]>([]);
+  const [filterType, setFilterType] = useState<string>('Barchasi');
   const [groups, setGroups] = useState<Group[]>([]);
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
   const [assigningTest, setAssigningTest] = useState<TestData | null>(null);
@@ -115,6 +116,9 @@ export default function AdminTestsDatabase() {
     setIsTestBuilderOpen(true);
   };
 
+  const uniqueTypes = ['Barchasi', ...Array.from(new Set(tests.map(t => t.testType || "Noma'lum").filter(Boolean)))];
+  const filteredTests = filterType === 'Barchasi' ? tests : tests.filter(t => (t.testType || "Noma'lum") === filterType);
+
   return (
     <div className="space-y-6 pb-6">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
@@ -140,8 +144,22 @@ export default function AdminTestsDatabase() {
           <span className="text-xl leading-none">+</span> Test yaratish
         </button>
       </div>
+      
+      {uniqueTypes.length > 1 && (
+        <div className="flex items-center gap-2 overflow-x-auto custom-scrollbar pb-2">
+          {uniqueTypes.map((type, idx) => (
+            <button
+              key={idx}
+              onClick={() => setFilterType(type)}
+              className={`whitespace-nowrap px-4 py-1.5 rounded-full text-xs font-bold transition-colors border ${filterType === type ? 'bg-white/10 text-white border-white/20' : 'bg-white/5 text-white/50 border-white/5 hover:bg-white/10'}`}
+            >
+              {type}
+            </button>
+          ))}
+        </div>
+      )}
 
-      {tests.length === 0 ? (
+      {filteredTests.length === 0 ? (
         <div className="glass-panel p-6 flex flex-col items-center justify-center opacity-70 border-dashed border-2 px-12 py-16">
           <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mb-4">
             <span className="text-[24px]">📁</span>
@@ -151,7 +169,7 @@ export default function AdminTestsDatabase() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {tests.map(t => (
+          {filteredTests.map(t => (
             <div key={t.id} className="glass-panel p-5 relative group border border-white/5 hover:border-white/10 transition-colors rounded-[16px]">
               <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                 <button onClick={() => handleAssignClick(t)} className="h-8 px-3 rounded-lg bg-[rgba(254,194,4,0.15)] text-[#FEC204] hover:bg-[rgba(254,194,4,0.25)] flex items-center gap-1.5 transition-colors font-bold text-xs" title="Online test olish">
