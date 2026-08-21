@@ -85,7 +85,7 @@ export default function AdminNews() {
         // Auto push notification for new news
         const notifRes = await sendAutoNotification({
           title: "Yangi e'lon: " + formData.title,
-          body: formData.content.substring(0, 100) + (formData.content.length > 100 ? '...' : ''),
+          body: formData.description.substring(0, 100) + (formData.description.length > 100 ? '...' : ''),
           link: '/student/news',
           target: 'all'
         });
