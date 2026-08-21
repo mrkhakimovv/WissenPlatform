@@ -42,7 +42,8 @@ export default function AdminExams() {
     startTime: '',
     duration: '',
     location: '',
-    description: '',    maxAttempts: 1
+    description: '',    maxAttempts: 1,
+    randomizeQuestions: false
   , testSources: [] as {testId: string, name: string, count: number}[]});
 
   useEffect(() => {
@@ -74,7 +75,8 @@ export default function AdminExams() {
 
   const openAdd = () => {
     setEditingId(null);
-    setFormData({ title: '', subject: '', groupId: '', date: '', startTime: '', duration: '', location: '', description: '', testSources: [], maxAttempts: 1 });
+    setFormData({ title: '', subject: '', groupId: '', date: '', startTime: '', duration: '', location: '', description: '', testSources: [], maxAttempts: 1,
+    randomizeQuestions: false });
     setIsModalOpen(true);
   };
 
@@ -88,7 +90,7 @@ export default function AdminExams() {
       startTime: exam.startTime,
       duration: exam.duration.toString(),
       location: exam.location,
-      description: exam.description || '', testSources: exam.testSources || [], maxAttempts: exam.maxAttempts || 1});
+      description: exam.description || '', testSources: exam.testSources || [], maxAttempts: exam.maxAttempts || 1, randomizeQuestions: exam.randomizeQuestions ?? false});
     setIsModalOpen(true);
   };
 
@@ -367,6 +369,17 @@ export default function AdminExams() {
                 }} className="w-full py-2 bg-white/5 hover:bg-white/10 rounded-lg text-xs font-bold text-white/70 transition-colors mt-2 flex justify-center items-center gap-1">
                   <span className="text-lg leading-none">+</span> Manba qo'shish
                 </button>
+
+                <div className="mt-4 flex items-center justify-between bg-[#111] p-3 rounded-lg border border-white/5">
+                  <div className="flex flex-col">
+                    <span className="text-sm font-bold text-white">Savollar va variantlar aralashsin</span>
+                    <span className="text-[10px] text-white/40">Har bir o'quvchiga savollar tasodifiy tartibda beriladi</span>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" className="sr-only peer" checked={formData.randomizeQuestions} onChange={e => setFormData({...formData, randomizeQuestions: e.target.checked})} />
+                    <div className="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#FEC204]"></div>
+                  </label>
+                </div>
               </div>
 
               <textarea placeholder="Qo'shimcha ma'lumot (ixtiyoriy)" value={formData.description} onChange={e=>setFormData({...formData, description: e.target.value})} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm placeholder-white/30 min-h-[80px] custom-scrollbar" />

@@ -4,6 +4,8 @@ import { db } from '../lib/firebase';
 import { Exam, Group, User, TestData } from '../types';
 import { X, Clock, CheckCircle2, XCircle, AlertCircle, Download } from 'lucide-react';
 import * as XLSX from 'xlsx';
+import Latex from 'react-latex-next';
+import 'katex/dist/katex.min.css';
 
 interface Props {
   exam: Exam;
@@ -22,8 +24,13 @@ export default function ExamStatsModal({ exam, groupName, onClose }: Props) {
       setLoading(true);
       try {
         // Fetch test data to know question correctness
-        if (exam.testId) {
-          const testSnap = await getDoc(doc(db, 'tests', exam.testId));
+        let testIdToFetch = exam.testId;
+        if (!testIdToFetch && exam.testSources && exam.testSources.length > 0) {
+          testIdToFetch = exam.testSources[0].testId;
+        }
+
+        if (testIdToFetch) {
+          const testSnap = await getDoc(doc(db, 'tests', testIdToFetch));
           if (testSnap.exists()) {
             setTestData(testSnap.data() as TestData);
           }
@@ -186,6 +193,52 @@ export default function ExamStatsModal({ exam, groupName, onClose }: Props) {
             </div>
           ) : (
             <>
+              {/* To'g'ri javoblar kaliti */}
+              {exam.testSources && exam.testSources.length > 0 ? (
+                <div className="bg-white/5 border border-[#FEC204]/30 rounded-xl p-4">
+                  <h3 className="text-[13px] font-bold text-[#FEC204] uppercase tracking-[1px] mb-1">
+                    Blok test
+                  </h3>
+                  <p className="text-white/60 text-sm">
+                    Bu imtihon turli testlardan yig'ilgan (aralash). Har bir o'quvchiga savollar tasodifiy tartibda berilgani sababli umumiy javoblar kaliti yo'q.
+                  </p>
+                </div>
+              ) : testData && testData.questions && testData.questions.length > 0 ? (
+                <div>
+                  <h3 className="text-[13px] font-bold text-white/50 uppercase tracking-[1px] mb-3">
+                    To'g'ri javoblar kaliti
+                  </h3>
+                  <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-2">
+                    {testData.questions.map((q, idx) => {
+                      let correctStr = '';
+                      if (q.isOpenEnded) {
+                        correctStr = String(q.correctAnswerText || '');
+                      } else {
+                        const labels = ['A', 'B', 'C', 'D', 'E', 'F'];
+                        const optLabel = labels[q.correctOptionIndex] || '?';
+                        const optText = q.options && q.options[q.correctOptionIndex] ? q.options[q.correctOptionIndex] : '';
+                        correctStr = `${optLabel}) ${optText}`;
+                      }
+
+                      return (
+                        <div key={idx} className="bg-white/5 border border-white/10 rounded-lg p-2 flex items-start gap-2">
+                          <span className="text-[#FEC204] text-[13px] font-bold mt-0.5">
+                            {idx + 1}.
+                          </span>
+                          <span className="text-white/80 text-[13px] font-medium leading-snug break-words overflow-x-auto no-scrollbar">
+                            <Latex>{correctStr}</Latex>
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : (
+                <div className="text-white/50 text-xs italic">
+                  (Test savollari topilmadi. Kalitni ko'rsatish imkonsiz)
+                </div>
+              )}
+
               {/* Natijalar */}
               <div>
                 <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">

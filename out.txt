@@ -1,0 +1,106 @@
+    return wrong;
+  };
+
+  const renderStudentVariant = (result: any) => {
+    if (!result.answers) return null;
+    const total = result.total || 0;
+    const labels = ['A', 'B', 'C', 'D', 'E', 'F'];
+    const parts = [];
+
+    const wrongMap = new Map();
+    if (result.wrongAnswers && Array.isArray(result.wrongAnswers)) {
+      result.wrongAnswers.forEach((w: any) => {
+        if (typeof w === 'object' && w.questionIndex) {
+          wrongMap.set(w.questionIndex - 1, w);
+        } else if (typeof w === 'number') {
+          wrongMap.set(w - 1, true);
+        }
+      });
+    }
+
+    const isBlockTest = exam.testSources && exam.testSources.length > 0;
+
+    for (let i = 0; i < total; i++) {
+      const ans = result.answers[i];
+      let display = '-';
+      if (ans !== undefined && ans !== null) {
+        if (typeof ans === 'number') {
+          display = labels[ans] || '?';
+        } else {
+          display = String(ans);
+        }
+      }
+
+      let correctDisplay = '';
+      let isCorrect = true;
+
+      let qText = '';
+      if (!isBlockTest && testData && testData.questions && testData.questions[i]) {
+         qText = testData.questions[i].text || '';
+      }
+
+      if (wrongMap.has(i)) {
+        isCorrect = false;
+        const w = wrongMap.get(i);
+        if (typeof w === 'object' && w.correctAnswer !== undefined && w.correctAnswer !== null) {
+           if (typeof w.correctAnswer === 'number') {
+             correctDisplay = labels[w.correctAnswer] || '?';
+           } else {
+             correctDisplay = String(w.correctAnswer);
+           }
+        } else if (testData && testData.questions && testData.questions[i]) {
+           const q = testData.questions[i];
+           if (q.isOpenEnded) {
+             correctDisplay = String(q.correctAnswerText || '');
+           } else {
+             correctDisplay = labels[q.correctOptionIndex] || '?';
+           }
+        } else {
+           correctDisplay = '?';
+        }
+      } else {
+        correctDisplay = display;
+      }
+
+      parts.push(
+        <div key={i} className={`flex flex-col gap-2 p-3 rounded-xl border ${isCorrect ? 'bg-green-500/5 border-green-500/10' : 'bg-red-500/5 border-red-500/10'}`}>
+          <div className="flex gap-3">
+            <span className="text-[#FEC204] text-[13px] font-bold mt-0.5">{i + 1}.</span>
+            <div className="text-white/80 text-[13px] font-medium leading-relaxed overflow-x-auto no-scrollbar">
+              {qText ? <Latex>{qText}</Latex> : <span className="italic text-white/40">Savol matni (Blok test) mavjud emas</span>}
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-4 text-[12px] pl-6 mt-1">
+            <div className="flex items-center gap-1.5">
+              <span className="text-white/40">O'quvchi javobi:</span>
+              <span className={`font-bold px-2 py-0.5 rounded border ${isCorrect ? 'text-green-400 bg-green-500/10 border-green-500/20' : 'text-red-400 bg-red-500/10 border-red-500/20'}`}>{display}</span>
+            </div>
+            {!isCorrect && (
+              <div className="flex items-center gap-1.5">
+                <span className="text-white/40">To'g'ri javob:</span>
+                <span className="text-[#FEC204] font-bold px-2 py-0.5 rounded border border-[#FEC204]/20 bg-[#FEC204]/10">{correctDisplay}</span>
+              </div>
+            )}
+            {isCorrect && (
+              <div className="flex items-center gap-1.5 text-green-500">
+                <CheckCircle2 size={16} />
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+    
+    return (
+      <div className="mt-4 flex flex-col gap-3 border-t border-white/5 pt-4">
+        <div className="text-[10px] uppercase font-bold text-white/30 tracking-[1px]">O'quvchi javoblari tafsiloti:</div>
+        <div className="flex flex-col gap-3 max-h-[400px] overflow-y-auto custom-scrollbar pr-2">
+          {parts}
+        </div>
+      </div>
+    );
+  };
+
+  const exportToExcel = () => {
+    // Topshirganlar
+    const submittedData = results.map(r => {

@@ -1,7 +1,10 @@
 import { GoogleGenAI, Type } from "@google/genai";
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-const MODEL_NAME = "gemini-2.5-flash";
+// Eng arzon barqaror model: "gemini-3.5-flash-lite".
+// Rasm (vision) kiritishни qo'llab-quvvatlaydi — vazifа baholash uchun mos.
+// ("gemini-2.5-flash" yangi foydalanuvchilar uchun o'chirilgan edi.)
+const MODEL_NAME = "gemini-3.5-flash-lite";
 
 // --- 1. Helper: Normalize Reference ---
 export function normalizeReference(taskReference: any) {

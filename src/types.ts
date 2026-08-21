@@ -79,6 +79,7 @@ export interface Exam {
   isOnline?: boolean;
   examType?: string;
   maxAttempts?: number;
+  randomizeQuestions?: boolean;
   status?: 'active' | 'ended';
   createdAt: string;
 }

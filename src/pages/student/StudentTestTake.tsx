@@ -119,44 +119,74 @@ export default function StudentTestTake({ exam, onClose }: Props) {
         return;
       }
       try {
+        const shouldRandomize = !!exam.randomizeQuestions;
+        let finalQuestions: any[] = [];
+        let maxVariantCount = 3;
+        let testType = exam.subject || 'Test';
+
         if (exam.testSources && exam.testSources.length > 0) {
-          let combinedQuestions = [];
-          let maxVariantCount = 3;
           for (const source of exam.testSources) {
             const d = await getDoc(doc(db, 'tests', source.testId));
             if (d.exists()) {
               const data = d.data();
               let qs = data.questions || [];
               if (data.variantCount > maxVariantCount) maxVariantCount = data.variantCount;
-              // shuffle and slice
-              qs = qs.sort(() => 0.5 - Math.random()).slice(0, source.count);
-              combinedQuestions = [...combinedQuestions, ...qs];
+              
+              if (shouldRandomize) {
+                qs = qs.sort(() => 0.5 - Math.random()).slice(0, source.count);
+              } else {
+                qs = qs.slice(0, source.count);
+              }
+              finalQuestions = [...finalQuestions, ...qs];
             }
           }
-          if (combinedQuestions.length === 0) {
+          if (finalQuestions.length === 0) {
             toast.error("Test savollari topilmadi");
             onClose();
             return;
           }
-          // Mix all questions
-          combinedQuestions = combinedQuestions.sort(() => 0.5 - Math.random());
-          setTestData({
-            title: exam.title,
-            questionCount: combinedQuestions.length,
-            variantCount: maxVariantCount,
-            testType: exam.subject || 'Test',
-            questions: combinedQuestions,
-            createdAt: new Date().toISOString()
-          });
+          if (shouldRandomize) {
+            finalQuestions = finalQuestions.sort(() => 0.5 - Math.random());
+          }
         } else if (exam.testId) {
           const d = await getDoc(doc(db, 'tests', exam.testId));
           if (d.exists()) {
-            setTestData({ id: d.id, ...d.data() } as TestData);
+            const data = d.data();
+            finalQuestions = data.questions || [];
+            if (data.variantCount > maxVariantCount) maxVariantCount = data.variantCount;
+            testType = data.testType || testType;
+            if (shouldRandomize) {
+               finalQuestions = finalQuestions.sort(() => 0.5 - Math.random());
+            }
           } else {
             toast.error("Test bazada yo'q");
             onClose();
+            return;
           }
         }
+
+        if (shouldRandomize) {
+          finalQuestions = finalQuestions.map(q => {
+            if (q.isOpenEnded || !q.options || q.options.length === 0) return q;
+            const optionsWithIndex = q.options.map((opt: string, i: number) => ({ text: opt, isCorrect: i === q.correctOptionIndex }));
+            optionsWithIndex.sort(() => 0.5 - Math.random());
+            return {
+              ...q,
+              options: optionsWithIndex.map(o => o.text),
+              correctOptionIndex: optionsWithIndex.findIndex(o => o.isCorrect)
+            };
+          });
+        }
+
+        setTestData({
+          title: exam.title,
+          questionCount: finalQuestions.length,
+          variantCount: maxVariantCount,
+          testType: testType,
+          questions: finalQuestions,
+          createdAt: new Date().toISOString()
+        } as TestData);
+
       } catch (err) {
         console.error(err);
         toast.error("Xatolik yuz berdi");
