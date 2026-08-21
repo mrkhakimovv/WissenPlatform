@@ -7,6 +7,7 @@ import { useConfirm } from '../../contexts/ConfirmContext';
 import toast from 'react-hot-toast';
 import AdminTestBuilder from './AdminTestBuilder';
 import { useAuth } from '../../contexts/AuthContext';
+import { sendAutoNotification } from '../../lib/notificationSender';
 
 export default function AdminTestsDatabase() {
   const { user } = useAuth();

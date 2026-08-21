@@ -5,6 +5,7 @@ import { db } from '../../lib/firebase';
 import { Plus, X, Edit2, Trash2, Megaphone } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { NewsItem } from '../../types';
+import { sendAutoNotification } from '../../lib/notificationSender';
 
 export default function AdminNews() {
   const { confirm } = useConfirm();
