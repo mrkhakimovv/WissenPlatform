@@ -62,6 +62,15 @@ export default function AdminTestsDatabase() {
       });
       toast.success("Online test guruhga biriktirildi!");
       setIsAssignModalOpen(false);
+      
+      // Send auto notification
+      await sendAutoNotification({
+        title: "Yangi test: " + assigningTest.title,
+        body: `${assigningTest.title} ishlashga tayyor!`,
+        link: '/student/exams',
+        target: 'group',
+        targetId: assignForm.groupId
+      });
     } catch (err) {
       console.error(err);
       toast.error("Xatolik yuz berdi");

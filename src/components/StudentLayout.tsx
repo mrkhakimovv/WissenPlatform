@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import StudentProfile from '../pages/student/StudentProfile';
 import { X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import NotificationCenter from './NotificationCenter';
 import { collection, onSnapshot, query, where } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 
@@ -128,8 +129,9 @@ export default function StudentLayout() {
               <h1 className="text-[#FEC204] text-[20px] font-black tracking-[-0.5px] leading-tight line-clamp-1">{user?.fullName || "O'quvchi"}</h1>
               <p className="text-white/40 text-[9px] uppercase tracking-[2px] font-bold">O'quvchi Kabineti</p>
             </div>
-            <div className="flex items-center gap-3 shrink-0 ml-2 cursor-pointer hover:opacity-80 transition-opacity" onClick={() => setIsProfileOpen(true)}>
-              <div className="w-10 h-10 rounded-2xl bg-[#FEC204] flex items-center justify-center text-[#000] font-black text-sm shadow-lg shadow-[#FEC204]/20 border border-white/20">
+            <div className="flex items-center gap-3 shrink-0 ml-2">
+              <NotificationCenter />
+              <div className="cursor-pointer hover:opacity-80 transition-opacity w-10 h-10 rounded-2xl bg-[#FEC204] flex items-center justify-center text-[#000] font-black text-sm shadow-lg shadow-[#FEC204]/20 border border-white/20" onClick={() => setIsProfileOpen(true)}>
                 {user?.fullName?.substring(0,2).toUpperCase() || 'ST'}
               </div>
             </div>
@@ -137,7 +139,8 @@ export default function StudentLayout() {
         )}
 
         {/* Desktop Top Header (Always visible on desktop) */}
-        <header className="hidden md:flex h-[80px] px-8 items-center justify-end shrink-0 relative z-20 border-b border-white/5">
+        <header className="hidden md:flex h-[80px] px-8 items-center justify-end shrink-0 relative z-20 border-b border-white/5 gap-4">
+          <NotificationCenter />
           <div className="flex items-center gap-4 cursor-pointer hover:opacity-80 transition-opacity" onClick={() => setIsProfileOpen(true)}>
             <div className="flex flex-col items-end mr-2">
               <span className="text-[14px] font-bold text-white/90 tracking-wide">{user?.fullName || "O'quvchi"}</span>

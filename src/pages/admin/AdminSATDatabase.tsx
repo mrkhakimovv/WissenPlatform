@@ -143,6 +143,14 @@ export default function AdminSATDatabase() {
       } else {
         await addDoc(collection(db, 'exams'), { ...dataToSave, createdAt: new Date().toISOString() });
         toast.success("Yaratildi");
+        
+        await sendAutoNotification({
+          title: "Yangi SAT Mock tayinlandi: " + examFormData.title,
+          body: `${examFormData.title} ishlashga tayyor!`,
+          link: '/student/sat',
+          target: 'group',
+          targetId: examFormData.groupId
+        });
       }
       setIsExamModalOpen(false);
     } catch (err) {

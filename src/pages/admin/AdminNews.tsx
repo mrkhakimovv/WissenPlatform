@@ -80,6 +80,14 @@ export default function AdminNews() {
           publishedAt: new Date().toISOString()
         });
         toast.success("Qo'shildi");
+        
+        // Auto push notification for new news
+        await sendAutoNotification({
+          title: "Yangi e'lon: " + formData.title,
+          body: formData.content.substring(0, 100) + (formData.content.length > 100 ? '...' : ''),
+          link: '/student/news',
+          target: 'all'
+        });
       }
       setIsModalOpen(false);
     } catch (err) {

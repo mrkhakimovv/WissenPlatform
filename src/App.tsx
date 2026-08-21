@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import { setupMessageListener } from './lib/messaging';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { RootLayout } from './components/RootLayout';
@@ -55,6 +56,10 @@ function DefaultRoute() {
 }
 
 export default function App() {
+  useEffect(() => {
+    setupMessageListener();
+  }, []);
+  
   return (
     <BrowserRouter>
       <AuthProvider>

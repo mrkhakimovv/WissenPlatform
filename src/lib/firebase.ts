@@ -4,7 +4,7 @@ import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, creat
 import localFirebaseConfig from '../../firebase-applet-config.json';
 
 const configAny = (localFirebaseConfig as any).default || localFirebaseConfig as any;
-const firebaseConfig = {
+export const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY || configAny.apiKey,
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || configAny.authDomain,
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || configAny.projectId,
@@ -18,7 +18,7 @@ const firestoreDatabaseId = import.meta.env.VITE_FIREBASE_DATABASE_ID || configA
 setLogLevel('silent');
 
 console.log('Final Firebase Config:', firebaseConfig);
-const app = initializeApp(firebaseConfig);
+export const app = initializeApp(firebaseConfig);
 const secondaryApp = initializeApp(firebaseConfig, 'Secondary');
 
 import { initializeFirestore } from 'firebase/firestore';

@@ -5,6 +5,8 @@ import { db, doc, getDoc } from '../../lib/firebase';
 import { CheckCircle2, BookOpen, ChevronLeft, ChevronRight, SearchX, Calendar, Clock, MapPin } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { NewsItem, ScheduleItem, Group, Exam } from '../../types';
+import { requestNotificationPermission } from '../../lib/messaging';
+import { Bell, X } from 'lucide-react';
 
 export default function StudentDashboard() {
   const { user } = useAuth();
@@ -16,6 +18,19 @@ export default function StudentDashboard() {
   const [group, setGroup] = useState<Group | null>(null);
   const [exams, setExams] = useState<Exam[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
+  const [showNotifPrompt, setShowNotifPrompt] = useState(false);
+
+  useEffect(() => {
+    if ('Notification' in window && Notification.permission === 'default') {
+      const timer = setTimeout(() => setShowNotifPrompt(true), 2500);
+      return () => clearTimeout(timer);
+    }
+  }, []);
+
+  const handleEnableNotif = async () => {
+    setShowNotifPrompt(false);
+    await requestNotificationPermission();
+  };
 
   useEffect(() => {
     if (!user) return;

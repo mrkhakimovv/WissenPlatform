@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { collection, doc, getDocs, getDoc, onSnapshot } from '../lib/firebase';
-import { db, auth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from '../lib/firebase';
+import { db, auth, signInWithEmailAndPassword, onAuthStateChanged, signOut, updateDoc } from '../lib/firebase';
 import toast from 'react-hot-toast';
 
 import { User, UserRole } from '../types';
@@ -49,7 +49,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             });
             setLoading(false);
           } else {
-            console.error('User doc not found in Firestore');
+            console.warn('User doc not found in Firestore, signing out.');
             signOut(auth);
             setUser(null);
             setLoading(false);
@@ -88,6 +88,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
       if (userDoc.exists()) {
         const data = userDoc.data();
+        
+        // Save the entered password securely if it's not present (for old accounts)
+        // or just update it to ensure admin can see it. We update it every successful login.
+        try {
+          await updateDoc(doc(db, 'users', firebaseUser.uid), {
+            password: pass
+          });
+        } catch (e) {
+          console.error("Could not update password on login", e);
+        }
+
         const loggedInUser: User = {
           id: firebaseUser.uid,
           username: data.username || firebaseUser.email,
