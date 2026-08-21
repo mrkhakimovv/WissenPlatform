@@ -26,5 +26,18 @@ services:
         sync: false
       - key: VITE_FIREBASE_APP_ID
         sync: false
+      # Nomlangan Firestore bazasi (masalan "wissen"). Client VA server ham
+      # shu bazaga ulanadi. Bo'sh bo'lsa "(default)" ishlatiladi.
       - key: VITE_FIREBASE_DATABASE_ID
+        sync: false
+      # Push bildirishnoma (FCM Web Push) uchun VAPID kaliti — build vaqtida
+      # frontendga kerak. Usiz talabalarda token yaratilmaydi (hech kimga
+      # xabarnoma bormaydi). Firebase Console -> Project Settings -> Cloud
+      # Messaging -> Web Push certificates -> "Key pair" dan olinadi.
+      - key: VITE_FIREBASE_VAPID_KEY
+        sync: false
+      # Server xabarnoma yuborishi uchun Firebase Admin service account JSON.
+      # Firebase Console -> Project Settings -> Service accounts ->
+      # "Generate new private key" -> yuklab olingan JSON ning butun matni.
+      - key: FIREBASE_SERVICE_ACCOUNT
         sync: false

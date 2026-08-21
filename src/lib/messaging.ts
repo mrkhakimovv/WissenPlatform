@@ -17,25 +17,32 @@ export async function requestNotificationPermission() {
       
       const vapidKey = import.meta.env.VITE_FIREBASE_VAPID_KEY;
       if (!vapidKey) {
-        console.warn('VITE_FIREBASE_VAPID_KEY is not defined. Push notifications may not work.');
+        // VAPID kaliti build vaqtida o'rnatilmagan — token olib bo'lmaydi.
+        // Ilgari bu jimgina null qaytarardi, shuning uchun hech kimda token yo'q edi.
+        console.error('VITE_FIREBASE_VAPID_KEY aniqlanmadi. Render (Environment) da uni o\'rnating.');
+        toast.error("Bildirishnoma sozlamasi to'liq emas (VAPID kaliti yo'q). Administratorga xabar bering.");
         return null;
       }
 
       const swReg = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
-      
-      const currentToken = await getToken(messaging, { 
+      // Service worker faollashguncha kutamiz (aks holda getToken xato berishi mumkin)
+      await navigator.serviceWorker.ready;
+
+      const currentToken = await getToken(messaging, {
         vapidKey: vapidKey,
         serviceWorkerRegistration: swReg
       });
 
       if (currentToken) {
-        // Save to user doc
+        // Foydalanuvchi hujjatiga saqlaymiz
         if (auth.currentUser) {
           await updateDoc(doc(db, 'users', auth.currentUser.uid), {
             fcmTokens: arrayUnion(currentToken)
           });
           toast.success("Bildirishnomalar yoqildi!");
           return currentToken;
+        } else {
+          toast.error("Token saqlanmadi: tizimga kirilmagan.");
         }
       } else {
         toast.error("Token olinmadi. Ruxsatlarni tekshiring.");
