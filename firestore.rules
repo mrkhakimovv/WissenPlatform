@@ -71,6 +71,10 @@ service cloud.firestore {
       allow read: if request.auth != null;
       allow write: if isAdmin();
     }
+    match /testCategories/{document=**} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
+    }
 
     match /exam_results/{document=**} {
       allow read: if request.auth != null && (isAdmin() || resource.data.studentId == request.auth.uid);

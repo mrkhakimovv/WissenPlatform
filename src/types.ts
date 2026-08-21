@@ -94,8 +94,12 @@ export interface TestQuestion {
   correctAnswerText?: string;
 }
 
+export interface TestCategory {
+  id: string;
+  name: string;
+}
+
 export interface TestData {
-  id?: string;
   title: string;
   questionCount: number;
   variantCount: number;

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { TestData, Group } from '../../types';
+import { TestData, Group, TestCategory } from '../../types';
 import { Trash2, Edit2, Copy, FileText, X } from 'lucide-react';
 import { collection, doc, deleteDoc, addDoc, onSnapshot, query, orderBy, getDocs } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
@@ -18,6 +18,9 @@ export default function AdminTestsDatabase() {
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
   const [assigningTest, setAssigningTest] = useState<TestData | null>(null);
   const [assignForm, setAssignForm] = useState({ groupId: '', date: '', startTime: '', duration: '60', maxAttempts: 1 });
+  const [categories, setCategories] = useState<TestCategory[]>([]);
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
 
   useEffect(() => {
     const fetchGroups = async () => {
@@ -112,8 +115,33 @@ export default function AdminTestsDatabase() {
     }, err => {
       console.error('Error fetching tests:', err);
     });
-    return () => unsub();
+
+    const unsubCats = onSnapshot(collection(db, 'testCategories'), snap => {
+      const cats: TestCategory[] = [];
+      snap.docs.forEach(d => {
+        cats.push({ id: d.id, ...d.data() } as TestCategory);
+      });
+      setCategories(cats);
+    }, err => {
+      console.error('Error fetching testCategories:', err);
+    });
+
+    return () => { unsub(); unsubCats(); };
   }, []);
+
+  const handleAddCategory = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newCategoryName.trim()) return;
+    try {
+      await addDoc(collection(db, 'testCategories'), { name: newCategoryName.trim() });
+      toast.success("Kategoriya qo'shildi");
+      setNewCategoryName('');
+      setIsCategoryModalOpen(false);
+    } catch (err) {
+      console.error(err);
+      toast.error("Kategoriya qo'shishda xatolik");
+    }
+  };
 
   const handleDelete = async (id: string) => {
     if (await confirm({ title: 'Diqqat', message: "Testni o'chirishni tasdiqlaysizmi?" })) {
@@ -132,7 +160,12 @@ export default function AdminTestsDatabase() {
     setIsTestBuilderOpen(true);
   };
 
-  const uniqueTypes = ['Barchasi', ...Array.from(new Set(tests.map(t => t.testType || "Noma'lum").filter(Boolean)))];
+  const dynamicTypes = Array.from(new Set([
+    ...categories.map(c => c.name),
+    ...tests.map(t => t.testType || "Noma'lum").filter(Boolean)
+  ]));
+  
+  const uniqueTypes = ['Barchasi', ...dynamicTypes];
   const filteredTests = filterType === 'Barchasi' ? tests : tests.filter(t => (t.testType || "Noma'lum") === filterType);
 
   return (
@@ -142,23 +175,31 @@ export default function AdminTestsDatabase() {
           <h1 className="text-[24px] font-black tracking-tight text-white mb-1">Testlar bazasi</h1>
           <p className="text-[12px] font-bold text-white/40 uppercase tracking-widest">Barcha yaratilgan testlar to'plami ({tests.length})</p>
         </div>
-        <button 
-          onClick={() => {
-            setTestConfig({
-              title: '',
-              questionCount: 10,
-              variantCount: 4,
-              testType: 'Mavzulashtirilgan',
-              maxAttempts: 1,
-              questions: [],
-              createdAt: ''
-            });
-            setIsTestConfigOpen(true);
-          }}
-          className="bg-[#FEC204] text-black px-6 py-2.5 rounded-[12px] font-bold hover:bg-[#FEC204]/90 transition-colors shadow-[0_0_15px_rgba(254,194,4,0.3)] flex items-center gap-2 text-[14px]"
-        >
-          <span className="text-xl leading-none">+</span> Test yaratish
-        </button>
+        <div className="flex items-center gap-3">
+          <button 
+            onClick={() => setIsCategoryModalOpen(true)}
+            className="bg-white/10 text-white px-5 py-2.5 rounded-[12px] font-bold hover:bg-white/20 transition-colors flex items-center gap-2 text-[14px]"
+          >
+            <span className="text-xl leading-none">+</span> Kategoriya qo'shish
+          </button>
+          <button 
+            onClick={() => {
+              setTestConfig({
+                title: '',
+                questionCount: 10,
+                variantCount: 4,
+                testType: dynamicTypes.length > 0 ? dynamicTypes[0] : 'Mavzulashtirilgan',
+                maxAttempts: 1,
+                questions: [],
+                createdAt: ''
+              });
+              setIsTestConfigOpen(true);
+            }}
+            className="bg-[#FEC204] text-black px-6 py-2.5 rounded-[12px] font-bold hover:bg-[#FEC204]/90 transition-colors shadow-[0_0_15px_rgba(254,194,4,0.3)] flex items-center gap-2 text-[14px]"
+          >
+            <span className="text-xl leading-none">+</span> Test yaratish
+          </button>
+        </div>
       </div>
       
       {uniqueTypes.length > 1 && (
@@ -184,35 +225,39 @@ export default function AdminTestsDatabase() {
           <p className="text-[13px] text-white/40 text-center max-w-sm font-medium">Hozircha hech qanday test yaratilmagan.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4">
           {filteredTests.map(t => (
-            <div key={t.id} className="glass-panel p-5 relative group border border-white/5 hover:border-white/10 transition-colors rounded-[16px]">
-              <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button onClick={() => handleAssignClick(t)} className="h-8 px-3 rounded-lg bg-[rgba(254,194,4,0.15)] text-[#FEC204] hover:bg-[rgba(254,194,4,0.25)] flex items-center gap-1.5 transition-colors font-bold text-xs" title="Online test olish">
-                  <FileText size={14} />
+            <div key={t.id} className="glass-panel p-0 flex overflow-hidden border border-white/5 hover:border-[#FEC204]/50 transition-colors rounded-[16px] group cursor-pointer" onClick={() => handleEdit(t)}>
+              <div className="flex-1 p-5 border-r border-white/5">
+                <h3 className="text-white font-bold text-lg mb-3">{t.title}</h3>
+                
+                <div className="flex flex-wrap gap-4 text-xs font-bold">
+                  <div className="flex flex-col gap-1">
+                    <span className="text-white/40 uppercase text-[9px] tracking-wider">Savollar</span>
+                    <span className="text-white">{t.questions?.length || t.questionCount} ta</span>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <span className="text-white/40 uppercase text-[9px] tracking-wider">Shakli</span>
+                    <span className="text-[#FEC204]">{t.testType}</span>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <span className="text-white/40 uppercase text-[9px] tracking-wider">Sana</span>
+                    <span className="text-white">{t.createdAt ? new Date(t.createdAt).toLocaleDateString('uz-UZ') : '-'}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="w-[100px] flex flex-col justify-center items-center gap-3 p-3 bg-white/[0.02]">
+                <button onClick={(e) => { e.stopPropagation(); handleAssignClick(t); }} className="w-full py-2 rounded-lg bg-[rgba(254,194,4,0.15)] text-[#FEC204] hover:bg-[rgba(254,194,4,0.25)] flex items-center justify-center gap-1.5 transition-colors font-bold text-[10px] uppercase tracking-[1px] text-center" title="Online test olish">
                   <span>Test olish</span>
                 </button>
-                <button onClick={() => handleEdit(t)} className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center text-white/70 hover:text-white transition-colors" title="Tahrirlash">
-                  <Edit2 size={14} />
-                </button>
-                <button onClick={() => handleDelete(t.id!)} className="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center text-red-500 hover:bg-red-500/20 transition-colors" title="O'chirish">
-                  <Trash2 size={14} />
-                </button>
-              </div>
-              <h3 className="text-white font-bold text-lg pr-20 mb-3">{t.title}</h3>
-              
-              <div className="flex gap-4 text-xs font-bold">
-                <div className="flex flex-col gap-1">
-                  <span className="text-white/40 uppercase text-[9px] tracking-wider">Savollar</span>
-                  <span className="text-white">{t.questions?.length || t.questionCount} ta</span>
-                </div>
-                <div className="flex flex-col gap-1">
-                  <span className="text-white/40 uppercase text-[9px] tracking-wider">Shakli</span>
-                  <span className="text-[#FEC204]">{t.testType}</span>
-                </div>
-                <div className="flex flex-col gap-1">
-                  <span className="text-white/40 uppercase text-[9px] tracking-wider">Sana</span>
-                  <span className="text-white">{t.createdAt ? new Date(t.createdAt).toLocaleDateString('uz-UZ') : '-'}</span>
+                <div className="flex gap-2 w-full justify-center mt-1">
+                  <button onClick={(e) => { e.stopPropagation(); handleEdit(t); }} className="flex-1 h-9 rounded-lg bg-white/10 flex items-center justify-center text-white/70 hover:text-white transition-colors" title="Tahrirlash">
+                    <Edit2 size={16} />
+                  </button>
+                  <button onClick={(e) => { e.stopPropagation(); handleDelete(t.id!); }} className="flex-1 h-9 rounded-lg bg-red-500/10 flex items-center justify-center text-red-500 hover:bg-red-500/20 transition-colors" title="O'chirish">
+                    <Trash2 size={16} />
+                  </button>
                 </div>
               </div>
             </div>
@@ -344,10 +389,11 @@ export default function AdminTestsDatabase() {
               <div>
                 <label className="text-[10px] uppercase font-bold text-white/40 ml-1 mb-1 block">Test shakli</label>
                 <select value={testConfig.testType} onChange={e=>setTestConfig({...testConfig, testType: e.target.value})} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm text-[color:var(--theme-text-primary)] appearance-none" style={{ colorScheme: "dark" }}>
-                  <option value="Mavzulashtirilgan" className="bg-[#1a1a1a]">Mavzulashtirilgan</option>
-                  <option value="Nazorat testi" className="bg-[#1a1a1a]">Nazorat testi</option>
-                  <option value="Olimpiada" className="bg-[#1a1a1a]">Olimpiada</option>
-                  <option value="Blok test" className="bg-[#1a1a1a]">Blok test</option>
+                  {dynamicTypes.length > 0 ? dynamicTypes.map((type, idx) => (
+                    <option key={idx} value={type} className="bg-[#1a1a1a]">{type}</option>
+                  )) : (
+                    <option value="Mavzulashtirilgan" className="bg-[#1a1a1a]">Mavzulashtirilgan</option>
+                  )}
                 </select>
               </div>
 
@@ -371,6 +417,43 @@ export default function AdminTestsDatabase() {
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {isCategoryModalOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex flex-col items-center justify-center animate-in fade-in duration-200">
+          <div className="w-full md:w-[400px] bg-[#0d0d0d] border border-white/10 rounded-[20px] p-6 shadow-2xl">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-[18px] font-black tracking-tight text-white">Kategoriya qo'shish</h2>
+              <button onClick={() => setIsCategoryModalOpen(false)} className="p-2 bg-white/5 rounded-full text-white/40 hover:bg-white/10 hover:text-white transition-colors"><X size={16} /></button>
+            </div>
+            
+            <form onSubmit={handleAddCategory} className="space-y-4">
+              <div>
+                <label className="text-[10px] uppercase font-bold text-white/40 ml-1 mb-1 block">Kategoriya nomi</label>
+                <input 
+                  required 
+                  type="text"
+                  placeholder="Masalan: Olimpiada" 
+                  value={newCategoryName} 
+                  onChange={e => setNewCategoryName(e.target.value)} 
+                  className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm text-white" 
+                />
+              </div>
+
+              <div className="pt-4 flex gap-3">
+                <button type="button" onClick={() => setIsCategoryModalOpen(false)} className="flex-1 py-3 px-4 rounded-xl font-bold text-white/70 hover:text-white hover:bg-white/5 transition-colors">
+                  Bekor qilish
+                </button>
+                <button 
+                  type="submit" 
+                  className="flex-1 py-3 px-4 rounded-xl font-bold bg-[#FEC204] text-black hover:bg-[#e5ae03] transition-colors shadow-[0_0_20px_rgba(254,194,4,0.3)]"
+                >
+                  Saqlash
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

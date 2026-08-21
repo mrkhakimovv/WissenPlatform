@@ -222,52 +222,57 @@ export default function AdminExams() {
           <p className="text-[13px] text-white/40 text-center max-w-sm font-medium">Rejalashtirilgan imtihonlar va test sinovlari haqida malumotlar shu yerda qo'shib boriladi.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4">
           {filteredExams.map(exam => (
-            <div key={exam.id} onClick={() => setSelectedExamForStats(exam)} className="glass-panel p-5 relative group cursor-pointer hover:border-[#FEC204]/50 transition-colors">
-                            <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+            <div key={exam.id} onClick={() => setSelectedExamForStats(exam)} className="glass-panel p-0 flex overflow-hidden cursor-pointer hover:border-[#FEC204]/50 transition-colors">
+              
+              <div className="flex-1 p-5 border-r border-white/5">
+                <div className="mb-3">
+                  <h3 className="text-[16px] font-bold text-white mb-1">{exam.title}</h3>
+                  <div className="flex flex-wrap gap-2 text-[11px] font-bold">
+                    <span className="text-[#FEC204]">{exam.subject}</span>
+                    <span className="text-white/40">•</span>
+                    <span className="text-white/60">{getGroupName(exam.groupId)}</span>
+                  </div>
+                </div>
+                
+                <div className="space-y-2 mb-4">
+                  <div className="flex items-center gap-2 text-sm text-white/70">
+                    <Calendar size={14} className="text-white/40" />
+                    <span>{new Date(exam.date).toLocaleDateString('uz-UZ')}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-white/70">
+                    <Clock size={14} className="text-white/40" />
+                    <span>{exam.startTime} (Davomiyligi: {exam.duration} daqiqa)</span>
+                  </div>
+                  
+                </div>
+                
+                {exam.description && (
+                  <p className="text-[12px] text-white/50 bg-white/5 p-3 rounded-lg">{exam.description}</p>
+                )}
+              </div>
+
+              <div className="w-[100px] flex flex-col justify-center items-center gap-3 p-3 bg-white/[0.02]">
                 {exam.status !== 'ended' && (
-                  <button onClick={(e) => { e.stopPropagation(); handleEndExam(exam); }} className="px-3 h-8 rounded-lg bg-red-500/10 flex items-center justify-center text-red-500 hover:bg-red-500/20 transition-colors text-xs font-bold">
+                  <button onClick={(e) => { e.stopPropagation(); handleEndExam(exam); }} className="w-full py-2 rounded-lg bg-red-500/10 flex items-center justify-center text-red-500 hover:bg-red-500/20 transition-colors text-[10px] font-bold uppercase tracking-[1px]">
                     Yakunlash
                   </button>
                 )}
                 {exam.status === 'ended' && (
-                  <span className="px-3 h-8 rounded-lg bg-white/5 flex items-center justify-center text-white/40 text-xs font-bold">
+                  <span className="w-full py-2 rounded-lg bg-white/5 flex items-center justify-center text-white/40 text-[10px] font-bold uppercase tracking-[1px] text-center">
                     Yakunlangan
                   </span>
                 )}
-                <button onClick={(e) => { e.stopPropagation(); openEdit(exam); }} className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center text-white/70 hover:text-white transition-colors">
-                  <Edit2 size={14} />
-                </button>
-                <button onClick={(e) => { e.stopPropagation(); handleDelete(exam.id); }} className="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center text-red-500 hover:bg-red-500/20 transition-colors">
-                  <Trash2 size={14} />
-                </button>
-              </div>
-              
-              <div className="mb-3 pr-20">
-                <h3 className="text-[16px] font-bold text-white mb-1">{exam.title}</h3>
-                <div className="flex gap-2 text-[11px] font-bold">
-                  <span className="text-[#FEC204]">{exam.subject}</span>
-                  <span className="text-white/40">•</span>
-                  <span className="text-white/60">{getGroupName(exam.groupId)}</span>
+                <div className="flex gap-2 w-full justify-center mt-1">
+                  <button onClick={(e) => { e.stopPropagation(); openEdit(exam); }} className="flex-1 h-9 rounded-lg bg-white/10 flex items-center justify-center text-white/70 hover:text-white transition-colors">
+                    <Edit2 size={16} />
+                  </button>
+                  <button onClick={(e) => { e.stopPropagation(); handleDelete(exam.id); }} className="flex-1 h-9 rounded-lg bg-red-500/10 flex items-center justify-center text-red-500 hover:bg-red-500/20 transition-colors">
+                    <Trash2 size={16} />
+                  </button>
                 </div>
               </div>
-              
-              <div className="space-y-2 mb-4">
-                <div className="flex items-center gap-2 text-sm text-white/70">
-                  <Calendar size={14} className="text-white/40" />
-                  <span>{new Date(exam.date).toLocaleDateString('uz-UZ')}</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm text-white/70">
-                  <Clock size={14} className="text-white/40" />
-                  <span>{exam.startTime} (Davomiyligi: {exam.duration} daqiqa)</span>
-                </div>
-                
-              </div>
-              
-              {exam.description && (
-                <p className="text-[12px] text-white/50 bg-white/5 p-3 rounded-lg">{exam.description}</p>
-              )}
             </div>
           ))}
         </div>
