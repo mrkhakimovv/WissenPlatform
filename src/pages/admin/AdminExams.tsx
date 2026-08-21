@@ -64,9 +64,16 @@ export default function AdminExams() {
       snap.docs.forEach(d => {
         const data = d.data();
         if (data.title) titles.add(data.title);
-        testsData.push({ id: d.id, title: data.title || 'Nomsiz test', totalCount: data.questions?.length || data.questionCount || 0, testType: data.testType });
+        testsData.push({ 
+          id: d.id, 
+          title: data.title || 'Nomsiz test', 
+          totalCount: data.questions?.length || data.questionCount || 0, 
+          testType: data.testType,
+          createdAt: data.createdAt
+        });
       });
       setExistingTests(Array.from(titles));
+      testsData.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
       setAllTests(testsData);
     }, err => {
       console.error('Error fetching tests:', err);
@@ -128,6 +135,7 @@ export default function AdminExams() {
     try {
       const dataToSave = {
         ...formData,
+        testSources: formData.testSources.filter(ts => ts.testId),
         duration: Number(formData.duration),
       };
       
@@ -412,13 +420,6 @@ export default function AdminExams() {
                           <option key={t.id} value={t.id} className="bg-[#1a1a1a]">{t.title} {t.testType === 'sat' ? '(SAT) ' : ''}({t.totalCount} ta savol)</option>
                         ))}
                       </select>
-                      <button type="button" onClick={() => {
-                          const newSources = [...formData.testSources];
-                          newSources.splice(idx, 1);
-                          setFormData({...formData, testSources: newSources});
-                      }} className="p-2 bg-red-500/10 text-red-500 hover:bg-red-500/20 rounded-lg shrink-0">
-                        <Trash2 size={14} />
-                      </button>
                     </div>
                     
                     {ts.testId && (
@@ -471,6 +472,14 @@ export default function AdminExams() {
                             <div className="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#FEC204]"></div>
                           </label>
                         </div>
+                        
+                        <button type="button" onClick={() => {
+                            const newSources = [...formData.testSources];
+                            newSources.splice(idx, 1);
+                            setFormData({...formData, testSources: newSources});
+                        }} className="w-full mt-1 p-2 bg-red-500/10 text-red-500 hover:bg-red-500/20 rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition-colors">
+                          <Trash2 size={14} /> Manbani o'chirish
+                        </button>
                       </div>
                     )}
                   </div>
