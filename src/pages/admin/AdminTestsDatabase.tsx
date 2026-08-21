@@ -64,13 +64,19 @@ export default function AdminTestsDatabase() {
       setIsAssignModalOpen(false);
       
       // Send auto notification
-      await sendAutoNotification({
+      const notifRes = await sendAutoNotification({
         title: "Yangi test: " + assigningTest.title,
         body: `${assigningTest.title} ishlashga tayyor!`,
         link: '/student/exams',
         target: 'group',
         targetId: assignForm.groupId
       });
+      
+      if (notifRes?.success && notifRes.data?.sent !== undefined) {
+        toast.success(`Xabarnoma ${notifRes.data.sent} ta kishiga yuborildi. (${notifRes.data.failed} ta xato)`);
+      } else {
+        toast.error("Xabarnoma yuborilmadi: " + (notifRes?.error || "Xatolik"));
+      }
     } catch (err) {
       console.error(err);
       toast.error("Xatolik yuz berdi");

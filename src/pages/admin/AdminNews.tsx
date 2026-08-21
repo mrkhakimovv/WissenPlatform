@@ -82,12 +82,18 @@ export default function AdminNews() {
         toast.success("Qo'shildi");
         
         // Auto push notification for new news
-        await sendAutoNotification({
+        const notifRes = await sendAutoNotification({
           title: "Yangi e'lon: " + formData.title,
           body: formData.content.substring(0, 100) + (formData.content.length > 100 ? '...' : ''),
           link: '/student/news',
           target: 'all'
         });
+        
+        if (notifRes?.success && notifRes.data?.sent !== undefined) {
+          toast.success(`Xabarnoma ${notifRes.data.sent} ta kishiga yuborildi. (${notifRes.data.failed} ta xato)`);
+        } else {
+          toast.error("Xabarnoma yuborilmadi: " + (notifRes?.error || "Xatolik"));
+        }
       }
       setIsModalOpen(false);
     } catch (err) {

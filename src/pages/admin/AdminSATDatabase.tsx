@@ -89,6 +89,20 @@ export default function AdminSATDatabase() {
       });
       toast.success("Online test guruhga biriktirildi!");
       setIsAssignModalOpen(false);
+      
+      const notifRes = await sendAutoNotification({
+        title: "Yangi SAT test: " + assigningTest.title,
+        body: `${assigningTest.title} ishlashga tayyor!`,
+        link: '/student/sat',
+        target: 'group',
+        targetId: assignForm.groupId
+      });
+      
+      if (notifRes?.success && notifRes.data?.sent !== undefined) {
+        toast.success(`Xabarnoma ${notifRes.data.sent} ta kishiga yuborildi. (${notifRes.data.failed} ta xato)`);
+      } else {
+        toast.error("Xabarnoma yuborilmadi: " + (notifRes?.error || "Xatolik"));
+      }
     } catch (err) {
       console.error(err);
       toast.error("Xatolik yuz berdi");
@@ -144,13 +158,19 @@ export default function AdminSATDatabase() {
         await addDoc(collection(db, 'exams'), { ...dataToSave, createdAt: new Date().toISOString() });
         toast.success("Yaratildi");
         
-        await sendAutoNotification({
+        const notifRes = await sendAutoNotification({
           title: "Yangi SAT Mock tayinlandi: " + examFormData.title,
           body: `${examFormData.title} ishlashga tayyor!`,
           link: '/student/sat',
           target: 'group',
           targetId: examFormData.groupId
         });
+        
+        if (notifRes?.success && notifRes.data?.sent !== undefined) {
+          toast.success(`Xabarnoma ${notifRes.data.sent} ta kishiga yuborildi. (${notifRes.data.failed} ta xato)`);
+        } else {
+          toast.error("Xabarnoma yuborilmadi: " + (notifRes?.error || "Xatolik"));
+        }
       }
       setIsExamModalOpen(false);
     } catch (err) {
