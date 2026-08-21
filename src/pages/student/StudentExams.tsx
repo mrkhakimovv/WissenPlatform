@@ -31,7 +31,15 @@ export default function StudentExams() {
       const userGroups = user?.groups?.length ? user.groups : (user?.groupId ? [user.groupId] : []);
       
       // Filter exams: either no group (all) or matches one of student's groups
-      const myExams = allExams.filter(e => e.examType !== 'sat' && (!e.groupId || userGroups.includes(e.groupId)));
+      const myExams = allExams.filter(e => {
+        if (e.examType === 'sat') return false;
+        const hasGroup = (e.groupIds && e.groupIds.length > 0) || e.groupId;
+        if (!hasGroup) return true;
+        if (e.groupIds && e.groupIds.length > 0) {
+          return e.groupIds.some(id => userGroups.includes(id));
+        }
+        return e.groupId && userGroups.includes(e.groupId);
+      });
       
       // Sort by date (closest upcoming first, past ones later or grouped differently)
       // Actually let's just sort descending or ascending by date
@@ -50,10 +58,14 @@ export default function StudentExams() {
     };
   }, [user]);
 
-  const getGroupName = (groupId?: string) => {
-    if (!groupId) return 'Barcha guruhlar uchun';
-    const g = groups.find(x => x.id === groupId);
-    return g ? g.name : 'Noma\'lum guruh';
+  const getGroupsName = (exam: Exam) => {
+    if (exam.groupIds && exam.groupIds.length > 0) {
+      return exam.groupIds.map(id => groups.find(g => g.id === id)?.name).filter(Boolean).join(', ');
+    }
+    if (exam.groupId) {
+      return groups.find(g => g.id === exam.groupId)?.name || 'Noma\'lum guruh';
+    }
+    return 'Barcha guruhlar uchun';
   };
 
   const now = new Date();
@@ -96,7 +108,7 @@ export default function StudentExams() {
               </>
             )}
             <span className="text-white/40">•</span>
-            <span className="text-white/60">{getGroupName(exam.groupId)}</span>
+            <span className="text-white/60">{getGroupsName(exam)}</span>
           </div>
         </div>
         

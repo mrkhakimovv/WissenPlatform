@@ -331,8 +331,8 @@ export default function AdminTestsDatabase() {
                     type="number"
                     min="1"
                     max="10"
-                    value={assignForm.maxAttempts || 1}
-                    onChange={e => setAssignForm({ ...assignForm, maxAttempts: Number(e.target.value) })}
+                    value={assignForm.maxAttempts || ''}
+                    onChange={e => setAssignForm({ ...assignForm, maxAttempts: e.target.value === '' ? 0 : Number(e.target.value) })}
                     className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-[14px] outline-none focus:border-[#FEC204] transition-colors"
                   />
                 </div>

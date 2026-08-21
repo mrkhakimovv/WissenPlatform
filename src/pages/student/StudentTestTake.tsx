@@ -119,7 +119,7 @@ export default function StudentTestTake({ exam, onClose }: Props) {
         return;
       }
       try {
-        const shouldRandomize = !!exam.randomizeQuestions;
+        const globalShouldRandomize = !!exam.randomizeQuestions;
         let finalQuestions: any[] = [];
         let maxVariantCount = 3;
         let testType = exam.subject || 'Test';
@@ -132,10 +132,25 @@ export default function StudentTestTake({ exam, onClose }: Props) {
               let qs = data.questions || [];
               if (data.variantCount > maxVariantCount) maxVariantCount = data.variantCount;
               
-              if (shouldRandomize) {
-                qs = qs.sort(() => 0.5 - Math.random()).slice(0, source.count);
-              } else {
-                qs = qs.slice(0, source.count);
+              const srcRandomizeQ = source.randomizeQuestions ?? globalShouldRandomize;
+              const srcRandomizeO = source.randomizeOptions ?? globalShouldRandomize;
+              
+              if (srcRandomizeQ) {
+                qs = qs.sort(() => 0.5 - Math.random());
+              }
+              qs = qs.slice(0, source.count);
+              
+              if (srcRandomizeO) {
+                 qs = qs.map((q: any) => {
+                   if (q.isOpenEnded || !q.options || q.options.length === 0) return q;
+                   const optionsWithIndex = q.options.map((opt: string, i: number) => ({ text: opt, isCorrect: i === q.correctOptionIndex }));
+                   optionsWithIndex.sort(() => 0.5 - Math.random());
+                   return {
+                     ...q,
+                     options: optionsWithIndex.map((o: any) => o.text),
+                     correctOptionIndex: optionsWithIndex.findIndex((o: any) => o.isCorrect)
+                   };
+                 });
               }
               finalQuestions = [...finalQuestions, ...qs];
             }
@@ -145,7 +160,9 @@ export default function StudentTestTake({ exam, onClose }: Props) {
             onClose();
             return;
           }
-          if (shouldRandomize) {
+          // Only randomize globally if global was set, though per-source handles their own sets.
+          // If we want to shuffle the combined set, we can rely on globalShouldRandomize:
+          if (globalShouldRandomize) {
             finalQuestions = finalQuestions.sort(() => 0.5 - Math.random());
           }
         } else if (exam.testId) {
@@ -155,27 +172,24 @@ export default function StudentTestTake({ exam, onClose }: Props) {
             finalQuestions = data.questions || [];
             if (data.variantCount > maxVariantCount) maxVariantCount = data.variantCount;
             testType = data.testType || testType;
-            if (shouldRandomize) {
+            if (globalShouldRandomize) {
                finalQuestions = finalQuestions.sort(() => 0.5 - Math.random());
+               finalQuestions = finalQuestions.map((q: any) => {
+                 if (q.isOpenEnded || !q.options || q.options.length === 0) return q;
+                 const optionsWithIndex = q.options.map((opt: string, i: number) => ({ text: opt, isCorrect: i === q.correctOptionIndex }));
+                 optionsWithIndex.sort(() => 0.5 - Math.random());
+                 return {
+                   ...q,
+                   options: optionsWithIndex.map((o: any) => o.text),
+                   correctOptionIndex: optionsWithIndex.findIndex((o: any) => o.isCorrect)
+                 };
+               });
             }
           } else {
             toast.error("Test bazada yo'q");
             onClose();
             return;
           }
-        }
-
-        if (shouldRandomize) {
-          finalQuestions = finalQuestions.map(q => {
-            if (q.isOpenEnded || !q.options || q.options.length === 0) return q;
-            const optionsWithIndex = q.options.map((opt: string, i: number) => ({ text: opt, isCorrect: i === q.correctOptionIndex }));
-            optionsWithIndex.sort(() => 0.5 - Math.random());
-            return {
-              ...q,
-              options: optionsWithIndex.map(o => o.text),
-              correctOptionIndex: optionsWithIndex.findIndex(o => o.isCorrect)
-            };
-          });
         }
 
         setTestData({

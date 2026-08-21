@@ -24,6 +24,7 @@ export default function AdminExams() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isTestConfigOpen, setIsTestConfigOpen] = useState(false);
   const [isTestBuilderOpen, setIsTestBuilderOpen] = useState(false);
+  const [isGroupDropdownOpen, setIsGroupDropdownOpen] = useState(false);
   const [testConfig, setTestConfig] = useState<TestData>({
     title: '',
     questionCount: 10,
@@ -37,14 +38,14 @@ export default function AdminExams() {
   const [formData, setFormData] = useState({
     title: '',
     subject: '',
-    groupId: '',
+    groupIds: [] as string[],
     date: '',
     startTime: '',
     duration: '',
     location: '',
     description: '',    maxAttempts: 1,
     randomizeQuestions: false
-  , testSources: [] as {testId: string, name: string, count: number}[]});
+  , testSources: [] as {testId: string, name: string, count: number, randomizeQuestions?: boolean, randomizeOptions?: boolean}[]});
 
   useEffect(() => {
     const unsubExams = onSnapshot(query(collection(db, 'exams'), orderBy('createdAt', 'desc')), snap => {
@@ -75,7 +76,7 @@ export default function AdminExams() {
 
   const openAdd = () => {
     setEditingId(null);
-    setFormData({ title: '', subject: '', groupId: '', date: '', startTime: '', duration: '', location: '', description: '', testSources: [], maxAttempts: 1,
+    setFormData({ title: '', subject: '', groupIds: [], date: '', startTime: '', duration: '', location: '', description: '', testSources: [], maxAttempts: 1,
     randomizeQuestions: false });
     setIsModalOpen(true);
   };
@@ -85,7 +86,7 @@ export default function AdminExams() {
     setFormData({
       title: exam.title,
       subject: exam.subject,
-      groupId: exam.groupId || '',
+      groupIds: exam.groupIds || (exam.groupId ? [exam.groupId] : []),
       date: exam.date,
       startTime: exam.startTime,
       duration: exam.duration.toString(),
@@ -150,15 +151,33 @@ export default function AdminExams() {
     }
   };
 
-  const getGroupName = (id?: string) => {
-    if (!id) return 'Barcha uchun';
-    return groups.find(g => g.id === id)?.name || 'Noma\'lum guruh';
+  const getGroupsName = (exam: Exam) => {
+    if (exam.groupIds && exam.groupIds.length > 0) {
+      return exam.groupIds.map(id => groups.find(g => g.id === id)?.name).filter(Boolean).join(', ');
+    }
+    if (exam.groupId) {
+      return groups.find(g => g.id === exam.groupId)?.name || 'Noma\'lum guruh';
+    }
+    return 'Barcha uchun';
   };
 
   const teacherGroups = groups.filter(g => user?.role !== 'teacher' || g.teacherName === user?.fullName);
-  let filteredExams = exams.filter(ex => user?.role !== 'teacher' || !ex.groupId || teacherGroups.some(g => g.id === ex.groupId));
+  let filteredExams = exams.filter(ex => {
+    if (user?.role !== 'teacher') return true;
+    const hasGroup = (ex.groupIds && ex.groupIds.length > 0) || ex.groupId;
+    if (!hasGroup) return true;
+    if (ex.groupIds && ex.groupIds.length > 0) {
+      return ex.groupIds.some(id => teacherGroups.some(g => g.id === id));
+    }
+    return teacherGroups.some(g => g.id === ex.groupId);
+  });
   if (selectedGroupId !== 'all') {
-    filteredExams = filteredExams.filter(ex => selectedGroupId === 'global' ? !ex.groupId : ex.groupId === selectedGroupId);
+    filteredExams = filteredExams.filter(ex => {
+      if (selectedGroupId === 'global') {
+        return (!ex.groupIds || ex.groupIds.length === 0) && !ex.groupId;
+      }
+      return (ex.groupIds && ex.groupIds.includes(selectedGroupId)) || ex.groupId === selectedGroupId;
+    });
   }
 
   return (
@@ -232,7 +251,7 @@ export default function AdminExams() {
                   <div className="flex flex-wrap gap-2 text-[11px] font-bold">
                     <span className="text-[#FEC204]">{exam.subject}</span>
                     <span className="text-white/40">•</span>
-                    <span className="text-white/60">{getGroupName(exam.groupId)}</span>
+                    <span className="text-white/60">{getGroupsName(exam)}</span>
                   </div>
                 </div>
                 
@@ -295,10 +314,58 @@ export default function AdminExams() {
                   {subjects.map(s => <option key={s.id} value={s.name} className="bg-[#1a1a1a]">{s.name}</option>)}
                 </select>
 
-                <select value={formData.groupId} onChange={e=>setFormData({...formData, groupId: e.target.value})} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm text-[color:var(--theme-text-primary)] appearance-none" style={{ colorScheme: "dark" }}>
-                  <option value="">Barcha uchun</option>
-                  {teacherGroups.map(g => <option key={g.id} value={g.id} className="bg-[#1a1a1a]">{g.name}</option>)}
-                </select>
+                <div className="relative w-full">
+                  <div 
+                    onClick={() => setIsGroupDropdownOpen(!isGroupDropdownOpen)}
+                    className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm text-[color:var(--theme-text-primary)] cursor-pointer flex justify-between items-center"
+                  >
+                    <span className="truncate">
+                      {formData.groupIds.length === 0 
+                        ? 'Barcha uchun' 
+                        : formData.groupIds.map(id => teacherGroups.find(g => g.id === id)?.name || id).join(', ')}
+                    </span>
+                    <span className="text-white/40 text-[10px]">▼</span>
+                  </div>
+                  
+                  {isGroupDropdownOpen && (
+                    <div className="absolute z-50 top-full left-0 right-0 mt-1 max-h-48 overflow-y-auto bg-[#1a1a1a] border border-white/10 rounded-xl shadow-xl custom-scrollbar py-1">
+                      <div 
+                        onClick={() => { setFormData({ ...formData, groupIds: [] }); setIsGroupDropdownOpen(false); }}
+                        className={`px-4 py-2 hover:bg-white/5 cursor-pointer text-sm flex items-center gap-2 ${formData.groupIds.length === 0 ? 'text-[#FEC204]' : 'text-white'}`}
+                      >
+                        <div className={`w-4 h-4 rounded border flex items-center justify-center ${formData.groupIds.length === 0 ? 'border-[#FEC204] bg-[#FEC204]/20' : 'border-white/20'}`}>
+                          {formData.groupIds.length === 0 && <span className="w-2 h-2 rounded-sm bg-[#FEC204]"></span>}
+                        </div>
+                        Barcha uchun
+                      </div>
+                      
+                      {teacherGroups.map(g => {
+                        const isSelected = formData.groupIds.includes(g.id);
+                        return (
+                          <div 
+                            key={g.id}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              let newGroupIds = [...formData.groupIds];
+                              if (isSelected) {
+                                newGroupIds = newGroupIds.filter(id => id !== g.id);
+                              } else {
+                                newGroupIds.push(g.id);
+                              }
+                              setFormData({ ...formData, groupIds: newGroupIds });
+                            }}
+                            className="px-4 py-2 hover:bg-white/5 cursor-pointer text-sm flex items-center gap-2 text-white"
+                          >
+                            <div className={`w-4 h-4 rounded border flex items-center justify-center ${isSelected ? 'border-[#FEC204] bg-[#FEC204]/20' : 'border-white/20'}`}>
+                              {isSelected && <span className="w-2 h-2 rounded-sm bg-[#FEC204]"></span>}
+                            </div>
+                            {g.name}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
@@ -319,7 +386,7 @@ export default function AdminExams() {
                 </div>
                 <div>
                   <label className="text-[10px] uppercase font-bold text-white/40 ml-1 mb-1 block">Urinishlar</label>
-                  <input required type="number" min="1" max="100" value={formData.maxAttempts || 1} onChange={e=>setFormData({...formData, maxAttempts: Number(e.target.value)})} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm text-white" />
+                  <input required type="number" min="1" max="100" value={formData.maxAttempts || ''} onChange={e=>setFormData({...formData, maxAttempts: e.target.value === '' ? 0 : Number(e.target.value)})} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm text-white" />
                 </div>
               </div>
 
@@ -328,63 +395,96 @@ export default function AdminExams() {
                 <label className="text-[12px] font-bold text-[#FEC204] mb-3 block">Test manbalarini sozlash</label>
                 
                 {formData.testSources.map((ts, idx) => (
-                  <div key={idx} className="flex gap-2 mb-2 items-center">
-                    <select 
-                      value={ts.testId} 
-                      onChange={(e) => {
-                        const newSources = [...formData.testSources];
-                        newSources[idx].testId = e.target.value;
-                        newSources[idx].name = allTests.find(t => t.id === e.target.value)?.title || '';
-                        setFormData({...formData, testSources: newSources});
-                      }}
-                      className="flex-1 glass-panel p-2 outline-none focus:border-[#FEC204]/50 text-xs text-white appearance-none" style={{ colorScheme: "dark" }}
-                    >
-                      <option value="" disabled>Testni tanlang</option>
-                      {allTests.map(t => (
-                        <option key={t.id} value={t.id} className="bg-[#1a1a1a]">{t.title} {t.testType === 'sat' ? '(SAT) ' : ''}({t.totalCount} ta savol)</option>
-                      ))}
-                    </select>
-                    <input 
-                      type="number" 
-                      min="1" 
-                      placeholder="Savol soni" 
-                      value={ts.count} 
-                      onChange={(e) => {
-                        const newSources = [...formData.testSources];
-                        newSources[idx].count = parseInt(e.target.value) || 0;
-                        setFormData({...formData, testSources: newSources});
-                      }}
-                      className="w-20 glass-panel p-2 outline-none focus:border-[#FEC204]/50 text-xs text-center"
-                    />
-                    <button type="button" onClick={() => {
-                        const newSources = [...formData.testSources];
-                        newSources.splice(idx, 1);
-                        setFormData({...formData, testSources: newSources});
-                    }} className="p-2 bg-red-500/10 text-red-500 hover:bg-red-500/20 rounded-lg">
-                      <Trash2 size={14} />
-                    </button>
+                  <div key={idx} className="glass-panel p-3 mb-3 border border-white/10 relative">
+                    <div className="flex gap-2 items-center">
+                      <select 
+                        value={ts.testId} 
+                        onChange={(e) => {
+                          const newSources = [...formData.testSources];
+                          newSources[idx].testId = e.target.value;
+                          newSources[idx].name = allTests.find(t => t.id === e.target.value)?.title || '';
+                          setFormData({...formData, testSources: newSources});
+                        }}
+                        className="flex-1 bg-white/5 rounded-lg p-2 outline-none focus:border-[#FEC204]/50 border border-white/10 text-xs text-white appearance-none" style={{ colorScheme: "dark" }}
+                      >
+                        <option value="" disabled>Testni tanlang</option>
+                        {allTests.map(t => (
+                          <option key={t.id} value={t.id} className="bg-[#1a1a1a]">{t.title} {t.testType === 'sat' ? '(SAT) ' : ''}({t.totalCount} ta savol)</option>
+                        ))}
+                      </select>
+                      <button type="button" onClick={() => {
+                          const newSources = [...formData.testSources];
+                          newSources.splice(idx, 1);
+                          setFormData({...formData, testSources: newSources});
+                      }} className="p-2 bg-red-500/10 text-red-500 hover:bg-red-500/20 rounded-lg shrink-0">
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                    
+                    {ts.testId && (
+                      <div className="mt-3 space-y-3 border-t border-white/5 pt-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex flex-col">
+                            <span className="text-xs font-bold text-white">Savollar soni</span>
+                            <span className="text-[10px] text-white/40">Nechta savol olinishi</span>
+                          </div>
+                          <input 
+                            type="number" 
+                            min="1" 
+                            placeholder="Soni" 
+                            value={ts.count || ''} 
+                            onChange={(e) => {
+                              const newSources = [...formData.testSources];
+                              newSources[idx].count = e.target.value === '' ? 0 : parseInt(e.target.value);
+                              setFormData({...formData, testSources: newSources});
+                            }}
+                            className="w-20 bg-white/5 rounded-lg p-1.5 border border-white/10 outline-none focus:border-[#FEC204]/50 text-xs text-center text-white"
+                          />
+                        </div>
+                        
+                        <div className="flex items-center justify-between">
+                          <div className="flex flex-col">
+                            <span className="text-xs font-bold text-white">Savollar aralashsin</span>
+                            <span className="text-[10px] text-white/40">O'quvchilarga savollar tasodifiy tushadi</span>
+                          </div>
+                          <label className="relative inline-flex items-center cursor-pointer scale-75">
+                            <input type="checkbox" className="sr-only peer" checked={ts.randomizeQuestions || false} onChange={(e) => {
+                               const newSources = [...formData.testSources];
+                               newSources[idx].randomizeQuestions = e.target.checked;
+                               setFormData({...formData, testSources: newSources});
+                            }} />
+                            <div className="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#FEC204]"></div>
+                          </label>
+                        </div>
+                        
+                        <div className="flex items-center justify-between">
+                          <div className="flex flex-col">
+                            <span className="text-xs font-bold text-white">Variantlar aralashsin</span>
+                            <span className="text-[10px] text-white/40">A, B, C javoblar o'rni almashadi</span>
+                          </div>
+                          <label className="relative inline-flex items-center cursor-pointer scale-75">
+                            <input type="checkbox" className="sr-only peer" checked={ts.randomizeOptions || false} onChange={(e) => {
+                               const newSources = [...formData.testSources];
+                               newSources[idx].randomizeOptions = e.target.checked;
+                               setFormData({...formData, testSources: newSources});
+                            }} />
+                            <div className="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#FEC204]"></div>
+                          </label>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ))}
                 
                 <button type="button" onClick={() => {
                   setFormData({
                     ...formData,
-                    testSources: [...formData.testSources, {testId: '', name: '', count: 10}]
+                    testSources: [...formData.testSources, {testId: '', name: '', count: 10, randomizeQuestions: false, randomizeOptions: false}]
                   });
                 }} className="w-full py-2 bg-white/5 hover:bg-white/10 rounded-lg text-xs font-bold text-white/70 transition-colors mt-2 flex justify-center items-center gap-1">
                   <span className="text-lg leading-none">+</span> Manba qo'shish
                 </button>
 
-                <div className="mt-4 flex items-center justify-between bg-[#111] p-3 rounded-lg border border-white/5">
-                  <div className="flex flex-col">
-                    <span className="text-sm font-bold text-white">Savollar va variantlar aralashsin</span>
-                    <span className="text-[10px] text-white/40">Har bir o'quvchiga savollar tasodifiy tartibda beriladi</span>
-                  </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input type="checkbox" className="sr-only peer" checked={formData.randomizeQuestions} onChange={e => setFormData({...formData, randomizeQuestions: e.target.checked})} />
-                    <div className="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#FEC204]"></div>
-                  </label>
-                </div>
               </div>
 
               <textarea placeholder="Qo'shimcha ma'lumot (ixtiyoriy)" value={formData.description} onChange={e=>setFormData({...formData, description: e.target.value})} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm placeholder-white/30 min-h-[80px] custom-scrollbar" />
@@ -471,7 +571,7 @@ export default function AdminExams() {
       {selectedExamForStats && (
         <ExamStatsModal
           exam={selectedExamForStats}
-          groupName={getGroupName(selectedExamForStats.groupId)}
+          groupName={getGroupsName(selectedExamForStats)}
           onClose={() => setSelectedExamForStats(null)}
         />
       )}

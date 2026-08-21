@@ -179,9 +179,14 @@ export default function AdminSATDatabase() {
     }
   };
 
-  const getGroupName = (gId?: string) => {
-    if (!gId) return 'Barcha uchun';
-    return groups.find(g => g.id === gId)?.name || 'Noma\'lum guruh';
+  const getGroupsName = (exam: Exam) => {
+    if (exam.groupIds && exam.groupIds.length > 0) {
+      return exam.groupIds.map(id => groups.find(g => g.id === id)?.name).filter(Boolean).join(', ');
+    }
+    if (exam.groupId) {
+      return groups.find(g => g.id === exam.groupId)?.name || 'Noma\'lum guruh';
+    }
+    return 'Barcha uchun';
   };
 
   const [isTestBuilderOpen, setIsTestBuilderOpen] = useState(false);
@@ -338,7 +343,7 @@ export default function AdminSATDatabase() {
                 <div className="flex gap-2 text-[11px] font-bold">
                   <span className="text-white">{exam.subject}</span>
                   <span className="text-white/40">•</span>
-                  <span className="text-white/60">{getGroupName(exam.groupId)}</span>
+                  <span className="text-white/60">{getGroupsName(exam)}</span>
                 </div>
               </div>
               

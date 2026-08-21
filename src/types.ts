@@ -68,14 +68,15 @@ export interface Exam {
   id: string;
   title: string;
   subject: string;
-  groupId?: string;
+  groupId?: string; // Kept for backwards compatibility
+  groupIds?: string[];
   date: string;
   startTime: string;
   duration: number;
   location: string;
   description?: string;
   testId?: string;
-  testSources?: { testId: string; name: string; count: number }[];
+  testSources?: { testId: string; name: string; count: number; randomizeQuestions?: boolean; randomizeOptions?: boolean }[];
   isOnline?: boolean;
   examType?: string;
   maxAttempts?: number;

@@ -80,7 +80,14 @@ export default function StudentDashboard() {
 
       const unsubExams = onSnapshot(query(collection(db, 'exams')), snap => {
         const allExams = snap.docs.map(d => ({ id: d.id, ...d.data() } as Exam));
-        const myExams = allExams.filter(e => !e.groupId || userGroups.includes(e.groupId));
+        const myExams = allExams.filter(e => {
+          const hasGroup = (e.groupIds && e.groupIds.length > 0) || e.groupId;
+          if (!hasGroup) return true;
+          if (e.groupIds && e.groupIds.length > 0) {
+            return e.groupIds.some(id => userGroups.includes(id));
+          }
+          return e.groupId && userGroups.includes(e.groupId);
+        });
         // Only show upcoming exams or today's
         const now = new Date();
         const upcoming = myExams.filter(e => new Date(e.date) >= new Date(now.getFullYear(), now.getMonth(), now.getDate()));
