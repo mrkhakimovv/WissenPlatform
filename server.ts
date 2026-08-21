@@ -22,6 +22,18 @@ async function startServer() {
     legacyHeaders: false,
   });
 
+  // Xabarnoma yuborish uchun alohida (kengroq) limit.
+  // AI endpointlari qimmat, shuning uchun ular 10 ta bilan cheklangan.
+  // Ammo admin yangilik/test qo'shganda har safar avtomatik xabarnoma yuboriladi —
+  // 10 ta limit tez tugab, xabarnomalar jimgina yuborilmay qolardi.
+  const notifLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 daqiqa
+    max: 100, // har IP uchun 15 daqiqada 100 ta xabarnoma so'rovi
+    message: { error: "Juda ko'p xabarnoma so'rovi. Iltimos birozdan keyin qayta urinib ko'ring." },
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
+
   // API Routes
   app.post("/api/analyze-teacher-examples", apiLimiter, async (req, res) => {
     try {
@@ -56,7 +68,7 @@ async function startServer() {
   });
 
 
-  app.post("/api/send-notification", apiLimiter, async (req, res) => {
+  app.post("/api/send-notification", notifLimiter, async (req, res) => {
     try {
       const authHeader = req.headers.authorization;
       if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -91,64 +103,85 @@ async function startServer() {
       
       const notifRef = await adminDb.collection('notifications').add(newNotif);
 
-      // Collect tokens
-      let tokens: string[] = [];
-      let query = adminDb.collection('users').where('role', '==', 'student');
-      
-      if (target === 'group' && targetId) {
-        query = query.where('groups', 'array-contains', targetId);
+      // Qabul qiluvchilarni yig'amiz (target bo'yicha), takrorlanmasligi uchun Map ishlatamiz
+      const userDocsMap = new Map<string, any>();
+
+      if (target === 'user' && targetId) {
+        // Bitta foydalanuvchi — to'g'ridan-to'g'ri hujjatni olamiz
+        const singleDoc = await adminDb.collection('users').doc(targetId).get();
+        if (singleDoc.exists) userDocsMap.set(singleDoc.id, singleDoc.data());
+      } else if (target === 'group' && targetId) {
+        // MUHIM: talaba guruhi 'groups' (massiv) YOKI 'groupId' (bitta qiymat) da
+        // saqlanishi mumkin (oddiy qo'shish formasi faqat 'groupId' ni yozadi).
+        // Faqat 'groups array-contains' bilan qidirsak — 'groupId' li talabalar
+        // xabarnomani umuman olmaydi. Shuning uchun ikkala maydonni ham tekshiramiz.
+        const [byArray, bySingle] = await Promise.all([
+          adminDb.collection('users').where('groups', 'array-contains', targetId).get(),
+          adminDb.collection('users').where('groupId', '==', targetId).get(),
+        ]);
+        byArray.forEach(d => userDocsMap.set(d.id, d.data()));
+        bySingle.forEach(d => userDocsMap.set(d.id, d.data()));
+      } else {
+        // 'all' — barcha talabalar
+        const usersSnap = await adminDb.collection('users').where('role', '==', 'student').get();
+        usersSnap.forEach(d => userDocsMap.set(d.id, d.data()));
       }
-      
-      const usersSnap = await query.get();
-      
-      const userRefsToUpdate: any[] = [];
-      
-      usersSnap.forEach(doc => {
-        if (target === 'user' && doc.id !== targetId) return;
-        
-        const data = doc.data();
-        if (data.fcmTokens && Array.isArray(data.fcmTokens)) {
-          data.fcmTokens.forEach((t: string) => tokens.push(t));
+
+      // Tokenlarni yig'amiz (takrorlanmas)
+      const tokenSet = new Set<string>();
+      userDocsMap.forEach(data => {
+        if (data?.fcmTokens && Array.isArray(data.fcmTokens)) {
+          data.fcmTokens.forEach((t: string) => { if (t) tokenSet.add(t); });
         }
       });
+      const tokens: string[] = Array.from(tokenSet);
 
       if (tokens.length === 0) {
-        return res.json({ success: true, message: "Tokenlar topilmadi, faqat bazaga saqlandi", id: notifRef.id });
+        return res.json({ success: true, message: "Tokenlar topilmadi, faqat bazaga saqlandi", id: notifRef.id, sent: 0, failed: 0 });
       }
 
-      // Send via FCM
-      const response = await adminMessaging.sendEachForMulticast({
-        tokens,
-        notification: { title, body },
-        data: { link: link || '/' },
-        webpush: {
-          fcmOptions: {
-            link: link || '/'
-          }
-        }
-      });
+      // Data-only xabar: 'notification' kaliti bo'lsa, orqa fonda brauzer uni
+      // avtomatik ko'rsatadi VA service worker ham ko'rsatadi = 2 ta dublikat.
+      // Buni oldini olish uchun faqat 'data' yuboramiz; ko'rsatishni SW bajaradi.
+      // (FCM 'data' qiymatlari faqat string bo'lishi kerak.)
+      const dataPayload = {
+        title: String(title || ''),
+        body: String(body || ''),
+        link: String(link || '/'),
+        notifId: notifRef.id,
+      };
 
-      // Cleanup invalid tokens
-      if (response.failureCount > 0) {
-        const failedTokens: string[] = [];
-        response.responses.forEach((resp, idx) => {
-          if (!resp.success) {
-            failedTokens.push(tokens[idx]);
+      // sendEachForMulticast bir chaqiruvda maksimal 500 ta token qabul qiladi.
+      // Talabalar ko'p bo'lsa 500 dan oshib xatolik bermasligi uchun bo'laklaymiz.
+      let successCount = 0;
+      let failureCount = 0;
+      const failedTokens: string[] = [];
+
+      for (let i = 0; i < tokens.length; i += 500) {
+        const batch = tokens.slice(i, i + 500);
+        const response = await adminMessaging.sendEachForMulticast({
+          tokens: batch,
+          data: dataPayload,
+          webpush: {
+            fcmOptions: { link: link || '/' }
           }
         });
-        
-        // Quick cleanup (could be optimized)
-        for (const fToken of failedTokens) {
-          const snapshot = await adminDb.collection('users').where('fcmTokens', 'array-contains', fToken).get();
-          snapshot.forEach(doc => {
-            doc.ref.update({
-              fcmTokens: FieldValue.arrayRemove(fToken)
-            });
-          });
-        }
+        successCount += response.successCount;
+        failureCount += response.failureCount;
+        response.responses.forEach((resp, idx) => {
+          if (!resp.success) failedTokens.push(batch[idx]);
+        });
       }
 
-      res.json({ success: true, sent: response.successCount, failed: response.failureCount, id: notifRef.id });
+      // Yaroqsiz (eskirgan) tokenlarni bazadan tozalaymiz
+      for (const fToken of failedTokens) {
+        const snapshot = await adminDb.collection('users').where('fcmTokens', 'array-contains', fToken).get();
+        snapshot.forEach(doc => {
+          doc.ref.update({ fcmTokens: FieldValue.arrayRemove(fToken) });
+        });
+      }
+
+      res.json({ success: true, sent: successCount, failed: failureCount, id: notifRef.id });
     } catch (error: any) {
       console.error("Xabarnoma xatosi:", error);
       res.status(500).json({ error: error.message || "Xabarnoma yuborishda xatolik yuz berdi" });

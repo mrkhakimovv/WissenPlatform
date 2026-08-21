@@ -56,21 +56,14 @@ export async function setupMessageListener() {
   
   const messaging = getMessaging(app);
   onMessage(messaging, (payload) => {
-    // Show in-app toast
-    toast.success(
-      `${payload.notification?.title}\n${payload.notification?.body}`, 
-      { duration: 5000 }
-    );
-    
-    // Show native system push notification even when app is open
-    if ('serviceWorker' in navigator && Notification.permission === 'granted') {
-      navigator.serviceWorker.ready.then((registration) => {
-        registration.showNotification(payload.notification?.title || 'Yangi xabarnoma', {
-          body: payload.notification?.body,
-          icon: payload.notification?.image || '/icon.png',
-          data: payload.data
-        });
-      });
-    }
+    // Server "data-only" xabar yuboradi — sarlavha/matnni payload.data dan olamiz.
+    const title = payload.data?.title || payload.notification?.title || 'Yangi xabarnoma';
+    const body = payload.data?.body || payload.notification?.body || '';
+
+    // Ilova ochiq (foreground) bo'lganda faqat ichki toast ko'rsatamiz.
+    // Bu yerda yana tizim bildirishnomasini ko'rsatsak, foydalanuvchi bir vaqtda
+    // ikkita xabar ko'rardi (toast + tizim). Tizim bildirishnomasi faqat orqa
+    // fonda (service worker orqali) ko'rsatiladi.
+    toast.success(`${title}\n${body}`, { duration: 5000 });
   });
 }

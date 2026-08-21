@@ -1,5 +1,5 @@
-importScripts('https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js');
-importScripts('https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/12.18.0/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/12.18.0/firebase-messaging-compat.js');
 
 firebase.initializeApp({
   apiKey: "AIzaSyCn04t32JuYeOl-xvNklbJ9vNeTK7RGrfg",
@@ -12,16 +12,36 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
+// Server "data-only" xabar yuboradi (notification kaliti yo'q), shuning uchun
+// bildirishnomani faqat shu yerda bir marta ko'rsatamiz — dublikat bo'lmaydi.
 messaging.onBackgroundMessage((payload) => {
-  self.registration.showNotification(payload.notification.title, {
-    body: payload.notification.body,
+  const data = payload.data || {};
+  const title = data.title || 'Yangi xabarnoma';
+  self.registration.showNotification(title, {
+    body: data.body || '',
     icon: '/logo-192.png',
     badge: '/logo-192.png',
-    data: { link: payload.data?.link || '/' },
+    data: { link: data.link || '/' },
   });
 });
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  event.waitUntil(clients.openWindow(event.notification.data?.link || '/'));
+  const link = (event.notification.data && event.notification.data.link) || '/';
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      // Ilova allaqachon ochiq bo'lsa — o'sha oynani fokuslaymiz va yo'naltiramiz
+      for (const client of clientList) {
+        if ('focus' in client) {
+          client.focus();
+          if ('navigate' in client && link) {
+            client.navigate(link).catch(() => {});
+          }
+          return;
+        }
+      }
+      // Aks holda yangi oyna ochamiz
+      if (clients.openWindow) return clients.openWindow(link);
+    })
+  );
 });
