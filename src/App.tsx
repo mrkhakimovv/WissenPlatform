@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { setupMessageListener } from './lib/messaging';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import NotificationWatcher from './components/NotificationWatcher';
 import { RootLayout } from './components/RootLayout';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { ConfirmProvider } from './contexts/ConfirmContext';
@@ -63,6 +64,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
+        <NotificationWatcher />
         <ConfirmProvider>
         <ErrorBoundary>
           <Routes>
