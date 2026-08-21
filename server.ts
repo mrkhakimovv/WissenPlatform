@@ -10,6 +10,12 @@ async function startServer() {
   const app = express();
   const PORT = process.env.PORT ? Number(process.env.PORT) : 3000;
 
+  // Render (va boshqa hostinglar) ilovani reverse-proxy orqasida ishlatadi.
+  // Proxy 'X-Forwarded-For' sarlavhasini qo'yadi. 'trust proxy' yoqilmasa,
+  // express-rate-limit ERR_ERL_UNEXPECTED_X_FORWARDED_FOR xatosini beradi.
+  // 1 = bitta proxy hopga ishonamiz (Render uchun to'g'ri).
+  app.set('trust proxy', 1);
+
   app.use(cors());
   app.use(express.json({ limit: '15mb' }));
   app.use(express.urlencoded({ extended: true, limit: '15mb' }));
