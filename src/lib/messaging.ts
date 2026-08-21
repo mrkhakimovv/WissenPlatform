@@ -24,9 +24,22 @@ export async function requestNotificationPermission() {
         return null;
       }
 
-      const swReg = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
-      // Service worker faollashguncha kutamiz (aks holda getToken xato berishi mumkin)
-      await navigator.serviceWorker.ready;
+      // MUHIM: FCM service worker'ni ALOHIDA scope'da ro'yxatdan o'tkazamiz.
+      // Sabab: VitePWA o'zining '/sw.js' faylini '/' scope'da ro'yxatdan o'tkazadi.
+      // Agar firebase-messaging-sw.js ni ham '/' scope'da ro'yxatga olsak, ikkalasi
+      // bir xil scope uchun kurashadi va push obunasi yo'qolib, token olinmaydi.
+      const swReg = await navigator.serviceWorker.register('/firebase-messaging-sw.js', {
+        scope: '/firebase-cloud-messaging-push-scope',
+      });
+
+      // FCM service worker to'liq faollashishini kutamiz (getToken uchun kerak)
+      await new Promise<void>((resolve) => {
+        const sw = swReg.installing || swReg.waiting || swReg.active;
+        if (!sw || sw.state === 'activated') return resolve();
+        sw.addEventListener('statechange', () => {
+          if (sw.state === 'activated') resolve();
+        });
+      });
 
       const currentToken = await getToken(messaging, {
         vapidKey: vapidKey,
