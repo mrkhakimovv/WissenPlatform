@@ -19,17 +19,28 @@ export default function StudentDashboard() {
   const [exams, setExams] = useState<Exam[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
   const [showNotifPrompt, setShowNotifPrompt] = useState(false);
+  const [notifStatus, setNotifStatus] = useState('default');
 
   useEffect(() => {
-    if ('Notification' in window && Notification.permission === 'default') {
-      const timer = setTimeout(() => setShowNotifPrompt(true), 2500);
-      return () => clearTimeout(timer);
+    if ('Notification' in window) {
+      setNotifStatus(Notification.permission);
+      if (Notification.permission !== 'granted') {
+        const timer = setTimeout(() => setShowNotifPrompt(true), 1500);
+        return () => clearTimeout(timer);
+      }
     }
   }, []);
 
   const handleEnableNotif = async () => {
-    setShowNotifPrompt(false);
-    await requestNotificationPermission();
+    if (Notification.permission === 'denied') {
+      alert("Bildirishnomalar bloklangan. Iltimos, brauzer sozlamalariga kirib (tepadagi qulfchani bosib) ruxsat bering va sahifani yangilang.");
+      return;
+    }
+    const token = await requestNotificationPermission();
+    setNotifStatus(Notification.permission);
+    if (Notification.permission === 'granted') {
+      setShowNotifPrompt(false);
+    }
   };
 
   useEffect(() => {
