@@ -120,13 +120,7 @@ export default function StudentDashboard() {
   const nextNews = () => handleManualNav((currentNewsIndex + 1) % news.length);
   const prevNews = () => handleManualNav((currentNewsIndex - 1 + news.length) % news.length);
 
-  // Mini calendar logic
   const todayDate = new Date();
-  const days = Array.from({length: 7}, (_, i) => {
-    const d = new Date(todayDate);
-    d.setDate(todayDate.getDate() - 3 + i);
-    return d;
-  });
 
   const presentCount = attendance.filter(a => a.status === 'present').length;
   const totalCount = attendance.length || 1;
@@ -229,35 +223,7 @@ export default function StudentDashboard() {
 
 
 
-      <div>
-        <h2 className="text-[13px] text-white font-bold mb-3 px-1 uppercase tracking-[1px]">Davomat</h2>
-        <div className="glass-panel p-4">
-          <div className="grid grid-cols-7 gap-2">
-            {days.map((d, i) => {
-              const dateStr = [d.getFullYear(), String(d.getMonth() + 1).padStart(2, '0'), String(d.getDate()).padStart(2, '0')].join('-');
-              const isToday = i === 3;
-              
-              const attRecord = attendance.find(a => a.date === dateStr);
-              let status = 'empty';
-              if (attRecord) {
-                 status = attRecord.status;
-              }
-              
-              let style = "bg-white/5 border-white/10 text-white/40";
-              if (status === 'present') style = "bg-[#22c55e]/10 border-[#22c55e]/30 text-[#22c55e]";
-              if (status === 'absent') style = "bg-[rgba(239,68,68,0.1)] border-[rgba(239,68,68,0.2)] text-red-500";
-              if (status === 'excused') style = "bg-[rgba(234,179,8,0.1)] border-[rgba(234,179,8,0.2)] text-yellow-500";
 
-              return (
-                <div key={i} className={`aspect-square flex flex-col items-center justify-center rounded-[10px] border font-bold text-[13px] ${style} ${isToday ? 'ring-2 ring-offset-[1px] ring-offset-[#0d0d0d] ring-[#FEC204]' : ''}`}>
-                  <span>{d.getDate()}</span>
-                  <span className="text-[8px] opacity-70 mt-0.5">{d.toLocaleDateString('uz', {weekday:'short'})}</span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </div>
 
       {exams.length > 0 && (
         <div>

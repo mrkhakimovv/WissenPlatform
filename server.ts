@@ -74,13 +74,52 @@ async function startServer() {
   });
 
 
+  // TASHXIS (debug) — bazada nechta FCM token borligini ko'rsatadi.
+  // Brauzerда https://<sayt>/api/notification-debug ni ochib tekshiring.
+  // Faqat sonlarni qaytaradi (shaxsiy ma'lumot yo'q). Sinovdan keyin o'chirsa bo'ladi.
+  app.get("/api/notification-debug", async (_req, res) => {
+    try {
+      if (!adminDb) {
+        return res.status(500).json({ error: "Firebase admin not initialized", databaseId: process.env.FIREBASE_DATABASE_ID || process.env.VITE_FIREBASE_DATABASE_ID || '(default)' });
+      }
+      const usersSnap = await adminDb.collection('users').get();
+      let totalUsers = 0, students = 0, studentsWithTokens = 0, totalTokens = 0;
+      const roleCounts: Record<string, number> = {};
+      usersSnap.forEach(doc => {
+        totalUsers++;
+        const data = doc.data();
+        const role = data.role || 'unknown';
+        roleCounts[role] = (roleCounts[role] || 0) + 1;
+        if (role === 'student') students++;
+        const toks = Array.isArray(data.fcmTokens) ? data.fcmTokens.filter(Boolean) : [];
+        if (toks.length > 0) {
+          if (role === 'student') studentsWithTokens++;
+          totalTokens += toks.length;
+        }
+      });
+      res.json({
+        databaseId: process.env.FIREBASE_DATABASE_ID || process.env.VITE_FIREBASE_DATABASE_ID || '(default)',
+        totalUsers,
+        students,
+        studentsWithTokens,
+        totalTokens,
+        roleCounts,
+        hint: studentsWithTokens === 0
+          ? "Hech bir talabada token yo'q. Talabalar ilovaga kirib bildirishnomani yoqishi kerak."
+          : "Tokenlar bor — xabarnoma yuborilishi kerak."
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message, code: error.code });
+    }
+  });
+
   app.post("/api/send-notification", notifLimiter, async (req, res) => {
     try {
       const authHeader = req.headers.authorization;
       if (!authHeader || !authHeader.startsWith('Bearer ')) {
         return res.status(401).json({ error: "Auth required" });
       }
-      
+
       const token = authHeader.split('Bearer ')[1];
       if (!adminAuth || !adminDb || !adminMessaging) {
         return res.status(500).json({ error: "Firebase admin not initialized" });
