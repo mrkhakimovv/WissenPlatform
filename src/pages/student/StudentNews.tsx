@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { collection, query, where, orderBy, onSnapshot } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
+import { useAuth } from '../../contexts/AuthContext';
 import { Megaphone, Calendar } from 'lucide-react';
 
 interface NewsItem {
@@ -13,6 +14,7 @@ interface NewsItem {
 }
 
 export default function StudentNews() {
+  const { user } = useAuth();
   const [news, setNews] = useState<NewsItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -29,12 +31,17 @@ export default function StudentNews() {
       })) as NewsItem[];
       
       // Sort by publishedAt descending (newest first)
-      // Since Firestore requires a composite index to sort by a field not in the where clause,
-      // we'll sort it client-side for simplicity.
       newsData.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
       
       setNews(newsData);
       setLoading(false);
+
+      if (user?.id && newsData.length > 0) {
+        const currentRead = JSON.parse(localStorage.getItem(`readNews_${user.id}`) || '[]');
+        const newIds = newsData.map(n => n.id);
+        const merged = Array.from(new Set([...currentRead, ...newIds]));
+        localStorage.setItem(`readNews_${user.id}`, JSON.stringify(merged));
+      }
     }, (error) => {
       console.error('Error fetching news:', error);
       setLoading(false);

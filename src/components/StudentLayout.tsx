@@ -27,6 +27,7 @@ export default function StudentLayout() {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   
   const [unattemptedExamsCount, setUnattemptedExamsCount] = useState(0);
+  const [unreadNewsCount, setUnreadNewsCount] = useState(0);
 
   useEffect(() => {
     if (!user) return;
@@ -60,9 +61,19 @@ export default function StudentLayout() {
       calculateBadge();
     });
 
+    const unsubNews = onSnapshot(query(collection(db, 'news'), where('active', '==', true)), snap => {
+      const readNewsIds = JSON.parse(localStorage.getItem(`readNews_${user.id}`) || '[]');
+      let unread = 0;
+      snap.docs.forEach(d => {
+        if (!readNewsIds.includes(d.id)) unread++;
+      });
+      setUnreadNewsCount(unread);
+    });
+
     return () => {
       unsubExams();
       unsubResults();
+      unsubNews();
     };
   }, [user]);
 
@@ -73,7 +84,7 @@ export default function StudentLayout() {
     { to: "sat", icon: <Database size={22} />, label: "SAT" },
     { to: "exams", icon: <GraduationCap size={22} />, label: "Imtihonlar", badgeCount: unattemptedExamsCount },
     { to: "results", icon: <BarChart2 size={22} />, label: "Natijalar" },
-    { to: "news", icon: <Megaphone size={22} />, label: "Yangiliklar" },
+    { to: "news", icon: <Megaphone size={22} />, label: "Yangiliklar", badgeCount: unreadNewsCount },
   ];
 
   return (
