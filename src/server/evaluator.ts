@@ -225,8 +225,8 @@ export async function evaluateHomework(images: { mimeType: string; data: string 
       const msg = error.message?.toLowerCase() || '';
       
       // Api key xato bo'lsa
-      if (msg.includes('api_key') || msg.includes('unauthenticated')) {
-        throw new Error("Gemini API kaliti xato yoki kiritilmagan.");
+      if (msg.includes('api key') || msg.includes('api_key') || msg.includes('unauthenticated')) {
+        throw new Error("Gemini API kaliti noto'g'ri yoki kiritilmagan. Iltimos, AI Studio sozlamalaridan GEMINI_API_KEY maxfiy kalitini (Secret) to'g'rilab qo'ying.");
       }
       
       // Token limit yoki JSON kesilishi
