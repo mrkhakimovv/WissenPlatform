@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { collection, onSnapshot, query, where, orderBy, getDocs } from '../../lib/firebase';
 import { db, doc, getDoc } from '../../lib/firebase';
@@ -148,7 +149,7 @@ export default function StudentDashboard() {
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5">
         {/* Attendance Card */}
-        <div className="glass-panel p-4 md:p-5 !border-l-[3px] !border-l-[#FEC204] hover:scale-[1.02] transition-transform flex flex-col justify-between">
+        <Link to="attendance" className="glass-panel p-4 md:p-5 !border-l-[3px] !border-l-[#FEC204] hover:scale-[1.02] transition-transform flex flex-col justify-between cursor-pointer">
           <div>
              <p className="text-[9px] md:text-[11px] uppercase tracking-[2px] font-bold text-white/40 mb-1">Davomat %</p>
              <p className="text-[26px] md:text-[32px] font-[900] tracking-[-1px] text-white leading-none">{attendance.length === 0 ? 0 : attendanceRate}%</p>
@@ -160,10 +161,10 @@ export default function StudentDashboard() {
                className="bg-[#22c55e] h-full" 
             />
           </div>
-        </div>
+        </Link>
 
         {/* Payment Card */}
-        <div className="glass-panel p-4 md:p-5 !border-l-[3px] !border-l-[#22c55e] flex flex-col justify-between hover:scale-[1.02] transition-transform">
+        <Link to="payments" className="glass-panel p-4 md:p-5 !border-l-[3px] !border-l-[#22c55e] flex flex-col justify-between hover:scale-[1.02] transition-transform cursor-pointer">
           <p className="text-[9px] md:text-[11px] uppercase tracking-[2px] font-bold text-white/40 mb-1">To'lov holati</p>
           <div className="flex items-center gap-2 mt-2 mb-1">
             {hasPaid ? (
@@ -176,7 +177,7 @@ export default function StudentDashboard() {
             )}
           </div>
           <p className="text-[10px] md:text-[12px] font-bold text-white/40 mt-auto">{new Date().toLocaleString('uz-UZ', {month: 'long'})} oyi uchun</p>
-        </div>
+        </Link>
 
         {/* News Carousel */}
         {news.length > 0 && currentNews && (

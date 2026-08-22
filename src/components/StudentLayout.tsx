@@ -68,8 +68,6 @@ export default function StudentLayout() {
 
   const navItems = [
     { to: ".", icon: <Home size={22} />, label: "Asosiy" },
-    { to: "payments", icon: <CreditCard size={22} />, label: "To'lov" },
-    { to: "attendance", icon: <CalendarCheck size={22} />, label: "Davomat" },
     { to: "schedule", icon: <CalendarDays size={22} />, label: "Jadval" },
     { to: "homeworks", icon: <FileText size={22} />, label: "Vazifalar" },
     { to: "sat", icon: <Database size={22} />, label: "SAT" },
