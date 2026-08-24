@@ -56,26 +56,9 @@ export const db = initializeFirestore(
   { experimentalAutoDetectLongPolling: true },
   firestoreDatabaseId,
 );
-import {
-  initializeAuth,
-  browserLocalPersistence,
-  browserSessionPersistence,
-  
-} from "firebase/auth";
-export const auth = initializeAuth(app, {
-  persistence: [
-    
-    browserLocalPersistence,
-    browserSessionPersistence,
-  ],
-});
-export const secondaryAuth = initializeAuth(secondaryApp, {
-  persistence: [
-    
-    browserLocalPersistence,
-    browserSessionPersistence,
-  ],
-});
+
+export const auth = getAuth(app);
+export const secondaryAuth = getAuth(secondaryApp);
 
 export {
   collection,
