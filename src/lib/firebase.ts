@@ -1,34 +1,98 @@
-import { initializeApp } from 'firebase/app';
-import { getFirestore, setLogLevel, collection, query, where, getDocs, doc, getDoc, setDoc, updateDoc, deleteDoc, onSnapshot, orderBy, addDoc, limit } from 'firebase/firestore';
-import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, createUserWithEmailAndPassword } from 'firebase/auth';
-import localFirebaseConfig from '../../firebase-applet-config.json';
+import { initializeApp } from "firebase/app";
+import {
+  getFirestore,
+  setLogLevel,
+  collection,
+  query,
+  where,
+  getDocs,
+  doc,
+  getDoc,
+  setDoc,
+  updateDoc,
+  deleteDoc,
+  onSnapshot,
+  orderBy,
+  addDoc,
+  limit,
+} from "firebase/firestore";
+import {
+  getAuth,
+  signInWithEmailAndPassword,
+  onAuthStateChanged,
+  signOut,
+  createUserWithEmailAndPassword,
+} from "firebase/auth";
+import localFirebaseConfig from "../../firebase-applet-config.json";
 
-const configAny = (localFirebaseConfig as any).default || localFirebaseConfig as any;
+const configAny =
+  (localFirebaseConfig as any).default || (localFirebaseConfig as any);
 export const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY || configAny.apiKey,
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || configAny.authDomain,
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || configAny.projectId,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || configAny.storageBucket,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || configAny.messagingSenderId,
+  storageBucket:
+    import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || configAny.storageBucket,
+  messagingSenderId:
+    import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID ||
+    configAny.messagingSenderId,
   appId: import.meta.env.VITE_FIREBASE_APP_ID || configAny.appId,
 };
-const firestoreDatabaseId = import.meta.env.VITE_FIREBASE_DATABASE_ID || configAny.firestoreDatabaseId || undefined;
+const firestoreDatabaseId =
+  import.meta.env.VITE_FIREBASE_DATABASE_ID ||
+  configAny.firestoreDatabaseId ||
+  undefined;
 
 // Tarmoq uzilishi ogohlantirishlarini yashirish
-setLogLevel('silent');
+setLogLevel("silent");
 
-console.log('Final Firebase Config:', firebaseConfig);
+console.log("Final Firebase Config:", firebaseConfig);
 export const app = initializeApp(firebaseConfig);
-const secondaryApp = initializeApp(firebaseConfig, 'Secondary');
+const secondaryApp = initializeApp(firebaseConfig, "Secondary");
 
-import { initializeFirestore } from 'firebase/firestore';
-export const db = initializeFirestore(app, { experimentalAutoDetectLongPolling: true }, firestoreDatabaseId);
-import { initializeAuth, browserLocalPersistence, browserSessionPersistence, indexedDBLocalPersistence } from 'firebase/auth';
+import { initializeFirestore } from "firebase/firestore";
+export const db = initializeFirestore(
+  app,
+  { experimentalAutoDetectLongPolling: true },
+  firestoreDatabaseId,
+);
+import {
+  initializeAuth,
+  browserLocalPersistence,
+  browserSessionPersistence,
+  
+} from "firebase/auth";
 export const auth = initializeAuth(app, {
-  persistence: [indexedDBLocalPersistence, browserLocalPersistence, browserSessionPersistence]
+  persistence: [
+    
+    browserLocalPersistence,
+    browserSessionPersistence,
+  ],
 });
 export const secondaryAuth = initializeAuth(secondaryApp, {
-  persistence: [indexedDBLocalPersistence, browserLocalPersistence, browserSessionPersistence]
+  persistence: [
+    
+    browserLocalPersistence,
+    browserSessionPersistence,
+  ],
 });
 
-export { collection, query, where, getDocs, doc, getDoc, setDoc, updateDoc, deleteDoc, onSnapshot, orderBy, addDoc, limit, signInWithEmailAndPassword, onAuthStateChanged, signOut, createUserWithEmailAndPassword };
+export {
+  collection,
+  query,
+  where,
+  getDocs,
+  doc,
+  getDoc,
+  setDoc,
+  updateDoc,
+  deleteDoc,
+  onSnapshot,
+  orderBy,
+  addDoc,
+  limit,
+  signInWithEmailAndPassword,
+  onAuthStateChanged,
+  signOut,
+  createUserWithEmailAndPassword,
+};

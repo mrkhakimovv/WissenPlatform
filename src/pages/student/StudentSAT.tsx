@@ -29,9 +29,12 @@ export default function StudentSAT() {
       // Filter exams: either no group (all) or matches one of student's groups
       const myExams = allExams.filter(e => e.examType === 'sat' && (!e.groupId || userGroups.includes(e.groupId)));
       
-      // Sort by date (closest upcoming first, past ones later or grouped differently)
-      // Actually let's just sort descending or ascending by date
-      myExams.sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+      // Eng oxirgi joylangan SAT testlar yuqorida turishi uchun (descending)
+      myExams.sort((a,b) => {
+        const timeA = a.createdAt ? new Date(a.createdAt).getTime() : new Date(a.date).getTime();
+        const timeB = b.createdAt ? new Date(b.createdAt).getTime() : new Date(b.date).getTime();
+        return timeB - timeA;
+      });
       
       setExams(myExams);
     });
