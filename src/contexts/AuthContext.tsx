@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useRef } from 'react';
+import { increment } from 'firebase/firestore';
 import { collection, doc, getDocs, getDoc, onSnapshot } from '../lib/firebase';
 import { db, auth, signInWithEmailAndPassword, onAuthStateChanged, signOut, updateDoc } from '../lib/firebase';
 import toast from 'react-hot-toast';
@@ -45,7 +46,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               monthlyFee: data.monthlyFee,
               joinedDate: data.joinedDate,
               phone: data.phone,
-              createdAt: data.createdAt
+              createdAt: data.createdAt,
+              lastActive: data.lastActive,
+              dailyUsage: data.dailyUsage
             });
             setLoading(false);
           } else {
@@ -56,6 +59,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         }, (err) => {
           console.error('Error fetching user:', err);
+          toast.error("Tizimga kirishda xatolik (Ruxsat yo'q). Firebase qoidalarini tekshiring.");
+          signOut(auth);
           setUser(null);
           setLoading(false);
         });
@@ -76,6 +81,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       unsubscribeAuth();
     };
   }, []);
+
+
+  useEffect(() => {
+    if (!user?.id) return;
+    
+    const updateUsage = () => {
+      const today = new Date();
+      const dateStr = [today.getFullYear(), String(today.getMonth() + 1).padStart(2, '0'), String(today.getDate()).padStart(2, '0')].join('-');
+      
+      const userRef = doc(db, 'users', user.id);
+      updateDoc(userRef, {
+        lastActive: new Date().toISOString(),
+        [`dailyUsage.${dateStr}`]: increment(1)
+      }).catch(console.error);
+    };
+
+    // Darhol yangilash (1 daqiqa kutib o'tirmaslik uchun)
+    updateUsage();
+    
+    // Keyin har 60 soniyada yangilab turish
+    const interval = setInterval(updateUsage, 60000);
+    
+    return () => clearInterval(interval);
+  }, [user?.id]);
 
   const login = async (email: string, pass: string) => {
     try {

@@ -15,6 +15,8 @@ export interface User {
   joinedDate?: string;
   createdAt: string;
   teacherId?: string;
+  lastActive?: string;
+  dailyUsage?: Record<string, number>;
 }
 export interface Group {
   id: string;

@@ -7,6 +7,7 @@ import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'motion/react';
 import { Payment, Attendance } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
 export default function AdminStudents() {
   const { user } = useAuth();
@@ -399,55 +400,37 @@ export default function AdminStudents() {
                 </div>
               </div>
 
+              
               <div className="space-y-6">
                 <div>
-                  <h4 className="text-[11px] uppercase tracking-widest font-bold text-white/40 mb-3">Davomat (Oxirgi 7 kun)</h4>
-                  <div className="glass-panel p-4 flex gap-2 justify-between">
-                    {Array.from({length: 7}).map((_, i) => {
-                      const d = new Date();
-                      d.setDate(d.getDate() - 6 + i);
-                      const dateStr = [d.getFullYear(), String(d.getMonth() + 1).padStart(2, '0'), String(d.getDate()).padStart(2, '0')].join('-');
-                      const att = studentAttendance.find(a => a.date === dateStr);
-                      const status = att?.status || 'empty';
-                      let style = "bg-white/5 border-white/10";
-                      if (status === 'present') style = "bg-[rgba(254,194,4,0.12)] border-[rgba(254,194,4,0.3)] text-[#FEC204]";
-                      if (status === 'absent') style = "bg-[rgba(239,68,68,0.1)] border-[rgba(239,68,68,0.2)] text-red-500";
-                      return (
-                        <div key={i} className={`flex-1 aspect-square rounded-[8px] border flex flex-col items-center justify-center ${style}`}>
-                           <span className="text-[10px] font-bold">{d.getDate()}</span>
-                        </div>
-                      )
-                    })}
+                  <h4 className="text-[11px] uppercase tracking-widest font-bold text-white/40 mb-3">Tizimda O'tkazgan Vaqti (Daqiqa)</h4>
+                  <div className="glass-panel p-4 h-48 flex items-center justify-center">
+                    {selectedStudent.dailyUsage ? (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={Object.entries(selectedStudent.dailyUsage || {}).slice(-7).map(([date, mins]) => ({ date: date.slice(-5).replace('-', '.'), mins }))}>
+                          <XAxis dataKey="date" stroke="#ffffff40" fontSize={10} tickLine={false} axisLine={false} />
+                          <Tooltip cursor={{fill: '#ffffff10'}} contentStyle={{backgroundColor: '#1a1a1a', border: '1px solid #333', borderRadius: '8px', color: '#fff'}} itemStyle={{color: '#FEC204'}} labelStyle={{color: '#888'}} />
+                          <Bar dataKey="mins" name="Daqiqa" fill="#FEC204" radius={[4, 4, 0, 0]} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    ) : (
+                      <p className="text-[12px] text-white/40 text-center">Ma'lumot topilmadi</p>
+                    )}
                   </div>
                 </div>
 
                 <div>
-                  <h4 className="text-[11px] uppercase tracking-widest font-bold text-white/40 mb-3">To'lovlar Tarixi</h4>
-                  <div className="glass-panel p-0 overflow-hidden">
-                    {studentPayments.length === 0 ? (
-                      <p className="text-[12px] text-white/40 p-4 text-center">To'lovlar topilmadi.</p>
-                    ) : (
-                      <div className="divide-y divide-white/5">
-                        {studentPayments.sort((a,b)=>new Date(b.paidAt).getTime()-new Date(a.paidAt).getTime()).slice(0, 5).map(pay => (
-                          <div key={pay.id} className="p-4 flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${pay.status==='paid' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
-                                <CheckCircle2 size={14} />
-                              </div>
-                              <div>
-                                <p className="text-[13px] font-bold text-white">{pay.month}/{pay.year}</p>
-                                <p className="text-[10px] text-white/40">{new Date(pay.paidAt).toLocaleDateString('uz-UZ')}</p>
-                              </div>
-                            </div>
-                            <span className="text-[14px] font-bold text-white">{pay.amount.toLocaleString()} so'm</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
+                  <h4 className="text-[11px] uppercase tracking-widest font-bold text-white/40 mb-3">Oxirgi Faollik</h4>
+                  <div className="glass-panel p-4">
+                    <p className="text-[14px] text-white">
+                      {selectedStudent.lastActive 
+                        ? new Date(selectedStudent.lastActive).toLocaleString('uz-UZ', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }) 
+                        : "Tizimga kirmagan"}
+                    </p>
                   </div>
                 </div>
               </div>
-              
+
               <div className="mt-auto pt-6 pb-4">
                 <button onClick={(e) => { setSelectedStudent(null); openEdit(e, selectedStudent); }} className="w-full glass-panel py-3 flex items-center justify-center gap-2 font-bold text-white/70 hover:text-white hover:bg-white/5 transition-colors">
                   <Edit2 size={16} /> Profildan Tahrirlash
