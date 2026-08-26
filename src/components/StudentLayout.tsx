@@ -1,6 +1,7 @@
 import { useConfirm } from '../contexts/ConfirmContext';
 import React, { useState, useEffect } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
+import { PullToRefresh } from './PullToRefresh';
 import { Database, Home, CreditCard, CalendarCheck, CalendarDays, User, LogOut, FileText, GraduationCap, BarChart2, Megaphone } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import StudentProfile from '../pages/student/StudentProfile';
@@ -162,9 +163,9 @@ export default function StudentLayout() {
         </header>
 
         {/* Main Content Scrollable */}
-        <main className={`flex-1 overflow-y-auto overscroll-y-contain scroll-smooth relative z-10 w-full max-w-7xl mx-auto p-5 md:p-8 ${isProfile ? 'md:p-8 p-0' : ''}`}>
+        <PullToRefresh className={`flex-1 overflow-y-auto overscroll-y-contain scroll-smooth relative z-10 w-full max-w-7xl mx-auto p-5 md:p-8 ${isProfile ? 'md:p-8 p-0' : ''}`}>
           <Outlet />
-        </main>
+        </PullToRefresh>
 
         {/* Mobile Bottom Nav */}
         <nav className="md:hidden w-full glass-panel rounded-t-3xl rounded-b-none border-t border-white/10 flex items-center px-2 z-30 shrink-0 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-2 overflow-x-auto gap-2 scrollbar-hide">

@@ -1,6 +1,7 @@
 import { useConfirm } from '../contexts/ConfirmContext';
 import React, { useState, useEffect } from 'react';
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
+import { PullToRefresh } from './PullToRefresh';
 import { Home, Users, CreditCard, CalendarCheck, BookOpen, Layers, LogOut, FileText, Megaphone, QrCode, X, Copy, CheckCircle2, Database } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { db, collection, query, getDocs, orderBy, where } from '../lib/firebase';
@@ -126,9 +127,9 @@ export default function AdminLayout() {
         </header>
 
         {/* Main Content Scrollable */}
-        <main className="flex-1 overflow-y-auto overscroll-y-contain p-5 md:p-8 scroll-smooth  w-full max-w-7xl mx-auto">
+        <PullToRefresh className="flex-1 overflow-y-auto overscroll-y-contain p-5 md:p-8 scroll-smooth  w-full max-w-7xl mx-auto">
           <Outlet />
-        </main>
+        </PullToRefresh>
 
         {/* Mobile Bottom Nav */}
         <nav className="md:hidden w-full glass-panel rounded-t-3xl rounded-b-none border-t border-white/10 flex items-center justify-start px-2 z-30 shrink-0 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-2 overflow-x-auto gap-2 scrollbar-hide">
