@@ -4,12 +4,13 @@ import { Phone, Mail, BookOpen, CalendarIcon, Download, Users } from 'lucide-rea
 import { useNavigate } from 'react-router-dom';
 import { usePWAInstall } from '../../hooks/usePWAInstall';
 import { requestNotificationPermission } from '../../lib/messaging';
-import { Bell } from 'lucide-react';
+import { Bell, Lock } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 import { db, doc, getDoc, collection, query, where, getDocs } from '../../lib/firebase';
 import { Group, Attendance } from '../../types';
 import { format } from 'date-fns';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
 export default function StudentProfile() {
   const { user, logout } = useAuth();
@@ -100,21 +101,24 @@ export default function StudentProfile() {
       </div>
 
       {/* Stats Row */}
-      <div className="grid grid-cols-3 gap-3">
-        <div className="glass-panel p-4 flex flex-col items-center justify-center p-3">
-          <p className="text-[16px] font-[900] text-white tracking-[-0.5px]">{attendanceRate}%</p>
-          <p className="text-[9px] uppercase tracking-[1px] font-bold text-[#a07800] mt-1">Davomat</p>
-        </div>
-        <div className="glass-panel p-4 flex flex-col items-center justify-center p-3">
-          <p className="text-[16px] font-[900] text-[color:var(--success-color)] tracking-[-0.5px] capitalize">{userStatus}</p>
-          <p className="text-[9px] uppercase tracking-[1px] font-bold text-green-700 mt-1">Holati</p>
-        </div>
-        <div className="glass-panel p-4 flex flex-col items-center justify-center p-3">
-          <p className="text-[16px] font-[900] text-white tracking-[-0.5px]">{monthsCount}</p>
-          <p className="text-[9px] uppercase tracking-[1px] font-bold text-blue-600 mt-1">Oylar soni</p>
+      <div>
+        <h2 className="text-[10px] uppercase tracking-[2px] font-bold text-white/40 mt-6 mb-2 px-2">Kunlik faollik vaqti (Daqiqa)</h2>
+        <div className="glass-panel p-4 h-48 flex items-center justify-center">
+          <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={Array.from({length: 7}).map((_, i) => {
+                const d = new Date();
+                d.setDate(d.getDate() - 6 + i);
+                const ds = [d.getFullYear(), String(d.getMonth() + 1).padStart(2, '0'), String(d.getDate()).padStart(2, '0')].join('-');
+                return { date: ds.slice(-5).replace('-', '.'), mins: user?.dailyUsage?.[ds] || 0 };
+              })}>
+                <XAxis dataKey="date" stroke="#ffffff40" fontSize={10} tickLine={false} axisLine={false} />
+                <Tooltip cursor={{fill: '#ffffff10'}} contentStyle={{backgroundColor: '#1a1a1a', border: '1px solid #333', borderRadius: '8px', color: '#fff'}} itemStyle={{color: '#FEC204'}} labelStyle={{color: '#888'}} />
+                <Bar dataKey="mins" name="Daqiqa" fill="#FEC204" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
         </div>
       </div>
-
+      
       {/* Info Sections */}
       <div>
         <h2 className="text-[10px] uppercase tracking-[2px] font-bold text-white/40 mt-6 mb-2 px-2">Shaxsiy ma'lumotlar</h2>
@@ -131,6 +135,15 @@ export default function StudentProfile() {
             <div className="flex-1">
               <p className="text-[10px] font-bold text-white/40">Login</p>
               <p className="text-[13px] font-[700] text-white">{user?.username}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 p-2 hover:bg-[color:var(--surface-color)] rounded-[10px] transition-colors">
+            <div className="w-8 h-8 rounded-[8px] bg-red-50 flex items-center justify-center text-red-500"><Lock size={16} /></div>
+            <div className="flex-1 flex items-center justify-between">
+              <div>
+                <p className="text-[10px] font-bold text-white/40">Parol</p>
+                <p className="text-[13px] font-[700] text-white">{user?.password || 'Ko\'rsatilmagan'}</p>
+              </div>
             </div>
           </div>
         </div>

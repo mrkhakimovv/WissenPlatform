@@ -17,6 +17,7 @@ export interface User {
   teacherId?: string;
   lastActive?: string;
   dailyUsage?: Record<string, number>;
+  password?: string;
 }
 export interface Group {
   id: string;
@@ -65,6 +66,8 @@ export interface NewsItem {
   color: string;      // #FEC204 kabi
   publishedAt: string;
   active: boolean;
+  likes?: string[];
+  comments?: { id: string, userId: string, userName: string, text: string, createdAt: string }[];
 }
 export interface Exam {
   id: string;

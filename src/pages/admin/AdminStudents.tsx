@@ -405,17 +405,18 @@ export default function AdminStudents() {
                 <div>
                   <h4 className="text-[11px] uppercase tracking-widest font-bold text-white/40 mb-3">Tizimda O'tkazgan Vaqti (Daqiqa)</h4>
                   <div className="glass-panel p-4 h-48 flex items-center justify-center">
-                    {selectedStudent.dailyUsage ? (
-                      <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={Object.entries(selectedStudent.dailyUsage || {}).slice(-7).map(([date, mins]) => ({ date: date.slice(-5).replace('-', '.'), mins }))}>
+                    <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={Array.from({length: 7}).map((_, i) => {
+                          const d = new Date();
+                          d.setDate(d.getDate() - 6 + i);
+                          const ds = [d.getFullYear(), String(d.getMonth() + 1).padStart(2, '0'), String(d.getDate()).padStart(2, '0')].join('-');
+                          return { date: ds.slice(-5).replace('-', '.'), mins: selectedStudent?.dailyUsage?.[ds] || 0 };
+                        })}>
                           <XAxis dataKey="date" stroke="#ffffff40" fontSize={10} tickLine={false} axisLine={false} />
                           <Tooltip cursor={{fill: '#ffffff10'}} contentStyle={{backgroundColor: '#1a1a1a', border: '1px solid #333', borderRadius: '8px', color: '#fff'}} itemStyle={{color: '#FEC204'}} labelStyle={{color: '#888'}} />
                           <Bar dataKey="mins" name="Daqiqa" fill="#FEC204" radius={[4, 4, 0, 0]} />
                         </BarChart>
                       </ResponsiveContainer>
-                    ) : (
-                      <p className="text-[12px] text-white/40 text-center">Ma'lumot topilmadi</p>
-                    )}
                   </div>
                 </div>
 
