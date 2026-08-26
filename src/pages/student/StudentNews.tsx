@@ -30,6 +30,11 @@ export default function StudentNews() {
   const [news, setNews] = useState<NewsItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [commentText, setCommentText] = useState<{ [key: string]: string }>({});
+  const [openComments, setOpenComments] = useState<{ [key: string]: boolean }>({});
+
+  const toggleComments = (id: string) => {
+    setOpenComments(prev => ({ ...prev, [id]: !prev[id] }));
+  };
 
   useEffect(() => {
     const q = query(
@@ -180,14 +185,15 @@ export default function StudentNews() {
                       />
                       <span className="text-[13px] font-bold">{likesCount}</span>
                     </button>
-                    <div className="flex items-center gap-2 text-white/60">
+                    <button onClick={() => toggleComments(item.id)} className="flex items-center gap-2 text-white/60 hover:text-white transition-colors">
                       <MessageCircle size={20} />
                       <span className="text-[13px] font-bold">{comments.length}</span>
-                    </div>
+                    </button>
                   </div>
 
                   {/* Comments Section */}
-                  <div className="bg-black/20 rounded-xl p-4">
+                  {openComments[item.id] && (
+                  <div className="bg-black/20 rounded-xl p-4 mt-4">
                     {comments.length > 0 ? (
                       <div className="space-y-4 mb-4 max-h-[250px] overflow-y-auto pr-2 custom-scrollbar">
                         {comments.map(c => (
@@ -228,7 +234,7 @@ export default function StudentNews() {
                       </button>
                     </div>
                   </div>
-
+                  )}
                 </div>
               </div>
             );
