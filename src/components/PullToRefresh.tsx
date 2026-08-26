@@ -32,13 +32,13 @@ export function PullToRefresh({ children, onRefresh, className = "" }: PullToRef
     const distance = currentY - startY;
 
     if (distance > 0) {
-      setPullDistance(Math.min(distance * 0.4, 80));
+      setPullDistance(Math.min(distance * 0.4, 120));
 
     }
   };
 
   const handleTouchEnd = async () => {
-    if (pullDistance > 60 && !refreshing) {
+    if (pullDistance > 90 && !refreshing) {
       setRefreshing(true);
       if (onRefresh) {
         await onRefresh();
@@ -63,7 +63,7 @@ export function PullToRefresh({ children, onRefresh, className = "" }: PullToRef
         className="absolute top-0 left-0 right-0 flex justify-center items-end overflow-hidden transition-all duration-200 z-50 pointer-events-none"
         style={{ 
           height: `${pullDistance}px`,
-          opacity: pullDistance / 60
+          opacity: pullDistance / 90
         }}
       >
         <div className={`bg-[#2a2a2a] p-2 mb-2 rounded-full shadow-lg border border-white/10 ${refreshing ? 'animate-spin' : ''}`}>
