@@ -1,3 +1,4 @@
+import { getStorage } from 'firebase/storage';
 import { initializeApp } from "firebase/app";
 import {
   getFirestore,
@@ -79,3 +80,5 @@ export {
   signOut,
   createUserWithEmailAndPassword,
 };
+
+export const storage = getStorage(app);

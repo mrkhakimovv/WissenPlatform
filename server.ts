@@ -8,7 +8,7 @@ import { adminAuth, adminDb, adminMessaging, FieldValue } from "./src/server/not
 
 async function startServer() {
   const app = express();
-  const PORT = process.env.PORT ? Number(process.env.PORT) : 3000;
+  const PORT = 3000;
 
   // Render (va boshqa hostinglar) ilovani reverse-proxy orqasida ishlatadi.
   // Proxy 'X-Forwarded-For' sarlavhasini qo'yadi. 'trust proxy' yoqilmasa,

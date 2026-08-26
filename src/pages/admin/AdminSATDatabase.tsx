@@ -118,13 +118,13 @@ export default function AdminSATDatabase() {
   const openExamEdit = (exam: Exam) => {
     setExamEditingId(exam.id);
     setExamFormData({
-      title: exam.title,
-      subject: exam.subject,
+      title: exam.title || '',
+      subject: exam.subject || '',
       groupId: exam.groupId || '',
-      date: exam.date,
-      startTime: exam.startTime,
-      duration: exam.duration.toString(),
-      location: exam.location,
+      date: exam.date || '',
+      startTime: exam.startTime || '',
+      duration: exam.duration?.toString() || '',
+      location: exam.location || '',
       description: exam.description || '', testSources: exam.testSources || []});
     setIsExamModalOpen(true);
   };

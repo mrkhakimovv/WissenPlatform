@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { collection, query, where, onSnapshot, doc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, doc, updateDoc, arrayUnion, arrayRemove, getDocs, writeBatch } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { useAuth } from '../../contexts/AuthContext';
-import { Megaphone, Calendar, Heart, MessageCircle, Send } from 'lucide-react';
+import { Megaphone, Calendar, Heart, MessageCircle, Send, Eye } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 interface Comment {
@@ -23,6 +23,9 @@ interface NewsItem {
   active: boolean;
   likes?: string[];
   comments?: Comment[];
+  viewedBy?: string[];
+  mediaUrl?: string;
+  mediaType?: 'image' | 'video' | '';
 }
 
 export default function StudentNews() {
@@ -35,6 +38,32 @@ export default function StudentNews() {
   const toggleComments = (id: string) => {
     setOpenComments(prev => ({ ...prev, [id]: !prev[id] }));
   };
+
+  useEffect(() => {
+    if (!user) return;
+    const markAsViewed = async () => {
+      try {
+        const q = query(collection(db, 'news'), where('active', '==', true));
+        const snapshot = await getDocs(q);
+        const batch = writeBatch(db);
+        let hasUpdates = false;
+        snapshot.docs.forEach(docSnap => {
+          const data = docSnap.data();
+          const viewedBy = data.viewedBy || [];
+          if (!viewedBy.includes(user.id)) {
+            batch.update(docSnap.ref, { viewedBy: arrayUnion(user.id) });
+            hasUpdates = true;
+          }
+        });
+        if (hasUpdates) {
+          await batch.commit();
+        }
+      } catch (e) {
+        console.error("Error updating views", e);
+      }
+    };
+    markAsViewed();
+  }, [user]);
 
   useEffect(() => {
     const q = query(
@@ -163,6 +192,15 @@ export default function StudentNews() {
                     </div>
                   </div>
                   
+                  {item.mediaUrl && (
+                    <div className="w-full bg-black/40 rounded-xl mb-4 overflow-hidden relative">
+                      {item.mediaType === 'video' ? (
+                        <video src={item.mediaUrl} className="w-full max-h-[300px] object-cover" controls preload="metadata" />
+                      ) : (
+                        <img src={item.mediaUrl} alt={item.title} className="w-full max-h-[300px] object-cover" />
+                      )}
+                    </div>
+                  )}
                   <h3 className="text-[18px] font-bold text-white leading-snug mb-2">
                     {item.title}
                   </h3>
@@ -189,6 +227,11 @@ export default function StudentNews() {
                       <MessageCircle size={20} />
                       <span className="text-[13px] font-bold">{comments.length}</span>
                     </button>
+                    
+                    <div className="flex items-center gap-2 text-white/40 ml-2">
+                      <Eye size={20} />
+                      <span className="text-[13px] font-bold">{item.viewedBy?.length || 0}</span>
+                    </div>
                   </div>
 
                   {/* Comments Section */}

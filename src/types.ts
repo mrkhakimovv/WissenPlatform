@@ -67,6 +67,9 @@ export interface NewsItem {
   publishedAt: string;
   active: boolean;
   likes?: string[];
+  viewedBy?: string[];
+  mediaUrl?: string;
+  mediaType?: 'image' | 'video';
   comments?: { id: string, userId: string, userName: string, text: string, createdAt: string }[];
 }
 export interface Exam {
