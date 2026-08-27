@@ -82,6 +82,7 @@ export default function StudentDashboard() {
       const unsubExams = onSnapshot(query(collection(db, 'exams')), snap => {
         const allExams = snap.docs.map(d => ({ id: d.id, ...d.data() } as Exam));
         const myExams = allExams.filter(e => {
+          if (e.examType === 'sat' || e.examType === 'certificate') return false;
           const hasGroup = (e.groupIds && e.groupIds.length > 0) || e.groupId;
           if (!hasGroup) return true;
           if (e.groupIds && e.groupIds.length > 0) {

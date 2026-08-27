@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import * as XLSX from 'xlsx-js-style';
 import { Exam } from '../../types';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
@@ -27,15 +28,23 @@ export default function AdminCertificateResults({ exam, onClose }: Props) {
         const snap = await getDocs(query(collection(db, 'exam_results'), where('examId', '==', exam.id)));
         const all = snap.docs.map(d => d.data());
         const bestPerStudent = dedupeBestAttempts(
-          all.filter(r => r.raschItems && r.raschItems.length === 55)
+          all.filter(r => Array.isArray(r.raschItems) && r.raschItems.length > 0)
         );
-        const matrix = bestPerStudent.map(r => ({
-          studentId: r.studentId,
-          studentName: r.studentName,
-          items: r.raschItems
-        }));
-        if (matrix.length > 0) {
-          setReport(computeRaschReport(matrix));
+        
+        if (bestPerStudent.length > 0) {
+          // Use the number of items from the first valid result to filter others
+          const numItems = bestPerStudent[0].raschItems.length;
+          const validResults = bestPerStudent.filter(r => r.raschItems.length === numItems);
+
+          const matrix = validResults.map(r => ({
+            studentId: r.studentId,
+            studentName: r.studentName,
+            items: r.raschItems
+          }));
+
+          if (matrix.length > 0) {
+            setReport(computeRaschReport(matrix));
+          }
         }
       } catch (e) {
         console.error(e);
@@ -48,16 +57,80 @@ export default function AdminCertificateResults({ exam, onClose }: Props) {
 
   const results: RaschResult[] = report?.results ?? [];
 
-  const exportCSV = () => {
-    let csv = "O'rin,F.I.SH.,To'g'ri (55 dan),Qobiliyat (θ),Ball (T-shkala),Daraja\n";
-    results.forEach((r, i) => {
-      csv += `${i + 1},"${r.studentName}",${r.correct},${r.theta.toFixed(3)},${r.ball},${r.grade}\n`;
+  const exportExcel = () => {
+    const numItems = report?.stats?.numItems || 45; // Default to 45 if not found
+    
+    const data = results.map((r, i) => {
+      const xato = numItems - r.correct;
+      const foiz = ((r.correct / numItems) * 100).toFixed(1);
+      
+      return {
+        "O'rin": i + 1,
+        "F.I.SH.": r.studentName,
+        "Umumiy savollar": numItems,
+        "To'g'ri": r.correct,
+        "Noto'g'ri": xato,
+        "Foiz (%)": parseFloat(foiz),
+        "Qobiliyat (θ)": parseFloat(r.theta.toFixed(3)),
+        "Ball (T-shkala)": r.ball,
+        "Daraja": r.grade
+      };
     });
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `sertifikat_${exam.title.replace(/\s+/g, '_')}_natijalar.csv`;
-    link.click();
+
+    const worksheet = XLSX.utils.json_to_sheet(data);
+    
+    // Apply styles to all cells
+    const range = XLSX.utils.decode_range(worksheet['!ref'] || "A1:I1");
+    
+    for (let R = range.s.r; R <= range.e.r; ++R) {
+      for (let C = range.s.c; C <= range.e.c; ++C) {
+        const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
+        if (!worksheet[cellAddress]) continue;
+        
+        const isHeader = R === 0;
+        
+        worksheet[cellAddress].s = {
+          font: { 
+            name: "Times New Roman", 
+            sz: 12,
+            bold: isHeader
+          },
+          alignment: { 
+            vertical: "center", 
+            horizontal: isHeader ? "center" : (C === 1 ? "left" : "center")
+          },
+          border: {
+            top: { style: "thin", color: { rgb: "000000" } },
+            bottom: { style: "thin", color: { rgb: "000000" } },
+            left: { style: "thin", color: { rgb: "000000" } },
+            right: { style: "thin", color: { rgb: "000000" } }
+          }
+        };
+        
+        if (isHeader) {
+           worksheet[cellAddress].s.fill = {
+             fgColor: { rgb: "EAEAEA" }
+           };
+        }
+      }
+    }
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Natijalar");
+    
+    worksheet['!cols'] = [
+      { wch: 8 },  // O'rin
+      { wch: 35 }, // F.I.SH.
+      { wch: 18 }, // Umumiy
+      { wch: 12 }, // To'g'ri
+      { wch: 12 }, // Noto'g'ri
+      { wch: 12 }, // Foiz
+      { wch: 15 }, // Qobiliyat
+      { wch: 18 }, // Ball
+      { wch: 12 }, // Daraja
+    ];
+
+    XLSX.writeFile(workbook, `sertifikat_${exam.title.replace(/\s+/g, '_')}_natijalar.xlsx`);
   };
 
   return createPortal(
@@ -69,7 +142,7 @@ export default function AdminCertificateResults({ exam, onClose }: Props) {
             <p className="text-white/50 text-sm mt-1">{exam.subject} • {exam.date}</p>
           </div>
           <div className="flex gap-3">
-            <button onClick={exportCSV} disabled={results.length === 0} className="px-4 py-2 bg-green-500/20 text-green-400 hover:bg-green-500/30 rounded-lg text-sm font-bold flex items-center gap-2 transition-colors disabled:opacity-50">
+            <button onClick={exportExcel} disabled={results.length === 0} className="px-4 py-2 bg-green-500/20 text-green-400 hover:bg-green-500/30 rounded-lg text-sm font-bold flex items-center gap-2 transition-colors disabled:opacity-50">
               <Download size={16} /> Excel Export
             </button>
             <button onClick={onClose} className="p-2 text-white/50 hover:text-white bg-white/5 hover:bg-white/10 rounded-lg transition-colors">
@@ -83,7 +156,8 @@ export default function AdminCertificateResults({ exam, onClose }: Props) {
             <div className="flex justify-center items-center h-40 text-[#FEC204] font-bold">Yuklanmoqda...</div>
           ) : results.length === 0 ? (
             <div className="text-center text-white/50 py-10 bg-white/5 rounded-xl border border-white/10">
-              Hech qanday natija topilmadi (Topshirganlar yo'q yoki 55-birlik formatiga to'g'ri kelmaydi).
+              Hech qanday natija topilmadi (Topshirganlar yo'q yoki test formatiga to'g'ri kelmaydi).
+              
             </div>
           ) : (
             <div className="space-y-6">

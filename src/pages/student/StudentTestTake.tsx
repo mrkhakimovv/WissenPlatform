@@ -24,7 +24,7 @@ export default function StudentTestTake({ exam, onClose }: Props) {
   const [marked, setMarked] = useState<Record<number, boolean>>({});
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
-  const [currentQuestion, setCurrentQuestion] = useState(0);
+  
   const [submitted, setSubmitted] = useState(false);
   const [wrongAnswersList, setWrongAnswersList] = useState<any[]>([]);
   const [allResultsList, setAllResultsList] = useState<any[]>([]);
@@ -389,7 +389,7 @@ export default function StudentTestTake({ exam, onClose }: Props) {
     )}</>;
   }
 
-  const q = testData.questions[currentQuestion];
+  
   const isBubbleMode = testData.satType === "SAT Homework" || testData.satType === "SAT practice";
 
   return <>{createPortal(
@@ -482,7 +482,7 @@ export default function StudentTestTake({ exam, onClose }: Props) {
                 key={idx}
                 onClick={() => setCurrentQuestion(idx)}
                 className={`relative shrink-0 w-10 h-10 md:w-full md:h-auto md:aspect-square rounded-lg flex items-center justify-center text-[13px] md:text-[14px] font-bold transition-all ${
-                  currentQuestion === idx 
+                  false 
                     ? 'bg-[#FEC204] text-black shadow-[0_0_15px_rgba(254,194,4,0.3)] md:scale-105' 
                     : (answers[idx] !== undefined && answers[idx] !== "")
                       ? 'bg-white/20 text-white border border-white/10'
@@ -515,89 +515,95 @@ export default function StudentTestTake({ exam, onClose }: Props) {
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 sm:p-5 md:p-8 flex items-start justify-center relative">
-        <div className="w-full max-w-3xl pt-2 md:pt-0 pb-10">
-          <motion.div 
-            key={currentQuestion}
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="glass-panel p-5 sm:p-6 md:p-10 rounded-[20px] md:rounded-[24px] relative"
-          >
-            <button
-              onClick={() => setMarked(prev => ({ ...prev, [currentQuestion]: !prev[currentQuestion] }))}
-              className={`absolute top-4 right-4 md:top-6 md:right-6 w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center transition-colors ${
-                marked[currentQuestion] 
-                  ? 'bg-[rgba(254,194,4,0.1)] text-[#FEC204]' 
-                  : 'bg-white/5 text-white/40 hover:bg-white/10 hover:text-white'
-              }`}
+        <div className="w-full max-w-3xl pt-2 md:pt-0 pb-10 space-y-8 md:space-y-12">
+          {testData.questions.map((q: any, qIndex: number) => (
+            <div 
+              key={q.id}
+              id={`question-${qIndex}`}
+              className="glass-panel p-5 sm:p-6 md:p-10 rounded-[20px] md:rounded-[24px] relative"
             >
-              <Bookmark size={18} className={`md:w-[20px] md:h-[20px] ${marked[currentQuestion] ? "fill-current" : ""}`} />
-            </button>
-            <h3 className="text-[15px] md:text-[20px] font-bold text-white mb-5 md:mb-6 leading-relaxed pr-10 md:pr-12 overflow-x-auto">
-              <span className="text-[#FEC204] mr-2">{currentQuestion + 1}.</span>
-              <Latex>{q.text}</Latex>
-            </h3>
-            
-            {q.imageUrl && (
-              <img src={q.imageUrl} alt="Savol rasmi" className="max-w-full h-auto max-h-[300px] object-contain rounded-[14px] md:rounded-xl mb-6 border border-white/10" />
-            )}
-
-            <div className="space-y-2 md:space-y-3">
-              {q.isOpenEnded ? (
-                <div className="w-full text-left p-3 md:p-4 rounded-[14px] md:rounded-xl border transition-all bg-white/5 border-white/10">
-                   <p className="text-white/70 text-sm mb-3">O'z javobingizni kiriting:</p>
-                   <MathAnswerField
-                     value={answers[currentQuestion] || ''}
-                     onChange={(latex) => setAnswers(prev => ({ ...prev, [currentQuestion]: latex }))}
-                     placeholder="Javobingizni shu yerga yozing..."
-                     className="w-full glass-panel p-4 rounded-lg outline-none focus:border-[#FEC204] border border-white/10 text-white font-bold"
-                   />
-                </div>
-              ) : (
-                q.options.map((opt, oIdx) => (
-                  <button
-                    key={oIdx}
-                    onClick={() => {
-                      setAnswers(prev => ({ ...prev, [currentQuestion]: oIdx }));
-                    }}
-                    className={`w-full text-left p-3 md:p-4 rounded-[14px] md:rounded-xl border transition-all ${
-                      answers[currentQuestion] === oIdx
-                        ? 'bg-[rgba(254,194,4,0.1)] border-[#FEC204] text-white'
-                        : 'bg-white/5 border-white/10 text-white/70 hover:bg-white/10'
-                    }`}
-                  >
-                    <div className="flex items-start gap-3">
-                      <div className={`w-6 h-6 md:w-7 md:h-7 rounded border flex items-center justify-center shrink-0 mt-0 md:mt-0 text-[12px] md:text-[13px] font-bold ${
-                        answers[currentQuestion] === oIdx ? 'border-[#FEC204] bg-[#FEC204] text-black' : 'border-white/20 text-white/50'
-                      }`}>
-                        {String.fromCharCode(65 + oIdx)}
-                      </div>
-                      <span className="text-[13px] md:text-[15px] leading-snug overflow-x-auto"><Latex>{opt}</Latex></span>
-                    </div>
-                  </button>
-                ))
-              )}
-            </div>
-            
-            <div className="flex flex-row items-center justify-between mt-8 md:mt-10 gap-2 md:gap-3">
               <button
-                disabled={currentQuestion === 0}
-                onClick={() => setCurrentQuestion(p => p - 1)}
-                className="flex-1 sm:flex-none justify-center px-3 py-3 md:px-5 md:py-3 rounded-[14px] md:rounded-xl bg-white/5 text-white/70 font-bold hover:bg-white/10 disabled:opacity-30 flex items-center gap-1 md:gap-2 transition-colors text-[13px] md:text-[15px]"
+                onClick={() => setMarked(prev => ({ ...prev, [qIndex]: !prev[qIndex] }))}
+                className={`absolute top-4 right-4 md:top-6 md:right-6 w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center transition-colors ${
+                  marked[qIndex] 
+                    ? 'bg-[rgba(254,194,4,0.1)] text-[#FEC204]' 
+                    : 'bg-white/5 text-white/40 hover:bg-white/10 hover:text-white'
+                }`}
               >
-                <ChevronLeft size={18} />
-                <span className="hidden xs:inline">Oldingi</span>
+                <Bookmark size={18} className={`md:w-[20px] md:h-[20px] ${marked[qIndex] ? "fill-current" : ""}`} />
               </button>
+              <h3 className="text-[15px] md:text-[20px] font-bold text-white mb-5 md:mb-6 leading-relaxed pr-10 md:pr-12 overflow-x-auto">
+                <span className="text-[#FEC204] mr-2">{qIndex + 1}.</span>
+                <Latex>{q.text}</Latex>
+              </h3>
               
-              <button
-                disabled={currentQuestion === testData.questions.length - 1}
-                onClick={() => setCurrentQuestion(p => p + 1)}
-                className="flex-1 sm:flex-none justify-center px-3 py-3 md:px-5 md:py-3 rounded-[14px] md:rounded-xl bg-white/5 text-white font-bold hover:bg-white/10 disabled:opacity-30 flex items-center gap-1 md:gap-2 transition-colors text-[13px] md:text-[15px]"
-              >
-                <span className="hidden xs:inline">Keyingi</span>
-                <ChevronRight size={18} />
-              </button>
+              {q.imageUrl && (
+                <img src={q.imageUrl} alt="Savol rasmi" className="max-w-full h-auto max-h-[300px] object-contain rounded-[14px] md:rounded-xl mb-6 border border-white/10" />
+              )}
+              
+              <div className="space-y-2 md:space-y-3">
+                {q.isOpenEnded ? (
+                  <div className="w-full text-left p-3 md:p-4 rounded-[14px] md:rounded-xl border transition-all bg-white/5 border-white/10">
+                     <p className="text-white/70 text-sm mb-3">O'z javobingizni kiriting:</p>
+                     <MathAnswerField
+                       value={answers[qIndex] || ''}
+                       onChange={(latex) => setAnswers(prev => ({ ...prev, [qIndex]: latex }))}
+                       placeholder="Javobingizni shu yerga yozing..."
+                       className="w-full glass-panel p-4 rounded-lg outline-none focus:border-[#FEC204] border border-white/10 text-white font-bold"
+                     />
+                  </div>
+                ) : (
+                  (() => {
+                    const hasOptionText = q.options.some((opt: string) => opt && opt.trim() !== '');
+                    return hasOptionText ? (
+                      <div className="space-y-2 md:space-y-3">
+                        {q.options.map((opt: string, oIdx: number) => (
+                          <button
+                            key={oIdx}
+                            onClick={() => {
+                              setAnswers(prev => ({ ...prev, [qIndex]: oIdx }));
+                            }}
+                            className={`w-full text-left p-3 md:p-4 rounded-[14px] md:rounded-xl border transition-all ${
+                              answers[qIndex] === oIdx
+                                ? 'bg-[rgba(254,194,4,0.1)] border-[#FEC204] text-white'
+                                : 'bg-white/5 border-white/10 text-white/70 hover:bg-white/10'
+                            }`}
+                          >
+                            <div className="flex items-start gap-3">
+                              <div className={`w-6 h-6 md:w-7 md:h-7 rounded border flex items-center justify-center shrink-0 mt-0 md:mt-0 text-[12px] md:text-[13px] font-bold ${
+                                answers[qIndex] === oIdx ? 'border-[#FEC204] bg-[#FEC204] text-black' : 'border-white/20 text-white/50'
+                              }`}>
+                                {String.fromCharCode(65 + oIdx)}
+                              </div>
+                              <span className="text-[13px] md:text-[15px] leading-snug overflow-x-auto"><Latex>{opt}</Latex></span>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="flex flex-wrap gap-4">
+                        {q.options.map((_: any, oIdx: number) => (
+                          <button
+                            key={oIdx}
+                            onClick={() => {
+                              setAnswers(prev => ({ ...prev, [qIndex]: oIdx }));
+                            }}
+                            className={`w-14 h-14 sm:w-16 sm:h-16 shrink-0 rounded-full font-bold transition-all flex items-center justify-center text-lg ${
+                              answers[qIndex] === oIdx
+                                ? 'bg-[#FEC204] text-black shadow-[0_0_15px_rgba(254,194,4,0.4)]'
+                                : 'bg-white/5 border border-white/10 text-white hover:bg-white/10 hover:border-white/20'
+                            }`}
+                          >
+                            {String.fromCharCode(65 + oIdx)}
+                          </button>
+                        ))}
+                      </div>
+                    );
+                  })()
+                )}
+              </div>
             </div>
-          </motion.div>
+          ))}
         </div>
         </div>
         </>

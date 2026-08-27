@@ -1,81 +1,45 @@
 const fs = require('fs');
-let code = fs.readFileSync('src/pages/student/StudentTestTake.tsx', 'utf-8');
+let code = fs.readFileSync('src/pages/student/StudentCertificateTake.tsx', 'utf8');
 
-const targetStr = `    let s = 0;
-    for (let idx = 0; idx < testData.questions.length; idx++) {
-      const q = testData.questions[idx];
-      const ans = answers[idx];
+const submitLogic = `  const handleManualSubmit = async () => {
+    let answeredCount = 0;
+    testData.questions.forEach((q) => {
       if (q.isOpenEnded) {
-        if (ans && q.correctAnswerText && await answersEqual(String(ans), String(q.correctAnswerText))) {
-          s += 1;
+        if ((userAnswers[\`\${q.id}_0\`]?.trim() !== '' && userAnswers[\`\${q.id}_0\`] !== undefined) ||
+            (userAnswers[\`\${q.id}_1\`]?.trim() !== '' && userAnswers[\`\${q.id}_1\`] !== undefined)) {
+          answeredCount++;
         }
       } else {
-        if (ans === q.correctOptionIndex) {
-          s += 1;
+        if (userAnswers[q.id] !== undefined) {
+          answeredCount++;
         }
       }
-    }`;
+    });
 
-const newStr = `    let s = 0;
-    const wrongAnswersData = [];
-    for (let idx = 0; idx < testData.questions.length; idx++) {
-      const q = testData.questions[idx];
-      const ans = answers[idx];
-      let isCorrect = false;
-      if (q.isOpenEnded) {
-        if (ans && q.correctAnswerText && await answersEqual(String(ans), String(q.correctAnswerText))) {
-          isCorrect = true;
-        }
-      } else {
-        if (ans === q.correctOptionIndex) {
-          isCorrect = true;
-        }
-      }
-      
-      if (isCorrect) {
-        s += 1;
-      } else {
-        wrongAnswersData.push({
-          questionIndex: idx + 1,
-          studentAnswer: ans,
-          correctAnswer: q.isOpenEnded ? q.correctAnswerText : q.correctOptionIndex,
-          isOpenEnded: q.isOpenEnded,
-          options: q.options || []
-        });
-      }
-    }`;
+    const totalCount = testData.questions.length;
+    let title = "Testni yakunlash";
+    let message = "Imtihonni yakunlamoqchimisiz? Barcha javoblaringiz saqlanadi.";
+    
+    if (answeredCount < totalCount) {
+      title = "Diqqat: Chala qolgan test!";
+      message = \`Siz \${totalCount} ta savoldan faqat \${answeredCount} tasiga javob berdingiz. Chindan ham testni yakunlamoqchimisiz?\`;
+    }
 
-code = code.replace(targetStr, newStr);
+    if (await confirm({ title, message })) {
+      handleSubmit();
+    }
+  };`;
 
-// Also add to addDoc
-const targetDoc = `      await addDoc(collection(db, 'exam_results'), {
-        examId: exam.id,
-        testId: exam.testId || exam.id,
-        studentId: user?.id || 'unknown_student',
-        studentName: user?.fullName || 'Unknown',
-        groupId: user?.groupId || null,
-        score: s,
-        total: testData.questions.length,
-        answers: cleanAnswers,
-        timeSpent: (exam.duration * 60) - timeLeft,
-        attempts: attemptsCount + 1,
-        submittedAt: new Date().toISOString()
-      });`;
+const target = `  const handleManualSubmit = async () => {
+    if (await confirm({ title: "Diqqat", message: "Imtihonni yakunlamoqchimisiz? Barcha javoblar saqlanadi." })) {
+      handleSubmit();
+    }
+  };`;
 
-const newDoc = `      await addDoc(collection(db, 'exam_results'), {
-        examId: exam.id,
-        testId: exam.testId || exam.id,
-        studentId: user?.id || 'unknown_student',
-        studentName: user?.fullName || 'Unknown',
-        groupId: user?.groupId || null,
-        score: s,
-        total: testData.questions.length,
-        answers: cleanAnswers,
-        wrongAnswers: wrongAnswersData,
-        timeSpent: (exam.duration * 60) - timeLeft,
-        attempts: attemptsCount + 1,
-        submittedAt: new Date().toISOString()
-      });`;
-
-code = code.replace(targetDoc, newDoc);
-fs.writeFileSync('src/pages/student/StudentTestTake.tsx', code);
+if(code.includes(target)) {
+  code = code.replace(target, submitLogic);
+  fs.writeFileSync('src/pages/student/StudentCertificateTake.tsx', code);
+  console.log("Patched Manual Submit logic");
+} else {
+  console.log("Target not found");
+}

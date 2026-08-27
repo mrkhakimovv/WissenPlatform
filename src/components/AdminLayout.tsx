@@ -56,7 +56,7 @@ export default function AdminLayout() {
           <h1 className="text-[#FEC204] text-[24px] font-black tracking-[-0.5px] leading-tight">Wissen Edu</h1>
           <p className="text-white/40 text-[10px] uppercase tracking-[2px] font-bold">Admin Panel</p>
         </div>
-        <div className="flex flex-col gap-2 flex-1">
+        <div className="flex flex-col gap-2 flex-1 overflow-y-auto custom-scrollbar">
           {navItems.map((item) => (
             <NavLink
               key={item.to}

@@ -32,7 +32,7 @@ export default function StudentExams() {
       
       // Filter exams: either no group (all) or matches one of student's groups
       const myExams = allExams.filter(e => {
-        if (e.examType === 'sat') return false;
+        if (e.examType === 'sat' || e.examType === 'certificate') return false;
         const hasGroup = (e.groupIds && e.groupIds.length > 0) || e.groupId;
         if (!hasGroup) return true;
         if (e.groupIds && e.groupIds.length > 0) {

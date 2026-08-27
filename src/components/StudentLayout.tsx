@@ -39,7 +39,15 @@ export default function StudentLayout() {
       const now = new Date();
       const userGroups = user?.groups?.length ? user.groups : (user?.groupId ? [user.groupId] : []);
       
-      const myExams = allExams.filter(e => e.examType !== 'sat' && (!e.groupId || userGroups.includes(e.groupId)));
+      const myExams = allExams.filter(e => {
+        if (e.examType === 'sat' || e.examType === 'certificate') return false;
+        const hasGroup = (e.groupIds && e.groupIds.length > 0) || e.groupId;
+        if (!hasGroup) return true;
+        if (e.groupIds && e.groupIds.length > 0) {
+          return e.groupIds.some((id: string) => userGroups.includes(id));
+        }
+        return e.groupId && userGroups.includes(e.groupId);
+      });
       const upcomingExams = myExams.filter(e => new Date(e.date) >= new Date(now.getFullYear(), now.getMonth(), now.getDate()));
       
       const unattempted = upcomingExams.filter(exam => {
@@ -97,7 +105,7 @@ export default function StudentLayout() {
           <h1 className="text-[#FEC204] text-[20px] font-black tracking-[-0.5px] leading-tight line-clamp-2">{user?.fullName || "O'quvchi"}</h1>
           <p className="text-white/40 text-[10px] uppercase tracking-[2px] font-bold">O'quvchi Kabineti</p>
         </div>
-        <div className="flex flex-col gap-2 flex-1 relative z-30">
+        <div className="flex flex-col gap-2 flex-1 overflow-y-auto custom-scrollbar relative z-30">
           {navItems.map((item) => (
             <NavLink
               key={item.to}

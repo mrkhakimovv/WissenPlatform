@@ -31,7 +31,6 @@ export default function StudentResults() {
 
           const resData = snap.docs.map(d => {
             const data = d.data();
-            // Prefer saved title/subject, fallback to map if it exists
             return {
               id: d.id,
               ...data,
@@ -39,8 +38,9 @@ export default function StudentResults() {
               examSubject: data.examSubject || examsMap.get(data.examId)?.subject || '',
               examDate: data.examDate || examsMap.get(data.examId)?.date || data.submittedAt || '',
               examTestId: data.testId || examsMap.get(data.examId)?.testId || null,
+              examType: examsMap.get(data.examId)?.examType,
             };
-          });
+          }).filter(r => r.examType !== 'certificate');
 
           // group by exam and track total attempts and previous attempts scores
           const grouped = new Map();

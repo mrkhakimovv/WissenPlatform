@@ -166,12 +166,15 @@ export default function AdminMilliySertifikat() {
     try {
       const snap = await getDocs(query(collection(db, 'exam_results'), where('examId', '==', exam.id)));
       const all = snap.docs.map(d => d.data());
-      const best = dedupeBestAttempts(all.filter((r: any) => r.raschItems && r.raschItems.length === 55));
+      const best = dedupeBestAttempts(all.filter((r: any) => Array.isArray(r.raschItems) && r.raschItems.length > 0));
       if (best.length === 0) {
-        toast.error("Baholanadigan natija yo'q (55 birlikli topshiruv topilmadi).");
+        toast.error("Baholanadigan natija yo'q (topshiruv topilmadi).");
         return;
       }
-      const matrix = best.map((r: any) => ({ studentId: r.studentId, studentName: r.studentName, items: r.raschItems }));
+      const numItems = best[0].raschItems.length;
+      const validResults = best.filter((r: any) => r.raschItems.length === numItems);
+
+      const matrix = validResults.map((r: any) => ({ studentId: r.studentId, studentName: r.studentName, items: r.raschItems }));
       const report = computeRaschReport(matrix);
       await updateDoc(doc(db, 'exams', exam.id), {
         status: 'ended',

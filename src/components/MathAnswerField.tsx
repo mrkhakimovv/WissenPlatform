@@ -201,6 +201,10 @@ export async function answersEqual(a: string, b: string): Promise<boolean> {
   const strA = String(a).replace(/\s/g, '').toLowerCase();
   const strB = String(b).replace(/\s/g, '').toLowerCase();
   if (strA === strB) return true;
+  
+  // Bypassing ComputeEngine temporarily to prevent thread blocking
+  return false;
+  /*
 
   try {
     const { ComputeEngine } = await import('@cortex-js/compute-engine');
@@ -226,4 +230,6 @@ export async function answersEqual(a: string, b: string): Promise<boolean> {
   }
 
   return false;
+}
+*/
 }

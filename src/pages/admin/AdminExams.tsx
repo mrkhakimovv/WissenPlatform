@@ -50,7 +50,7 @@ export default function AdminExams() {
   useEffect(() => {
     const unsubExams = onSnapshot(query(collection(db, 'exams'), orderBy('createdAt', 'desc')), snap => {
       const allExams = snap.docs.map(d => ({ id: d.id, ...d.data() } as Exam));
-      setExams(allExams.filter(e => e.examType !== 'sat'));
+      setExams(allExams.filter(e => e.examType !== 'sat' && e.examType !== 'certificate'));
     });
     const unsubGroups = onSnapshot(collection(db, 'groups'), snap => {
       setGroups(snap.docs.map(d => ({ id: d.id, ...d.data() } as Group)));
@@ -74,7 +74,7 @@ export default function AdminExams() {
       });
       setExistingTests(Array.from(titles));
       testsData.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
-      setAllTests(testsData);
+      setAllTests(testsData.filter(t => t.testType !== 'sat' && t.testType !== 'Milliy Sertifikat'));
     }, err => {
       console.error('Error fetching tests:', err);
     });
