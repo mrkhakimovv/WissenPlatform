@@ -349,7 +349,7 @@ export default function AdminNews() {
                               )}
                               {isMe && <div className="text-[11px] font-bold opacity-70">{c.userName}</div>}
                               
-                              <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity ml-2">
+                              <div className="flex items-center gap-2  ml-2">
                                 <button onClick={() => setEditingComment({ newsId: item.id, commentId: c.id, text: c.text })} className={`${isMe ? 'text-black/50 hover:text-black' : 'text-white/40 hover:text-[#FEC204]'} transition-colors p-1`}>
                                   <Edit2 size={12} />
                                 </button>
@@ -359,7 +359,7 @@ export default function AdminNews() {
                               </div>
                             </div>
                             
-                            <div className={`absolute top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity ${isMe ? '-left-8' : '-right-8'}`}>
+                            <div className={`absolute top-1/2 -translate-y-1/2 flex items-center gap-1  ${isMe ? '-left-8' : '-right-8'}`}>
                               <div className="relative">
                                 <button onClick={() => setShowReactionPicker(showReactionPicker === c.id ? null : c.id)} className="p-1.5 text-white/40 hover:text-[#FEC204] rounded-full hover:bg-white/5">
                                   <Smile size={14} />

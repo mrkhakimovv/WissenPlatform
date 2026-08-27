@@ -330,7 +330,7 @@ export default function StudentNews() {
                                     </div>
                                   )}
                                   
-                                  <div className={`absolute top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity ${isMe ? '-left-16' : '-right-16'}`}>
+                                  <div className={`absolute top-1/2 -translate-y-1/2 flex items-center gap-1  ${isMe ? '-left-16' : '-right-16'}`}>
                                     {isMe && (
                                       <button onClick={() => handleDeleteComment(item.id, c.id, comments)} className="p-1.5 text-white/40 hover:text-red-500 rounded-full hover:bg-white/5">
                                         <Trash2 size={14} />
