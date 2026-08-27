@@ -1,20 +1,41 @@
+import { useAuth } from '../../contexts/AuthContext';
 import { useConfirm } from '../../contexts/ConfirmContext';
 import React, { useState, useEffect } from 'react';
 import { collection, onSnapshot, query, orderBy, addDoc, updateDoc, deleteDoc, doc, where, getDocs } from '../../lib/firebase';
 import { db } from '../../lib/firebase';
-import { Plus, X, Edit2, Trash2, Megaphone, Heart, MessageCircle, Send, Check, Eye, Image as ImageIcon, Video, Link, UploadCloud } from 'lucide-react';
+import { Plus, X, Edit2, Trash2, Megaphone, Heart, MessageCircle, Send, Check, Eye, Image as ImageIcon, Video, Link, UploadCloud, Smile } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { NewsItem } from '../../types';
 import { sendAutoNotification } from '../../lib/notificationSender';
 
+const formatDateSeparator = (dateString: string) => {
+  const date = new Date(dateString);
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  
+  if (date.toDateString() === today.toDateString()) {
+    return 'Bugun';
+  } else if (date.toDateString() === yesterday.toDateString()) {
+    return 'Kecha';
+  } else {
+    return date.toLocaleDateString('uz-UZ', { day: 'numeric', month: 'long' });
+  }
+};
+
+const STICKERS = ['👍', '❤️', '😂', '🔥', '🎉', '😢', '👏', '🙌'];
+
 export default function AdminNews() {
   const { confirm } = useConfirm();
+  const { user } = useAuth();
   const [news, setNews] = useState<NewsItem[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   
-    const [editingComment, setEditingComment] = useState<{ newsId: string, commentId: string, text: string } | null>(null);
+  const [editingComment, setEditingComment] = useState<{ newsId: string, commentId: string, text: string } | null>(null);
   const [openComments, setOpenComments] = useState<{ [key: string]: boolean }>({});
+  const [showEmojiPicker, setShowEmojiPicker] = useState<string | null>(null);
+  const [showReactionPicker, setShowReactionPicker] = useState<string | null>(null);
 
   const toggleComments = (id: string) => {
     setOpenComments(prev => ({ ...prev, [id]: !prev[id] }));
@@ -29,6 +50,34 @@ export default function AdminNews() {
       } catch (error) {
         toast.error("Xatolik");
       }
+    }
+  };
+
+  const handleReact = async (newsId: string, commentId: string, emoji: string, comments: any[]) => {
+    if (!user) return;
+    try {
+      const updatedComments = comments.map(c => {
+        if (c.id === commentId) {
+          const reactions = ((c as any).reactions) || ({} as Record<string, string[]>);
+          const usersWithEmoji = reactions[emoji] || [];
+          const hasReacted = usersWithEmoji.includes(user.id);
+          
+          if (hasReacted) {
+            reactions[emoji] = usersWithEmoji.filter((id: string) => id !== user.id);
+            if (reactions[emoji].length === 0) delete reactions[emoji];
+          } else {
+            reactions[emoji] = [...usersWithEmoji, user.id];
+          }
+          
+          return { ...c, reactions };
+        }
+        return c;
+      });
+      await updateDoc(doc(db, 'news', newsId), { comments: updatedComments });
+      setShowReactionPicker(null);
+    } catch (err) {
+      console.error(err);
+      toast.error('Xatolik yuz berdi');
     }
   };
 
@@ -269,46 +318,113 @@ export default function AdminNews() {
               {openComments[item.id] && item.comments && item.comments.length > 0 && (
                 <div className="mt-4 bg-black/20 rounded-xl p-4">
                   <div className="space-y-4 max-h-[200px] overflow-y-auto pr-2 custom-scrollbar">
-                    {item.comments.map(c => (
-                      <div key={c.id} className="flex flex-col group relative">
-                        <div className="flex justify-between items-start mb-0.5">
-                          <div className="flex items-center gap-2">
-                            <span className="text-[13px] font-bold text-white/90">{c.userName}</span>
-                            <span className="text-[10px] text-white/30">{new Date(c.createdAt).toLocaleDateString('uz-UZ', { hour: '2-digit', minute: '2-digit'})}</span>
+                    {item.comments.map((c, index) => {
+                      const isMe = c.userId === user?.id;
+                      const currentCommentDate = new Date(c.createdAt).toDateString();
+                      const prevCommentDate = index > 0 && item.comments ? new Date(item.comments[index - 1].createdAt).toDateString() : null;
+                      const showDateSeparator = currentCommentDate !== prevCommentDate;
+                      
+                      const reactionsList = Object.entries(((c as any).reactions) || ({} as Record<string, string[]>)).filter(([_, users]) => (users as string[]).length > 0);
+                      
+                      return (
+                      <React.Fragment key={c.id}>
+                        {showDateSeparator && (
+                          <div className="w-full flex justify-center my-3">
+                            <span className="bg-black/30 text-white/50 text-[10px] px-3 py-1 rounded-full font-medium">
+                              {formatDateSeparator(c.createdAt)}
+                            </span>
                           </div>
-                          <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button onClick={() => setEditingComment({ newsId: item.id, commentId: c.id, text: c.text })} className="text-white/40 hover:text-[#FEC204] transition-colors p-1">
-                              <Edit2 size={12} />
-                            </button>
-                            <button onClick={() => handleDeleteComment(item.id, c.id, item.comments || [])} className="text-white/40 hover:text-red-500 transition-colors p-1">
-                              <Trash2 size={12} />
-                            </button>
+                        )}
+                        <div className={`flex w-full group relative ${isMe ? 'justify-end' : 'justify-start'} ${showDateSeparator ? 'mt-1' : ''} mb-2`}>
+                          <div className={`max-w-[85%] rounded-2xl px-4 py-2.5 relative ${
+                            isMe 
+                              ? 'bg-[#FEC204] text-black rounded-tr-sm' 
+                              : 'bg-white/10 text-white rounded-tl-sm'
+                          }`}>
+                            <div className="flex justify-between items-start mb-1">
+                              {!isMe && (
+                                <div className="text-[11px] font-bold opacity-70">
+                                  {c.userName}
+                                </div>
+                              )}
+                              {isMe && <div className="text-[11px] font-bold opacity-70">{c.userName}</div>}
+                              
+                              <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity ml-2">
+                                <button onClick={() => setEditingComment({ newsId: item.id, commentId: c.id, text: c.text })} className={`${isMe ? 'text-black/50 hover:text-black' : 'text-white/40 hover:text-[#FEC204]'} transition-colors p-1`}>
+                                  <Edit2 size={12} />
+                                </button>
+                                <button onClick={() => handleDeleteComment(item.id, c.id, item.comments || [])} className={`${isMe ? 'text-black/50 hover:text-red-600' : 'text-white/40 hover:text-red-500'} transition-colors p-1`}>
+                                  <Trash2 size={12} />
+                                </button>
+                              </div>
+                            </div>
+                            
+                            <div className={`absolute top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity ${isMe ? '-left-8' : '-right-8'}`}>
+                              <div className="relative">
+                                <button onClick={() => setShowReactionPicker(showReactionPicker === c.id ? null : c.id)} className="p-1.5 text-white/40 hover:text-[#FEC204] rounded-full hover:bg-white/5">
+                                  <Smile size={14} />
+                                </button>
+                                {showReactionPicker === c.id && (
+                                  <div className={`absolute top-full ${isMe ? 'right-0' : 'left-0'} mt-1 bg-[#1a1a1a] border border-white/10 rounded-xl p-2 flex gap-1 z-10 shadow-xl`}>
+                                    {STICKERS.map(emoji => (
+                                      <button 
+                                        key={emoji}
+                                        onClick={() => handleReact(item.id, c.id, emoji, item.comments || [])}
+                                        className="w-8 h-8 flex items-center justify-center hover:bg-white/10 rounded text-[16px] transition-colors"
+                                      >
+                                        {emoji}
+                                      </button>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+
+                            {editingComment?.commentId === c.id ? (
+                              <div className="flex items-center gap-2 mt-1">
+                                <input
+                                  value={editingComment.text}
+                                  onChange={(e) => setEditingComment({ ...editingComment, text: e.target.value })}
+                                  className={`flex-1 border rounded px-2 py-1 text-[12px] focus:outline-none ${isMe ? 'bg-black/10 border-black/20 text-black focus:border-black/50' : 'bg-white/5 border-white/10 text-white focus:border-[#FEC204]/50'}`}
+                                  autoFocus
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') handleSaveComment(item.id, item.comments || []);
+                                    if (e.key === 'Escape') setEditingComment(null);
+                                  }}
+                                />
+                                <button onClick={() => handleSaveComment(item.id, item.comments || [])} className={`p-1 rounded ${isMe ? 'text-black hover:bg-black/10' : 'text-[#FEC204] hover:bg-white/10'}`}>
+                                  <Check size={14} />
+                                </button>
+                                <button onClick={() => setEditingComment(null)} className={`p-1 rounded ${isMe ? 'text-red-600 hover:bg-black/10' : 'text-red-500 hover:bg-white/10'}`}>
+                                  <X size={14} />
+                                </button>
+                              </div>
+                            ) : (
+                              <p className="text-[13px] leading-relaxed break-words">{c.text}</p>
+                            )}
+                            
+                            <div className={`text-[10px] mt-1 text-right ${isMe ? 'opacity-60' : 'opacity-40'}`}>
+                              {new Date(c.createdAt).toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' })}
+                            </div>
+                            
+                            {reactionsList.length > 0 && (
+                              <div className={`absolute -bottom-3 ${isMe ? 'right-2' : 'left-2'} flex items-center gap-1 bg-[#1a1a1a] border border-white/10 rounded-full px-1.5 py-0.5 shadow-sm`}>
+                                {reactionsList.map(([emoji, users]) => (
+                                  <button 
+                                    key={emoji}
+                                    onClick={() => handleReact(item.id, c.id, emoji, item.comments || [])}
+                                    className={`flex items-center gap-1 text-[11px] ${(users as string[]).includes(user?.id || '') ? 'text-[#FEC204] bg-[#FEC204]/10' : 'text-white/70'} hover:bg-white/5 px-1 rounded-full transition-colors`}
+                                  >
+                                    <span>{emoji}</span>
+                                    <span className="font-medium text-[10px]">{(users as string[]).length}</span>
+                                  </button>
+                                ))}
+                              </div>
+                            )}
                           </div>
                         </div>
-                        {editingComment?.commentId === c.id ? (
-                          <div className="flex items-center gap-2 mt-1">
-                            <input
-                              value={editingComment.text}
-                              onChange={(e) => setEditingComment({ ...editingComment, text: e.target.value })}
-                              className="flex-1 bg-white/5 border border-white/10 rounded px-2 py-1 text-[12px] text-white focus:outline-none focus:border-[#FEC204]/50"
-                              autoFocus
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') handleSaveComment(item.id, item.comments || []);
-                                if (e.key === 'Escape') setEditingComment(null);
-                              }}
-                            />
-                            <button onClick={() => handleSaveComment(item.id, item.comments || [])} className="text-[#FEC204] p-1 bg-white/5 rounded hover:bg-white/10">
-                              <Check size={14} />
-                            </button>
-                            <button onClick={() => setEditingComment(null)} className="text-red-500 p-1 bg-white/5 rounded hover:bg-white/10">
-                              <X size={14} />
-                            </button>
-                          </div>
-                        ) : (
-                          <p className="text-[13px] text-white/70">{c.text}</p>
-                        )}
-                      </div>
-                    ))}
+                      </React.Fragment>
+                    );})}
                   </div>
                 </div>
               )}
