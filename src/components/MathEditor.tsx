@@ -5,18 +5,6 @@ import { initMathLive, showVirtualKeyboard } from '../services/MathLiveConfig';
 // Ensure MathLive configuration is initialized
 initMathLive();
 
-declare global {
-  // eslint-disable-next-line @typescript-eslint/no-namespace
-  namespace JSX {
-    interface IntrinsicElements {
-      'math-field': React.DetailedHTMLProps<
-        React.HTMLAttributes<MathfieldElement>,
-        MathfieldElement
-      >;
-    }
-  }
-}
-
 export interface MathEditorProps {
   value: string;
   onChange: (latex: string) => void;

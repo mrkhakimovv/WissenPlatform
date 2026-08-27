@@ -3,6 +3,7 @@ import { TestData, Group, Exam } from '../../types';
 import { Trash2, Edit2, Copy, FileText, X, Calendar } from 'lucide-react';
 import { collection, doc, deleteDoc, addDoc, updateDoc, onSnapshot, query, orderBy, getDocs } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
+import { sendAutoNotification } from '../../lib/notificationSender';
 import { useConfirm } from '../../contexts/ConfirmContext';
 import toast from 'react-hot-toast';
 import AdminSATBuilder from './AdminSATBuilder';

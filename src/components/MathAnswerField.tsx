@@ -9,18 +9,6 @@ import { initMathLive, showVirtualKeyboard, hideVirtualKeyboard } from '../servi
 // MUHIM: fontlar va tovushlarni birinchi maydon yaratilishidan OLDIN sozlaymiz.
 initMathLive();
 
-declare global {
-  // eslint-disable-next-line @typescript-eslint/no-namespace
-  namespace JSX {
-    interface IntrinsicElements {
-      'math-field': React.DetailedHTMLProps<
-        React.HTMLAttributes<MathfieldElement>,
-        MathfieldElement
-      >;
-    }
-  }
-}
-
 interface Props {
   value: string; // LaTeX
   onChange: (latex: string) => void;

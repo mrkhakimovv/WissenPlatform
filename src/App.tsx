@@ -17,6 +17,7 @@ import AdminAttendance from './pages/admin/AdminAttendance';
 import AdminMore from './pages/admin/AdminMore';
 import AdminExams from './pages/admin/AdminExams';
 import AdminSATDatabase from "./pages/admin/AdminSATDatabase";
+import AdminMilliySertifikat from "./pages/admin/AdminMilliySertifikat";
 import AdminTestsDatabase from './pages/admin/AdminTestsDatabase';
 import AdminNews from './pages/admin/AdminNews';
 import AdminHomeworks from './pages/admin/AdminHomeworks';
@@ -27,6 +28,7 @@ import StudentSchedule from './pages/student/StudentSchedule';
 import StudentProfile from './pages/student/StudentProfile';
 import StudentHomeworks from './pages/student/StudentHomeworks';
 import StudentSAT from "./pages/student/StudentSAT";
+import StudentMilliySertifikat from "./pages/student/StudentMilliySertifikat";
 import StudentExams from './pages/student/StudentExams';
 import StudentResults from './pages/student/StudentResults';
 import StudentNews from './pages/student/StudentNews';
@@ -87,6 +89,7 @@ export default function App() {
               <Route path="attendance" element={<AdminAttendance />} />
               <Route path="more" element={<AdminMore />} />
               <Route path="sat" element={<AdminSATDatabase />} />
+              <Route path="milliy-sertifikat" element={<AdminMilliySertifikat />} />
               <Route path="tests" element={<AdminTestsDatabase />} />
               <Route path="exams" element={<AdminExams />} />
               <Route path="homeworks" element={<AdminHomeworks />} />
@@ -105,6 +108,7 @@ export default function App() {
               <Route path="schedule" element={<StudentSchedule />} />
               <Route path="homeworks" element={<StudentHomeworks />} />
               <Route path="sat" element={<StudentSAT />} />
+              <Route path="milliy-sertifikat" element={<StudentMilliySertifikat />} />
               <Route path="exams" element={<StudentExams />} />
               <Route path="results" element={<StudentResults />} />
               <Route path="news" element={<StudentNews />} />

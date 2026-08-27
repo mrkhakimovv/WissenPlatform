@@ -101,6 +101,7 @@ export interface TestQuestion {
   correctOptionIndex: number;
   isOpenEnded?: boolean;
   correctAnswerText?: string;
+  subAnswers?: { label: "a" | "b"; correctAnswerText: string }[];
 }
 
 export interface TestCategory {
@@ -109,12 +110,39 @@ export interface TestCategory {
 }
 
 export interface TestData {
+  id?: string;
   title: string;
   questionCount: number;
   variantCount: number;
   testType: string;
+  format?: "rasch" | "normal";
   satType?: string;
+  isFastMode?: boolean;
   maxAttempts?: number;
   questions: TestQuestion[];
   createdAt: string;
+}
+
+export interface ExamResult {
+  id?: string;
+  examId: string;
+  studentId: string;
+  studentName: string;
+  score: number;
+  total: number;
+  wrongAnswers?: string[];
+  timeSpent?: number;
+  attempts?: number;
+  submittedAt: string;
+  raschItems?: number[];
+}
+
+export interface Certificate {
+  id?: string;
+  studentId: string;
+  examId: string;
+  subject: string;
+  ball: number;
+  grade: string;
+  issuedAt: string;
 }

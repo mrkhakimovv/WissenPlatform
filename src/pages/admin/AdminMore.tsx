@@ -29,7 +29,7 @@ function NotificationsTab({ onBack }: { onBack: () => void }) {
     // Notif history
     // Since we don't have indexes, just fetch and sort client side
     const unsubN = onSnapshot(collection(db, 'notifications'), snap => {
-      const all = snap.docs.map(d => ({id: d.id, ...d.data()}));
+      const all = snap.docs.map(d => ({id: d.id, ...d.data()} as any));
       all.sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       setHistory(all.slice(0, 20));
     });
