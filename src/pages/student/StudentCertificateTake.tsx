@@ -5,7 +5,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { db } from '../../lib/firebase';
 import { doc, getDoc, collection, addDoc, query, where, getDocs } from 'firebase/firestore';
 import toast from 'react-hot-toast';
-import { AlertTriangle, Clock, Send, ChevronLeft, ChevronRight , CheckCircle2} from 'lucide-react';
+import { AlertTriangle, Clock, Send, ChevronLeft, ChevronRight , CheckCircle2, Menu, X} from 'lucide-react';
 import Latex from 'react-latex-next';
 import { useConfirm } from '../../contexts/ConfirmContext';
 import MathAnswerField, { answersEqual } from '../../components/MathAnswerField';
@@ -22,6 +22,7 @@ export default function StudentCertificateTake({ exam, onClose }: Props) {
   const [loading, setLoading] = useState(true);
   const [timeLeft, setTimeLeft] = useState(exam.duration * 60);
   const [activeQ, setActiveQ] = useState(0);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   
   // userAnswers format: 
   // for choice: { 'q1': 2 }
@@ -179,7 +180,7 @@ export default function StudentCertificateTake({ exam, onClose }: Props) {
   };
 
   if (loading) {
-    return <div className="fixed inset-0 bg-[#0a0a0a] z-[9999] flex items-center justify-center text-[#FEC204] font-bold">Yuklanmoqda...</div>;
+    return <div className="fixed inset-0 bg-[#0a0a0a] z-[99999] flex items-center justify-center text-[#FEC204] font-bold">Yuklanmoqda...</div>;
   }
 
   if (!testData) return null;
@@ -189,7 +190,7 @@ export default function StudentCertificateTake({ exam, onClose }: Props) {
 
   if (resultSummary) {
     return createPortal(
-      <div className="fixed inset-0 bg-[#0d0d0d] z-[9999] flex items-center justify-center animate-in fade-in duration-300">
+      <div className="fixed inset-0 bg-[#0d0d0d] z-[99999] flex items-center justify-center animate-in fade-in duration-300">
         <div className="glass-panel p-8 max-w-md w-full text-center space-y-6">
           <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
             <CheckCircle2 size={40} className="text-green-500" />
@@ -212,27 +213,35 @@ export default function StudentCertificateTake({ exam, onClose }: Props) {
   }
 
   return createPortal(
-    <div className="fixed inset-0 bg-[#0d0d0d] z-[9999] flex flex-col animate-in fade-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 bg-[#0d0d0d] z-[99999] flex flex-col animate-in fade-in zoom-in-95 duration-200">
       {/* Header */}
-      <div className="bg-[#1a1a1a] p-4 flex items-center justify-between border-b border-white/10 shrink-0">
-        <div>
-          <h2 className="text-xl font-bold text-white">{exam.title}</h2>
-          <p className="text-white/50 text-sm">Milliy Sertifikat (Rasch) • {testData.questions.length} savol</p>
+      <div className="bg-[#1a1a1a] p-3 md:p-4 flex flex-col md:flex-row items-start md:items-center justify-between border-b border-white/10 shrink-0 gap-3 md:gap-0">
+        <div className="flex justify-between items-center w-full md:w-auto">
+          <div>
+            <h2 className="text-lg md:text-xl font-bold text-white line-clamp-1">{exam.title}</h2>
+            <p className="text-white/50 text-xs md:text-sm">Milliy Sertifikat (Rasch) • {testData.questions.length} savol</p>
+          </div>
+          <button 
+            onClick={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)}
+            className="lg:hidden p-2 bg-white/5 rounded-lg text-white/70 hover:text-white"
+          >
+            <Menu size={20} />
+          </button>
         </div>
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 bg-[#FEC204]/20 text-[#FEC204] px-4 py-2 rounded-xl font-bold border border-[#FEC204]/30">
-            <Clock size={20} />
+        <div className="flex items-center justify-between w-full md:w-auto gap-2 md:gap-4">
+          <div className="flex items-center gap-2 bg-[#FEC204]/20 text-[#FEC204] px-3 py-1.5 md:px-4 md:py-2 rounded-xl font-bold border border-[#FEC204]/30 text-sm md:text-base">
+            <Clock size={16} className="md:w-5 md:h-5" />
             {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
           </div>
-          <button onClick={handleManualSubmit} disabled={isSubmitting} className="bg-[#FEC204] text-black px-6 py-2 rounded-xl font-bold flex items-center gap-2 hover:opacity-90">
-            {isSubmitting ? 'Yuborilmoqda...' : <><Send size={18} /> Yakunlash</>}
+          <button onClick={handleManualSubmit} disabled={isSubmitting} className="bg-[#FEC204] text-black px-4 py-1.5 md:px-6 md:py-2 rounded-xl font-bold flex items-center gap-2 hover:opacity-90 text-sm md:text-base">
+            {isSubmitting ? 'Yuborilmoqda...' : <><Send size={16} className="md:w-[18px] md:h-[18px]" /> Yakunlash</>}
           </button>
         </div>
       </div>
 
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 overflow-hidden relative">
         {/* Main Area */}
-        <div className="flex-1 flex flex-col p-6 overflow-y-auto custom-scrollbar" id="questions-container">
+        <div className="flex-1 flex flex-col p-4 md:p-6 overflow-y-auto custom-scrollbar" id="questions-container">
           <div className="max-w-4xl w-full mx-auto space-y-12">
             {testData.questions.map((q: any, qIndex: number) => (
               <div key={q.id} id={`question-${qIndex}`}>
@@ -321,9 +330,19 @@ export default function StudentCertificateTake({ exam, onClose }: Props) {
           </div>
         </div>
 
-        {/* Sidebar Nav */}
-        <div className="w-80 bg-[#121212] border-l border-white/10 p-4 flex flex-col h-full">
-          <h3 className="font-bold text-white/50 mb-4">Savollar ({testData.questions.length})</h3>
+        {/* Sidebar Nav (Responsive) */}
+        <div className={`
+          absolute lg:static inset-y-0 right-0 z-50
+          w-[280px] lg:w-80 bg-[#121212] border-l border-white/10 p-4 flex flex-col h-full shrink-0 transition-transform duration-300
+          ${isMobileSidebarOpen ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'}
+        `}>
+          <div className="flex justify-between items-center mb-4 lg:hidden">
+            <h3 className="font-bold text-white/50">Savollar ({testData.questions.length})</h3>
+            <button onClick={() => setIsMobileSidebarOpen(false)} className="p-1 rounded-lg hover:bg-white/10 text-white/70 hover:text-white">
+              <X size={20} />
+            </button>
+          </div>
+          <h3 className="font-bold text-white/50 mb-4 hidden lg:block">Savollar ({testData.questions.length})</h3>
           <div className="grid grid-cols-5 gap-2 overflow-y-auto custom-scrollbar content-start">
             {testData.questions.map((q: any, i: number) => {
               let isAnswered = false;
@@ -353,6 +372,14 @@ export default function StudentCertificateTake({ exam, onClose }: Props) {
             })}
           </div>
         </div>
+
+        {/* Mobile Sidebar Overlay */}
+        {isMobileSidebarOpen && (
+          <div 
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm z-40 lg:hidden"
+            onClick={() => setIsMobileSidebarOpen(false)}
+          />
+        )}
       </div>
     </div>,
     document.body

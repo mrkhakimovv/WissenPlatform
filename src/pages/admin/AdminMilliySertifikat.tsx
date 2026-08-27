@@ -106,6 +106,16 @@ export default function AdminMilliySertifikat() {
     setIsAssignModalOpen(true);
   };
 
+  const toggleAllGroups = () => {
+    setAssignForm(prev => {
+      if (prev.groupIds.length === groups.length && groups.length > 0) {
+        return { ...prev, groupIds: [] }; // Deselect all
+      } else {
+        return { ...prev, groupIds: groups.map(g => g.id) }; // Select all
+      }
+    });
+  };
+
   const toggleGroup = (groupId: string) => {
     setAssignForm(prev => {
       if (prev.groupIds.includes(groupId)) {
@@ -371,8 +381,19 @@ export default function AdminMilliySertifikat() {
                 </div>
 
                 <div>
-                  <label className="text-sm font-bold text-white/70 block mb-1">Guruhlar (Biriktirish)</label>
+                  <label className="text-sm font-bold text-white/70 flex justify-between items-center mb-1">
+                    <span>Guruhlar (Biriktirish)</span>
+                  </label>
                   <div className="glass-panel p-3 rounded-xl h-32 overflow-y-auto custom-scrollbar flex flex-col gap-2 border border-white/10">
+                    <label className="flex items-center gap-2 cursor-pointer pb-2 border-b border-white/10 mb-1">
+                      <input 
+                        type="checkbox" 
+                        checked={groups.length > 0 && assignForm.groupIds.length === groups.length} 
+                        onChange={toggleAllGroups} 
+                        className="accent-[#FEC204]" 
+                      />
+                      <span className="text-sm font-bold text-white">Barchasi (Barcha guruhlarni belgilash)</span>
+                    </label>
                     {groups.map(g => (
                       <label key={g.id} className="flex items-center gap-2 cursor-pointer">
                         <input type="checkbox" checked={assignForm.groupIds.includes(g.id)} onChange={() => toggleGroup(g.id)} className="accent-[#FEC204]" />
