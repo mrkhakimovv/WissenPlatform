@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { Exam } from '../../types';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
-import { calculateRasch, RaschResult, RaschStats } from '../../lib/rasch';
-import { X, Download, Users, TrendingUp, Award } from 'lucide-react';
+import { computeRaschReport, dedupeBestAttempts, RaschResult, RaschReport } from '../../lib/rasch';
+import { X, Download } from 'lucide-react';
 import { createPortal } from 'react-dom';
+import RaschStatsPanel from '../../components/RaschStatsPanel';
 
 interface Props {
   exam: Exam;
@@ -12,28 +13,29 @@ interface Props {
 }
 
 export default function AdminCertificateResults({ exam, onClose }: Props) {
-  const [results, setResults] = useState<RaschResult[]>([]);
-  const [stats, setStats] = useState<RaschStats | null>(null);
+  const [report, setReport] = useState<RaschReport | null>(null);
   const [loading, setLoading] = useState(true);
+  const isFrozen = exam.status === 'ended' && !!exam.raschReport;
 
   useEffect(() => {
     const loadResults = async () => {
       try {
+        if (isFrozen) {
+          setReport(exam.raschReport as RaschReport);
+          return;
+        }
         const snap = await getDocs(query(collection(db, 'exam_results'), where('examId', '==', exam.id)));
         const all = snap.docs.map(d => d.data());
-        
-        const matrix = all
-          .filter(r => r.raschItems && r.raschItems.length === 55)
-          .map(r => ({
-            studentId: r.studentId,
-            studentName: r.studentName,
-            items: r.raschItems
-          }));
-          
+        const bestPerStudent = dedupeBestAttempts(
+          all.filter(r => r.raschItems && r.raschItems.length === 55)
+        );
+        const matrix = bestPerStudent.map(r => ({
+          studentId: r.studentId,
+          studentName: r.studentName,
+          items: r.raschItems
+        }));
         if (matrix.length > 0) {
-          const rasch = calculateRasch(matrix);
-          setResults(rasch.results);
-          setStats(rasch.stats);
+          setReport(computeRaschReport(matrix));
         }
       } catch (e) {
         console.error(e);
@@ -41,16 +43,16 @@ export default function AdminCertificateResults({ exam, onClose }: Props) {
         setLoading(false);
       }
     };
-    
     loadResults();
   }, [exam]);
+
+  const results: RaschResult[] = report?.results ?? [];
 
   const exportCSV = () => {
     let csv = "O'rin,F.I.SH.,To'g'ri (55 dan),Qobiliyat (θ),Ball (T-shkala),Daraja\n";
     results.forEach((r, i) => {
       csv += `${i + 1},"${r.studentName}",${r.correct},${r.theta.toFixed(3)},${r.ball},${r.grade}\n`;
     });
-    
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
@@ -75,7 +77,7 @@ export default function AdminCertificateResults({ exam, onClose }: Props) {
             </button>
           </div>
         </div>
-        
+
         <div className="p-6 flex-1 overflow-y-auto custom-scrollbar">
           {loading ? (
             <div className="flex justify-center items-center h-40 text-[#FEC204] font-bold">Yuklanmoqda...</div>
@@ -85,37 +87,15 @@ export default function AdminCertificateResults({ exam, onClose }: Props) {
             </div>
           ) : (
             <div className="space-y-6">
-              {/* Stats overview */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-white/5 p-4 rounded-xl border border-white/10 flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400">
-                    <Users size={24} />
-                  </div>
-                  <div>
-                    <p className="text-white/50 text-sm font-bold">Qatnashdi</p>
-                    <p className="text-2xl font-black text-white">{stats?.n}</p>
-                  </div>
-                </div>
-                <div className="bg-white/5 p-4 rounded-xl border border-white/10 flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-full bg-purple-500/20 flex items-center justify-center text-purple-400">
-                    <TrendingUp size={24} />
-                  </div>
-                  <div>
-                    <p className="text-white/50 text-sm font-bold">O'rtacha Qobiliyat (μ)</p>
-                    <p className="text-2xl font-black text-white">{stats?.mu.toFixed(2)}</p>
-                  </div>
-                </div>
-                <div className="bg-white/5 p-4 rounded-xl border border-white/10 flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-full bg-green-500/20 flex items-center justify-center text-green-400">
-                    <Award size={24} />
-                  </div>
-                  <div>
-                    <p className="text-white/50 text-sm font-bold">O'rtacha Ball</p>
-                    <p className="text-2xl font-black text-white">50.0</p>
-                  </div>
-                </div>
+              <div className={`text-xs font-bold px-3 py-2 rounded-lg border ${isFrozen ? 'bg-green-500/10 text-green-400 border-green-500/20' : 'bg-[#FEC204]/10 text-[#FEC204] border-[#FEC204]/20'}`}>
+                {isFrozen
+                  ? '✓ Yakunlangan — natijalar muzlatilgan (o\'zgarmaydi).'
+                  : '⏳ Jonli hisob (ko\'rib chiqish). Yakuniy natija imtihonni "Yakunlash" tugmasi bilan muzlatiladi.'}
               </div>
 
+              {report && <RaschStatsPanel report={report} />}
+
+              <h3 className="text-white font-bold pt-2">Reyting jadvali</h3>
               <div className="overflow-x-auto rounded-xl border border-white/10">
                 <table className="w-full text-left text-sm text-white/80">
                   <thead className="bg-[#1a1a1a] text-white/50 border-b border-white/10">

@@ -90,6 +90,8 @@ export interface Exam {
   maxAttempts?: number;
   randomizeQuestions?: boolean;
   status?: 'active' | 'ended';
+  finalizedAt?: string;      // imtihon yakunlangan vaqt
+  raschReport?: any;         // yakunlanganda muzlatilgan Rasch hisoboti { results, stats }
   createdAt: string;
 }
 

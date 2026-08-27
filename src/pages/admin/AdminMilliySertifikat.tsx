@@ -8,19 +8,20 @@ import toast from 'react-hot-toast';
 import AdminCertificateBuilder from './AdminCertificateBuilder';
 import AdminCertificateResults from './AdminCertificateResults';
 import { useAuth } from '../../contexts/AuthContext';
+import { computeRaschReport, dedupeBestAttempts } from '../../lib/rasch';
 
 export default function AdminMilliySertifikat() {
   const { user } = useAuth();
   const { confirm } = useConfirm();
-  
+
   const [tests, setTests] = useState<(TestData & { id?: string })[]>([]);
   const [exams, setExams] = useState<Exam[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
-  
+
   const [isBuilderOpen, setIsBuilderOpen] = useState(false);
   const [viewingResultsFor, setViewingResultsFor] = useState<Exam | null>(null);
   const [editingTest, setEditingTest] = useState<TestData & { id?: string } | null>(null);
-  
+
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
   const [isCreationModeModalOpen, setIsCreationModeModalOpen] = useState(false);
   const [assigningTest, setAssigningTest] = useState<TestData & { id?: string } | null>(null);
@@ -77,7 +78,7 @@ export default function AdminMilliySertifikat() {
       isFastMode,
       questions: [],
       createdAt: new Date().toISOString()
-    });
+    } as any);
     setIsCreationModeModalOpen(false);
     setIsBuilderOpen(true);
   };
@@ -98,7 +99,7 @@ export default function AdminMilliySertifikat() {
       }
     }
   };
-  
+
   const handleAssignClick = (t: TestData & { id?: string }) => {
     setAssigningTest(t);
     setAssignForm({ title: t.title + ' Imtihoni', subject: 'Matematika', date: '', startTime: '', duration: '120', groupIds: [] });
@@ -142,7 +143,7 @@ export default function AdminMilliySertifikat() {
       toast.error("Xatolik yuz berdi");
     }
   };
-  
+
   const handleDeleteExam = async (id: string) => {
     if (await confirm({ title: "Diqqat", message: "Haqiqatan ham bu imtihonni o.chirmoqchimisiz?" })) {
       try {
@@ -151,6 +152,48 @@ export default function AdminMilliySertifikat() {
       } catch (e) {
         toast.error("Xatolik");
       }
+    }
+  };
+
+  // Imtihonni yakunlash: barcha natijalar bo'yicha Rasch hisoboti bir marta
+  // hisoblanadi va imtihon hujjatiga muzlatiladi (keyin o'zgarmaydi).
+  const handleFinalizeExam = async (exam: Exam) => {
+    const ok = await confirm({
+      title: "Imtihonni yakunlash",
+      message: "Yakunlangach natijalar muzlatiladi va o'quvchilarga ko'rinadi. Davom etilsinmi?",
+    });
+    if (!ok) return;
+    try {
+      const snap = await getDocs(query(collection(db, 'exam_results'), where('examId', '==', exam.id)));
+      const all = snap.docs.map(d => d.data());
+      const best = dedupeBestAttempts(all.filter((r: any) => r.raschItems && r.raschItems.length === 55));
+      if (best.length === 0) {
+        toast.error("Baholanadigan natija yo'q (55 birlikli topshiruv topilmadi).");
+        return;
+      }
+      const matrix = best.map((r: any) => ({ studentId: r.studentId, studentName: r.studentName, items: r.raschItems }));
+      const report = computeRaschReport(matrix);
+      await updateDoc(doc(db, 'exams', exam.id), {
+        status: 'ended',
+        finalizedAt: new Date().toISOString(),
+        raschReport: report,
+      });
+      toast.success(`Imtihon yakunlandi (${best.length} o'quvchi baholandi).`);
+    } catch (e) {
+      console.error(e);
+      toast.error("Yakunlashda xatolik");
+    }
+  };
+
+  // Yakunlangan imtihonni qayta ochish (natijalarni yangilash uchun)
+  const handleReopenExam = async (exam: Exam) => {
+    const ok = await confirm({ title: "Qayta ochish", message: "Imtihon qayta faollashadi va natijalar yangilanishi mumkin. Davom etilsinmi?" });
+    if (!ok) return;
+    try {
+      await updateDoc(doc(db, 'exams', exam.id), { status: 'active' });
+      toast.success("Imtihon qayta ochildi");
+    } catch (e) {
+      toast.error("Xatolik");
     }
   };
 
@@ -201,9 +244,9 @@ export default function AdminMilliySertifikat() {
           )}
         </div>
       </div>
-      
+
       <hr className="border-white/10" />
-      
+
       {/* Exams section */}
       <div>
         <div className="mb-6">
@@ -228,19 +271,35 @@ export default function AdminMilliySertifikat() {
                          <h3 className="font-bold text-white text-lg">{exam.title}</h3>
                          <p className="text-[#FEC204] text-sm font-bold">{exam.subject}</p>
                        </div>
-                       <span className="px-2 py-1 bg-white/10 rounded text-xs font-bold text-white/70">Rasch</span>
+                       {exam.status === 'ended' ? (
+                         <span className="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs font-bold">Yakunlangan</span>
+                       ) : (
+                         <span className="px-2 py-1 bg-[#FEC204]/20 text-[#FEC204] rounded text-xs font-bold">Faol</span>
+                       )}
                      </div>
                      <div className="text-sm text-white/60 space-y-1 my-3">
                        <p>Guruhlar: {exam.groupIds?.length || 0} ta guruhga biriktirilgan</p>
                        <p>Sana: {exam.date} {exam.startTime}</p>
                        <p>Davomiyligi: {exam.duration} daqiqa</p>
+                       {exam.status === 'ended' && exam.raschReport?.stats && (
+                         <p className="text-green-400/80">Baholangan: {exam.raschReport.stats.n} o'quvchi</p>
+                       )}
                      </div>
                    </div>
-                   
+
                    <div className="flex gap-2 mt-2 pt-4 border-t border-white/5">
                      <button onClick={() => setViewingResultsFor(exam)} className="flex-1 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 py-2 rounded-lg text-sm font-bold transition-colors">
-                       Natijalarni (Rasch) ko'rish
+                       Natijalar
                      </button>
+                     {exam.status === 'ended' ? (
+                       <button onClick={() => handleReopenExam(exam)} className="px-3 bg-white/5 hover:bg-white/10 text-white/70 py-2 rounded-lg text-sm font-bold transition-colors">
+                         Qayta ochish
+                       </button>
+                     ) : (
+                       <button onClick={() => handleFinalizeExam(exam)} className="px-3 bg-green-500/20 hover:bg-green-500/30 text-green-400 py-2 rounded-lg text-sm font-bold transition-colors">
+                         Yakunlash
+                       </button>
+                     )}
                      <button onClick={() => handleDeleteExam(exam.id)} className="p-2 bg-white/5 hover:bg-red-500/20 text-white hover:text-red-500 rounded-lg transition-colors">
                        <Trash2 size={18} />
                      </button>
@@ -259,10 +318,9 @@ export default function AdminMilliySertifikat() {
           onSave={() => { setIsBuilderOpen(false); setEditingTest(null); }}
         />
       )}
-      
+
       {viewingResultsFor && <AdminCertificateResults exam={viewingResultsFor} onClose={() => setViewingResultsFor(null)} />}
 
-      
       {isCreationModeModalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="glass-panel rounded-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
@@ -308,7 +366,7 @@ export default function AdminMilliySertifikat() {
                   <label className="text-sm font-bold text-white/70 block mb-1">Fani (Subject)</label>
                   <input type="text" value={assignForm.subject} onChange={e => setAssignForm({...assignForm, subject: e.target.value})} className="w-full glass-panel p-3 outline-none text-white focus:border-[#FEC204]/50 text-sm rounded-xl" placeholder="Matematika" required />
                 </div>
-                
+
                 <div>
                   <label className="text-sm font-bold text-white/70 block mb-1">Guruhlar (Biriktirish)</label>
                   <div className="glass-panel p-3 rounded-xl h-32 overflow-y-auto custom-scrollbar flex flex-col gap-2 border border-white/10">
@@ -331,7 +389,7 @@ export default function AdminMilliySertifikat() {
                     <input type="time" value={assignForm.startTime} onChange={e => setAssignForm({...assignForm, startTime: e.target.value})} className="w-full glass-panel p-3 outline-none text-white focus:border-[#FEC204]/50 text-sm rounded-xl [color-scheme:dark]" required />
                   </div>
                 </div>
-                
+
                 <div>
                   <label className="text-sm font-bold text-white/70 block mb-1">Davomiyligi (daqiqa)</label>
                   <input type="number" min="1" value={assignForm.duration} onChange={e => setAssignForm({...assignForm, duration: e.target.value})} className="w-full glass-panel p-3 outline-none text-white focus:border-[#FEC204]/50 text-sm rounded-xl" required />

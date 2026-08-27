@@ -7,6 +7,7 @@ import toast from 'react-hot-toast';
 import { AlertTriangle, Clock, Send, ChevronLeft, ChevronRight } from 'lucide-react';
 import Latex from 'react-latex-next';
 import { useConfirm } from '../../contexts/ConfirmContext';
+import MathAnswerField, { answersEqual } from '../../components/MathAnswerField';
 
 interface Props {
   exam: Exam;
@@ -93,20 +94,28 @@ export default function StudentCertificateTake({ exam, onClose }: Props) {
       
       const raschItems: number[] = [];
       let totalCorrect = 0;
-      
-      testData.questions.forEach((q, i) => {
+
+      // Ochiq javobni baholash: matematik jihatdan teng ifodalar ham to'g'ri sanaladi
+      const checkOpen = async (studentVal: string, correctVal: string): Promise<number> => {
+        const s = (studentVal || '').trim();
+        const c = (correctVal || '').trim();
+        if (!s || !c) return 0;
+        try {
+          return (await answersEqual(s, c)) ? 1 : 0;
+        } catch {
+          return s.toLowerCase() === c.toLowerCase() ? 1 : 0;
+        }
+      };
+
+      for (const q of testData.questions) {
         if (q.isOpenEnded) {
           // Part a
-          const ansA = userAnswers[`${q.id}_0`] || '';
-          const correctA = q.subAnswers?.[0]?.correctAnswerText || '';
-          const isA = (ansA.trim().toLowerCase() === correctA.trim().toLowerCase() && correctA.trim() !== '') ? 1 : 0;
+          const isA = await checkOpen(userAnswers[`${q.id}_0`], q.subAnswers?.[0]?.correctAnswerText || '');
           raschItems.push(isA);
           totalCorrect += isA;
-          
+
           // Part b
-          const ansB = userAnswers[`${q.id}_1`] || '';
-          const correctB = q.subAnswers?.[1]?.correctAnswerText || '';
-          const isB = (ansB.trim().toLowerCase() === correctB.trim().toLowerCase() && correctB.trim() !== '') ? 1 : 0;
+          const isB = await checkOpen(userAnswers[`${q.id}_1`], q.subAnswers?.[1]?.correctAnswerText || '');
           raschItems.push(isB);
           totalCorrect += isB;
         } else {
@@ -115,7 +124,7 @@ export default function StudentCertificateTake({ exam, onClose }: Props) {
           raschItems.push(isC);
           totalCorrect += isC;
         }
-      });
+      }
       
       const timeSpent = (exam.duration * 60) - timeLeft;
       
@@ -196,23 +205,19 @@ export default function StudentCertificateTake({ exam, onClose }: Props) {
                   {/* Part a */}
                   <div>
                     <label className="text-white/70 font-bold mb-2 block">a) javobingizni kiriting:</label>
-                    <input 
-                      type="text" 
+                    <MathAnswerField
                       value={userAnswers[`${currentQ.id}_0`] || ''}
-                      onChange={(e) => handleOpenAnswer(currentQ.id, 0, e.target.value)}
-                      className="w-full bg-[#1a1a1a] border border-white/20 p-4 rounded-xl text-white outline-none focus:border-[#FEC204]"
-                      placeholder="Javobni kiriting..."
+                      onChange={(latex) => handleOpenAnswer(currentQ.id, 0, latex)}
+                      placeholder="a) javob (matematik ham mumkin)"
                     />
                   </div>
                   {/* Part b */}
                   <div>
                     <label className="text-white/70 font-bold mb-2 block">b) javobingizni kiriting:</label>
-                    <input 
-                      type="text" 
+                    <MathAnswerField
                       value={userAnswers[`${currentQ.id}_1`] || ''}
-                      onChange={(e) => handleOpenAnswer(currentQ.id, 1, e.target.value)}
-                      className="w-full bg-[#1a1a1a] border border-white/20 p-4 rounded-xl text-white outline-none focus:border-[#FEC204]"
-                      placeholder="Javobni kiriting..."
+                      onChange={(latex) => handleOpenAnswer(currentQ.id, 1, latex)}
+                      placeholder="b) javob (matematik ham mumkin)"
                     />
                   </div>
                 </div>
