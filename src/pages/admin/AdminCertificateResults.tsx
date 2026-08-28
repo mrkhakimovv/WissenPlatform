@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import * as XLSX from 'xlsx-js-style';
 import jsPDF from 'jspdf';
+import { toPng } from 'html-to-image';
 import autoTable from 'jspdf-autotable';
 import { Exam } from '../../types';
 import { collection, query, where, getDocs } from 'firebase/firestore';
@@ -59,16 +60,48 @@ export default function AdminCertificateResults({ exam, onClose }: Props) {
 
   const results: RaschResult[] = report?.results ?? [];
 
-  const exportPDF = () => {
+  const exportPDF = async () => {
     const numItems = report?.stats?.numItems || 45;
     
     const doc = new jsPDF();
+    
+    // Try to capture the Rasch stats panel
+    const statsPanel = document.getElementById('rasch-stats-panel-pdf');
+    if (statsPanel) {
+      try {
+        const imgData = await toPng(statsPanel, {
+          backgroundColor: '#111111',
+          pixelRatio: 2,
+        });
+        
+        // We need dimensions. html-to-image doesn't give us a canvas directly, 
+        // so we can use the element's clientWidth and clientHeight.
+        const elWidth = statsPanel.clientWidth;
+        const elHeight = statsPanel.clientHeight;
+        const canvasHeight = elHeight;
+        const canvasWidth = elWidth;
+
+        
+        // Add header to first page as well
+        doc.setFont("times", "normal");
+        doc.setFontSize(16);
+        doc.text(`${exam.title} - Rasch Natijalari (@wissen_edu telegram kanaliga obuna bo'ling!)`, 14, 20);
+        
+        const pdfWidth = doc.internal.pageSize.getWidth() - 28; // Add 14mm padding on each side
+        const pdfHeight = (canvasHeight * pdfWidth) / canvasWidth;
+        
+        doc.addImage(imgData, 'PNG', 14, 30, pdfWidth, pdfHeight);
+        doc.addPage();
+      } catch (err) {
+        console.error("Error generating stats image", err);
+      }
+    }
     
     // Attempt to set Times New Roman if available, fallback to times
     doc.setFont("times", "normal");
     
     doc.setFontSize(16);
-    doc.text(`${exam.title} - Rasch Natijalari`, 14, 20);
+    doc.text(`${exam.title} - Rasch Natijalari (@wissen_edu telegram kanaliga obuna bo'ling!)`, 14, 20);
     doc.setFontSize(12);
     doc.text(`${exam.subject} • ${exam.date}`, 14, 28);
     
@@ -229,7 +262,7 @@ export default function AdminCertificateResults({ exam, onClose }: Props) {
                   : '⏳ Jonli hisob (ko\'rib chiqish). Yakuniy natija imtihonni "Yakunlash" tugmasi bilan muzlatiladi.'}
               </div>
 
-              {report && <RaschStatsPanel report={report} />}
+              {report && <div id="rasch-stats-panel-pdf" className="p-4 bg-[#111111] rounded-xl"><RaschStatsPanel report={report} /></div>}
 
               <h3 className="text-white font-bold pt-2">Reyting jadvali</h3>
               <div className="overflow-x-auto rounded-xl border border-white/10">

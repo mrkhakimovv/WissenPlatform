@@ -48,7 +48,7 @@ export default defineConfig(({mode}) => {
           globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
           // Katta fayllar (font yoki rasm) buildni to'xtatib qo'ymasligi uchun
           // precache limitini 5 MB ga oshiramiz.
-          maximumFileSizeToCacheInBytes: 5 * 1024 * 1024
+          maximumFileSizeToCacheInBytes: 10 * 1024 * 1024
         }
       })
     ],
