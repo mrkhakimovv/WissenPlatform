@@ -142,7 +142,25 @@ export default function StudentCertificateTake({ exam, onClose }: Props) {
         submittedAt: new Date().toISOString()
       });
       
+      
+      // Notify via TG
+      try {
+        await fetch('/api/tg-result', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            studentId: user.id,
+            examId: exam.id,
+            score: totalCorrect,
+            total: totalQuestionsComputed
+          })
+        });
+      } catch (err) {
+        console.error("TG notify error:", err);
+      }
+      
       toast.success("Imtihon topshirildi!");
+
       setResultSummary({ score: totalCorrect, total: totalQuestionsComputed });
     } catch (e: any) {
       console.error("SUBMIT ERROR:", e);

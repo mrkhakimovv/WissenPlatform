@@ -1,3 +1,4 @@
+import "./src/server/bot";
 import express from "express";
 import path from "path";
 import cors from "cors";
@@ -77,7 +78,102 @@ async function startServer() {
   // TASHXIS (debug) — bazada nechta FCM token borligini ko'rsatadi.
   // Brauzerда https://<sayt>/api/notification-debug ni ochib tekshiring.
   // Faqat sonlarni qaytaradi (shaxsiy ma'lumot yo'q). Sinovdan keyin o'chirsa bo'ladi.
-  app.get("/api/notification-debug", async (_req, res) => {
+  
+  app.post("/api/tg-auth", async (req, res) => {
+    try {
+      const { tgUserId } = req.body;
+      if (!tgUserId) return res.status(400).json({ error: "Missing tgUserId" });
+      
+      if (!adminDb || !adminAuth) {
+        return res.status(500).json({ error: "Firebase admin not initialized" });
+      }
+
+      const usersSnap = await adminDb.collection('users').where('telegramChatId', '==', Number(tgUserId)).get();
+      if (usersSnap.empty) {
+        return res.status(404).json({ error: "User not found for this Telegram ID" });
+      }
+
+      const uid = usersSnap.docs[0].id;
+      const customToken = await adminAuth.createCustomToken(uid);
+      res.json({ token: customToken });
+    } catch (error) {
+      console.error("TG Auth Error:", error);
+      res.status(500).json({ error: "Internal error" });
+    }
+  });
+
+
+  app.post("/api/tg-result", async (req, res) => {
+    try {
+      const { studentId, examId, score, total } = req.body;
+      if (!studentId || !examId) return res.status(400).json({ error: "Missing data" });
+      
+      const userDoc = await adminDb.collection('users').doc(studentId).get();
+      if (!userDoc.exists) return res.status(404).json({ error: "User not found" });
+      
+      const examDoc = await adminDb.collection('exams').doc(examId).get();
+      const examTitle = examDoc.exists ? examDoc.data().title : "Imtihon";
+      
+      const tgChatId = userDoc.data().telegramChatId;
+      if (tgChatId) {
+        // Send telegram message
+        const { bot } = require('./src/server/bot');
+        if (bot) {
+          bot.telegram.sendMessage(
+            tgChatId,
+            `Tugallandi! ✅\n\nSiz "${examTitle}" imtihonini muvaffaqiyatli topshirdingiz.\nNatija: ${score} / ${total} ta to'g'ri.\n\nImtihon to'liq yakunlangach (barcha topshirib bo'lgach), Rasch modeli asosida hisoblangan yakuniy balingiz e'lon qilinadi.`
+          ).catch((e) => console.error("TG send error:", e));
+        }
+      }
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("TG Result Error:", error);
+      res.status(500).json({ error: "Internal error" });
+    }
+  });
+
+
+  app.post("/api/tg-finalize", async (req, res) => {
+    try {
+      const { examId } = req.body;
+      if (!examId) return res.status(400).json({ error: "Missing examId" });
+      
+      const examDoc = await adminDb.collection('exams').doc(examId).get();
+      if (!examDoc.exists) return res.status(404).json({ error: "Exam not found" });
+      
+      const examData = examDoc.data();
+      const examTitle = examData.title || "Imtihon";
+      const raschReport = examData.raschReport;
+      
+      if (!raschReport || !raschReport.results) {
+        return res.status(400).json({ error: "No Rasch report available" });
+      }
+      
+      const results = raschReport.results.filter(r => !r.synthetic); // Only real users
+      
+      const { bot } = require('./src/server/bot');
+      if (bot) {
+        for (const r of results) {
+          const userDoc = await adminDb.collection('users').doc(r.studentId).get();
+          if (userDoc.exists) {
+            const tgChatId = userDoc.data().telegramChatId;
+            if (tgChatId) {
+              const msg = `Natijalar e'lon qilindi! 📊\n\n"${examTitle}" imtihoni yakunlandi.\n\nSizning natijangiz:\nTo'g'ri javoblar: ${r.correct} ta\nTo'plagan balingiz: ${r.ball} ball\nDaraja: ${r.grade}\nO'rningiz: ${r.rank}-o'rin (Top ${100 - (r.percentile || 0)}%)\n\nTabriklaymiz!`;
+              bot.telegram.sendMessage(tgChatId, msg).catch((e) => console.error("TG Finalize send error:", e));
+            }
+          }
+        }
+      }
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("TG Finalize Error:", error);
+      res.status(500).json({ error: "Internal error" });
+    }
+  });
+
+app.get("/api/notification-debug", async (_req, res) => {
     try {
       if (!adminDb) {
         return res.status(500).json({ error: "Firebase admin not initialized", databaseId: process.env.FIREBASE_DATABASE_ID || process.env.VITE_FIREBASE_DATABASE_ID || '(default)' });

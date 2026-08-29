@@ -9,6 +9,7 @@ import { ConfirmProvider } from './contexts/ConfirmContext';
 import AdminLayout from './components/AdminLayout';
 import StudentLayout from './components/StudentLayout';
 import Login from './pages/Login';
+import TelegramExam from './pages/TelegramExam';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminGroups from './pages/admin/AdminGroups';
 import AdminStudents from './pages/admin/AdminStudents';
@@ -72,6 +73,7 @@ export default function App() {
           <Routes>
           <Route element={<RootLayout />}>
             <Route path="/login" element={<Login />} />
+            <Route path="/tg-exam" element={<TelegramExam />} />
             <Route path="/qoshil" element={<StudentRegistration />} />
             <Route path="/oqituvchi-qoshil" element={<TeacherRegistration />} />
             <Route path="/" element={<DefaultRoute />} />

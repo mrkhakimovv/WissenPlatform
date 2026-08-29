@@ -30,10 +30,10 @@ export const initMathLive = () => {
 
     // Endi CDN emas, balki /public papkasidagi mahalliy (local) mathlive resurslari ishlatiladi.
     if (MathfieldElement.fontsDirectory !== null) {
-      MathfieldElement.fontsDirectory = '/mathlive/fonts';
+      // MathfieldElement.fontsDirectory = '/mathlive/fonts';
     }
     if (MathfieldElement.soundsDirectory !== null) {
-      MathfieldElement.soundsDirectory = '/mathlive/sounds';
+      // MathfieldElement.soundsDirectory = '/mathlive/sounds';
     }
   } catch (e) {
     console.warn('Failed to configure MathLive directories:', e);

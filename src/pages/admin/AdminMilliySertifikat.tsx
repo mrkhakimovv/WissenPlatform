@@ -264,11 +264,23 @@ export default function AdminMilliySertifikat() {
         report = computeRaschReport(matrix); // faqat real o'quvchilar (hozirgi holat kabi)
       }
 
+
       await updateDoc(doc(db, 'exams', exam.id), {
         status: 'ended',
         finalizedAt: exam.finalizedAt || new Date().toISOString(), // keep original finalizedAt if it exists
         raschReport: report,
       });
+      
+      try {
+        await fetch('/api/tg-finalize', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ examId: exam.id })
+        });
+      } catch (e) {
+        console.error("TG finalize trigger failed:", e);
+      }
+
       if (!skipConfirm) {
         toast.success(
           synCount > 0
