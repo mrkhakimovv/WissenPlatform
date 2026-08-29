@@ -136,6 +136,7 @@ export default function StudentCertificateTake({ exam, onClose }: Props) {
         score: totalCorrect,
         total: totalQuestionsComputed,
         raschItems,
+        answers: userAnswers,
         timeSpent,
         attempts: attemptNum,
         submittedAt: new Date().toISOString()

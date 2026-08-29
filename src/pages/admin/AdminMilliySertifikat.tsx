@@ -8,7 +8,8 @@ import toast from 'react-hot-toast';
 import AdminCertificateBuilder from './AdminCertificateBuilder';
 import AdminCertificateResults from './AdminCertificateResults';
 import { useAuth } from '../../contexts/AuthContext';
-import { computeRaschReport, dedupeBestAttempts } from '../../lib/rasch';
+import { computeRaschReport, computeRaschWithReference, dedupeBestAttempts } from '../../lib/rasch';
+import { generateSyntheticMatrix, itemDifficultiesFromMatrix, seedFromString } from '../../lib/synthetic';
 
 export default function AdminMilliySertifikat() {
   const { user } = useAuth();
@@ -25,7 +26,63 @@ export default function AdminMilliySertifikat() {
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
   const [isCreationModeModalOpen, setIsCreationModeModalOpen] = useState(false);
   const [assigningTest, setAssigningTest] = useState<TestData & { id?: string } | null>(null);
-  const [assignForm, setAssignForm] = useState({ title: '', subject: '', date: '', startTime: '', duration: '120', groupIds: [] as string[] });
+  const [assignForm, setAssignForm] = useState({ title: '', subject: '', date: '', startTime: '', duration: '120', groupIds: [] as string[], syntheticEnabled: false, syntheticCount: '10000' });
+
+  const [isEditExamModalOpen, setIsEditExamModalOpen] = useState(false);
+  const [editingExam, setEditingExam] = useState<Exam | null>(null);
+  const [editExamForm, setEditExamForm] = useState({ title: '', subject: '', date: '', startTime: '', duration: '120', groupIds: [] as string[], syntheticEnabled: false, syntheticCount: '10000' });
+
+  const handleEditExam = (exam: Exam) => {
+    setEditingExam(exam);
+    setEditExamForm({
+      title: exam.title,
+      subject: exam.subject,
+      date: exam.date || '',
+      startTime: exam.startTime || '',
+      duration: exam.duration.toString(),
+      groupIds: exam.groupIds || [],
+      syntheticEnabled: !!exam.syntheticEnabled,
+      syntheticCount: (exam.syntheticCount || 10000).toString(),
+    });
+    setIsEditExamModalOpen(true);
+  };
+
+  const handleSaveExamEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingExam) return;
+    
+    try {
+      const updatedExam = {
+        ...editingExam,
+        title: editExamForm.title,
+        subject: editExamForm.subject,
+        date: editExamForm.date,
+        startTime: editExamForm.startTime,
+        duration: parseInt(editExamForm.duration),
+        groupIds: editExamForm.groupIds,
+        syntheticEnabled: editExamForm.syntheticEnabled,
+        syntheticCount: editExamForm.syntheticEnabled ? Math.max(0, parseInt(editExamForm.syntheticCount) || 0) : 0,
+      };
+
+      await updateDoc(doc(db, 'exams', editingExam.id), updatedExam);
+      
+      // Agar imtihon allaqachon yakunlangan bo'lsa va sintetik sozlamalar o'zgargan bo'lsa, Raschni qayta hisoblaymiz.
+      if (updatedExam.status === 'ended' && 
+          (updatedExam.syntheticEnabled !== editingExam.syntheticEnabled || updatedExam.syntheticCount !== editingExam.syntheticCount)) {
+          toast.loading("Natijalar qayta hisoblanmoqda...", { id: 'recalc-exam' });
+          await handleFinalizeExam(updatedExam, true); // true for skipConfirm
+          toast.success("Imtihon saqlandi va natijalar yangilandi!", { id: 'recalc-exam' });
+      } else {
+          toast.success("Imtihon ma'lumotlari yangilandi!");
+      }
+      
+      setIsEditExamModalOpen(false);
+      setEditingExam(null);
+    } catch (err) {
+      console.error(err);
+      toast.error("Xatolik yuz berdi");
+    }
+  };
 
   // Fetch Tests
   useEffect(() => {
@@ -102,7 +159,7 @@ export default function AdminMilliySertifikat() {
 
   const handleAssignClick = (t: TestData & { id?: string }) => {
     setAssigningTest(t);
-    setAssignForm({ title: t.title + ' Imtihoni', subject: 'Matematika', date: '', startTime: '', duration: '120', groupIds: [] });
+    setAssignForm({ title: t.title + ' Imtihoni', subject: 'Matematika', date: '', startTime: '', duration: '120', groupIds: [], syntheticEnabled: false, syntheticCount: '10000' });
     setIsAssignModalOpen(true);
   };
 
@@ -144,6 +201,8 @@ export default function AdminMilliySertifikat() {
         duration: parseInt(assignForm.duration),
         examType: 'certificate',
         status: 'active',
+        syntheticEnabled: assignForm.syntheticEnabled,
+        syntheticCount: assignForm.syntheticEnabled ? Math.max(0, parseInt(assignForm.syntheticCount) || 0) : 0,
         createdAt: new Date().toISOString()
       });
       toast.success("Sertifikat imtihoni yaratildi!");
@@ -167,12 +226,14 @@ export default function AdminMilliySertifikat() {
 
   // Imtihonni yakunlash: barcha natijalar bo'yicha Rasch hisoboti bir marta
   // hisoblanadi va imtihon hujjatiga muzlatiladi (keyin o'zgarmaydi).
-  const handleFinalizeExam = async (exam: Exam) => {
-    const ok = await confirm({
-      title: "Imtihonni yakunlash",
-      message: "Yakunlangach natijalar muzlatiladi va o'quvchilarga ko'rinadi. Davom etilsinmi?",
-    });
-    if (!ok) return;
+  const handleFinalizeExam = async (exam: Exam, skipConfirm = false) => {
+    if (!skipConfirm) {
+      const ok = await confirm({
+        title: "Imtihonni yakunlash",
+        message: "Yakunlangach natijalar muzlatiladi va o'quvchilarga ko'rinadi. Davom etilsinmi?",
+      });
+      if (!ok) return;
+    }
     try {
       const snap = await getDocs(query(collection(db, 'exam_results'), where('examId', '==', exam.id)));
       const all = snap.docs.map(d => d.data());
@@ -185,13 +246,33 @@ export default function AdminMilliySertifikat() {
       const validResults = best.filter((r: any) => r.raschItems.length === numItems);
 
       const matrix = validResults.map((r: any) => ({ studentId: r.studentId, studentName: r.studentName, items: r.raschItems }));
-      const report = computeRaschReport(matrix);
+
+      // Sintetik (tayanch) o'quvchilar yoqilgan bo'lsa — real + sintetikni bitta Rasch hisobiga qo'shamiz
+      let report;
+      const synCount = exam.syntheticEnabled ? Math.max(0, Math.floor(exam.syntheticCount || 0)) : 0;
+      if (synCount > 0) {
+        const difficulties = itemDifficultiesFromMatrix(matrix); // real o'quvchilardan savol qiyinliklari
+        const synthetic = generateSyntheticMatrix(difficulties, {
+          count: synCount,
+          seed: seedFromString(exam.id), // barqaror: har qayta hisoblanganda bir xil sintetik guruh
+        });
+        report = computeRaschWithReference(matrix, synthetic); // DB ga faqat real o'quvchilar saqlanadi
+      } else {
+        report = computeRaschReport(matrix); // faqat real o'quvchilar (hozirgi holat kabi)
+      }
+
       await updateDoc(doc(db, 'exams', exam.id), {
         status: 'ended',
-        finalizedAt: new Date().toISOString(),
+        finalizedAt: exam.finalizedAt || new Date().toISOString(), // keep original finalizedAt if it exists
         raschReport: report,
       });
-      toast.success(`Imtihon yakunlandi (${best.length} o'quvchi baholandi).`);
+      if (!skipConfirm) {
+        toast.success(
+          synCount > 0
+            ? `Imtihon yakunlandi (${best.length} real + ${synCount.toLocaleString()} tayanch o'quvchi bilan baholandi).`
+            : `Imtihon yakunlandi (${best.length} o'quvchi baholandi).`
+        );
+      }
     } catch (e) {
       console.error(e);
       toast.error("Yakunlashda xatolik");
@@ -294,8 +375,14 @@ export default function AdminMilliySertifikat() {
                        <p>Guruhlar: {exam.groupIds?.length || 0} ta guruhga biriktirilgan</p>
                        <p>Sana: {exam.date} {exam.startTime}</p>
                        <p>Davomiyligi: {exam.duration} daqiqa</p>
+                       {exam.syntheticEnabled && (exam.syntheticCount || 0) > 0 && (
+                         <p className="text-[#FEC204]/80">+ {(exam.syntheticCount || 0).toLocaleString()} tayanch o'quvchi</p>
+                       )}
                        {exam.status === 'ended' && exam.raschReport?.stats && (
-                         <p className="text-green-400/80">Baholangan: {exam.raschReport.stats.n} o'quvchi</p>
+                         <p className="text-green-400/80">
+                           Baholandi: {exam.raschReport.stats.n} real
+                           {exam.raschReport.stats.referenceN ? ` + ${exam.raschReport.stats.referenceN.toLocaleString()} tayanch` : ''}
+                         </p>
                        )}
                      </div>
                    </div>
@@ -313,7 +400,10 @@ export default function AdminMilliySertifikat() {
                          Yakunlash
                        </button>
                      )}
-                     <button onClick={() => handleDeleteExam(exam.id)} className="p-2 bg-white/5 hover:bg-red-500/20 text-white hover:text-red-500 rounded-lg transition-colors">
+                     <button onClick={() => handleEditExam(exam)} className="p-2 bg-white/5 hover:bg-[#FEC204]/20 text-white hover:text-[#FEC204] rounded-lg transition-colors" title="Tahrirlash">
+                       <Edit2 size={18} />
+                     </button>
+                     <button onClick={() => handleDeleteExam(exam.id)} className="p-2 bg-white/5 hover:bg-red-500/20 text-white hover:text-red-500 rounded-lg transition-colors" title="O'chirish">
                        <Trash2 size={18} />
                      </button>
                    </div>
@@ -354,6 +444,81 @@ export default function AdminMilliySertifikat() {
                   <div className="text-sm text-white/50">Javoblar varaqasi shaklida faqat to'g'ri kalitlarni va matnlarni kiritish. O'quvchilar javoblarini tekshirish uchun.</div>
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Exam Modal */}
+      {isEditExamModalOpen && editingExam && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="glass-panel rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-200">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-bold text-white">Imtihon sozlamalarini tahrirlash</h3>
+                <button onClick={() => setIsEditExamModalOpen(false)} className="text-white/50 hover:text-white">
+                  <X size={24} />
+                </button>
+              </div>
+              <form onSubmit={handleSaveExamEdit} className="space-y-4">
+                <div>
+                  <label className="text-sm font-bold text-white/70 block mb-1">Imtihon nomi</label>
+                  <input type="text" value={editExamForm.title} onChange={e => setEditExamForm({...editExamForm, title: e.target.value})} className="w-full glass-panel p-3 outline-none text-white focus:border-[#FEC204]/50 text-sm rounded-xl" required />
+                </div>
+                <div>
+                  <label className="text-sm font-bold text-white/70 block mb-1">Fani (Subject)</label>
+                  <input type="text" value={editExamForm.subject} onChange={e => setEditExamForm({...editExamForm, subject: e.target.value})} className="w-full glass-panel p-3 outline-none text-white focus:border-[#FEC204]/50 text-sm rounded-xl" placeholder="Matematika" required />
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-bold text-white/70 block mb-1">Sana</label>
+                    <input type="date" value={editExamForm.date} onChange={e => setEditExamForm({...editExamForm, date: e.target.value})} className="w-full glass-panel p-3 outline-none text-white focus:border-[#FEC204]/50 text-sm rounded-xl" required />
+                  </div>
+                  <div>
+                    <label className="text-sm font-bold text-white/70 block mb-1">Boshlanish vaqti</label>
+                    <input type="time" value={editExamForm.startTime} onChange={e => setEditExamForm({...editExamForm, startTime: e.target.value})} className="w-full glass-panel p-3 outline-none text-white focus:border-[#FEC204]/50 text-sm rounded-xl" required />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-sm font-bold text-white/70 block mb-1">Davomiyligi (daqiqa)</label>
+                  <input type="number" min="1" value={editExamForm.duration} onChange={e => setEditExamForm({...editExamForm, duration: e.target.value})} className="w-full glass-panel p-3 outline-none text-white focus:border-[#FEC204]/50 text-sm rounded-xl" required />
+                </div>
+
+                <div className="p-4 rounded-xl border border-[#FEC204]/30 bg-[#FEC204]/5">
+                  <label className="flex items-start cursor-pointer">
+                    <div className="flex-1">
+                      <span className="text-sm font-bold text-white">Qo'shimcha o'quvchi qo'shish (Sintetik)</span>
+                      <p className="text-xs text-white/40 mt-0.5">Agar yoqilsa va saqlansa, rasch natijalari shunga mos ravishda avtomatik qayta hisoblanadi.</p>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={editExamForm.syntheticEnabled}
+                      onChange={e => setEditExamForm({ ...editExamForm, syntheticEnabled: e.target.checked })}
+                      className="w-5 h-5 accent-[#FEC204] shrink-0 ml-3"
+                    />
+                  </label>
+                  {editExamForm.syntheticEnabled && (
+                    <div className="mt-3">
+                      <label className="text-xs font-bold text-white/60 block mb-1">Nechta qo'shimcha o'quvchi?</label>
+                      <input
+                        type="number"
+                        min="1"
+                        step="1000"
+                        value={editExamForm.syntheticCount}
+                        onChange={e => setEditExamForm({ ...editExamForm, syntheticCount: e.target.value })}
+                        placeholder="Masalan: 10000"
+                        className="w-full glass-panel p-3 outline-none text-white focus:border-[#FEC204]/50 text-sm rounded-xl"
+                      />
+                    </div>
+                  )}
+                </div>
+
+                <button type="submit" className="w-full py-3 bg-[#FEC204] text-black font-bold rounded-xl mt-4 hover:opacity-90">
+                  Saqlash
+                </button>
+              </form>
             </div>
           </div>
         </div>
@@ -417,6 +582,37 @@ export default function AdminMilliySertifikat() {
                 <div>
                   <label className="text-sm font-bold text-white/70 block mb-1">Davomiyligi (daqiqa)</label>
                   <input type="number" min="1" value={assignForm.duration} onChange={e => setAssignForm({...assignForm, duration: e.target.value})} className="w-full glass-panel p-3 outline-none text-white focus:border-[#FEC204]/50 text-sm rounded-xl" required />
+                </div>
+
+                {/* Qo'shimcha (sintetik) o'quvchilar */}
+                <div className="glass-panel p-3 rounded-xl border border-white/10">
+                  <label className="flex items-center justify-between cursor-pointer">
+                    <div>
+                      <span className="text-sm font-bold text-white">Qo'shimcha o'quvchi qo'shish</span>
+                      <p className="text-xs text-white/40 mt-0.5">Kam real o'quvchi bo'lsa, haqiqiy imtihonga o'xshash katta guruh ichida baholash uchun.</p>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={assignForm.syntheticEnabled}
+                      onChange={e => setAssignForm({ ...assignForm, syntheticEnabled: e.target.checked })}
+                      className="w-5 h-5 accent-[#FEC204] shrink-0 ml-3"
+                    />
+                  </label>
+                  {assignForm.syntheticEnabled && (
+                    <div className="mt-3">
+                      <label className="text-xs font-bold text-white/60 block mb-1">Nechta qo'shimcha o'quvchi?</label>
+                      <input
+                        type="number"
+                        min="1"
+                        step="1000"
+                        value={assignForm.syntheticCount}
+                        onChange={e => setAssignForm({ ...assignForm, syntheticCount: e.target.value })}
+                        placeholder="Masalan: 10000"
+                        className="w-full glass-panel p-3 outline-none text-white focus:border-[#FEC204]/50 text-sm rounded-xl"
+                      />
+                      <p className="text-[11px] text-white/40 mt-1">Sintetik o'quvchilar Rasch modeli asosida turli natijalar oladi va faqat baholash bazasi sifatida ishlatiladi (bazaga saqlanmaydi).</p>
+                    </div>
+                  )}
                 </div>
 
                 <button type="submit" className="w-full py-3 bg-[#FEC204] text-black font-bold rounded-xl mt-4 hover:opacity-90">

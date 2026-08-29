@@ -92,6 +92,8 @@ export interface Exam {
   status?: 'active' | 'ended';
   finalizedAt?: string;      // imtihon yakunlangan vaqt
   raschReport?: any;         // yakunlanganda muzlatilgan Rasch hisoboti { results, stats }
+  syntheticEnabled?: boolean; // qo'shimcha (sintetik) o'quvchilar qo'shilsinmi
+  syntheticCount?: number;    // nechta sintetik o'quvchi qo'shiladi
   createdAt: string;
 }
 

@@ -35,8 +35,12 @@ export default function RaschStatsPanel({ report, highlightStudentId }: Props) {
   const me: RaschResult | undefined = highlightStudentId
     ? results.find(r => r.studentId === highlightStudentId)
     : undefined;
-  const myRank = me ? results.findIndex(r => r.studentId === me.studentId) + 1 : 0;
-  const percentile = me && stats.n > 0 ? Math.round(((stats.n - myRank) / stats.n) * 100) : 0;
+  // Sintetik guruh bo'lsa — saqlangan o'rin/foizni ishlatamiz (butun guruhga nisbatan)
+  const totalCohort = stats.n + (stats.referenceN || 0);
+  const myRank = me ? (me.rank ?? results.findIndex(r => r.studentId === me.studentId) + 1) : 0;
+  const percentile = me
+    ? (me.percentile ?? (stats.n > 0 ? Math.round(((stats.n - myRank) / stats.n) * 100) : 0))
+    : 0;
 
   return (
     <div className="space-y-6">
@@ -64,7 +68,8 @@ export default function RaschStatsPanel({ report, highlightStudentId }: Props) {
             </div>
           </div>
           <p className="text-white/50 text-xs mt-3">
-            {stats.n} ta ishtirokchidan {percentile}% dan yuqori natija. O'rin: {myRank}/{stats.n}.
+            {totalCohort.toLocaleString()} ta ishtirokchidan {percentile}% dan yuqori natija. O'rin: {myRank}/{totalCohort.toLocaleString()}.
+            {stats.referenceN ? ` (${stats.n} real + ${stats.referenceN.toLocaleString()} tayanch)` : ''}
           </p>
         </div>
       )}
@@ -74,8 +79,12 @@ export default function RaschStatsPanel({ report, highlightStudentId }: Props) {
           <BarChart3 size={18} className="text-[#FEC204]" /> Umumiy statistika
         </h3>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-          <Stat icon={<Users size={12} />} label="Ishtirokchilar" value={`${stats.n} ta`} />
-          <Stat icon={<HelpCircle size={12} />} label="Birliklar" value={`${stats.numItems} ta`} />
+          <Stat icon={<Users size={12} />} label="Real o'quvchilar" value={`${stats.n} ta`} />
+          {stats.referenceN ? (
+            <Stat icon={<Users size={12} />} label="Tayanch (sintetik)" value={`${stats.referenceN.toLocaleString()} ta`} />
+          ) : (
+            <Stat icon={<HelpCircle size={12} />} label="Birliklar" value={`${stats.numItems} ta`} />
+          )}
           <Stat icon={<TrendingUp size={12} />} label="O'rtacha qobiliyat μ" value={stats.mu.toFixed(2)} />
           <Stat icon={<TrendingUp size={12} />} label="Sigma σ" value={stats.sigma.toFixed(2)} />
           <Stat icon={<TrendingUp size={12} />} label="Min qobiliyat" value={stats.minTheta.toFixed(2)} />

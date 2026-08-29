@@ -5,6 +5,9 @@ export interface RaschResult {
   theta: number;
   ball: number;
   grade: string;
+  synthetic?: boolean;   // sintetik (tayanch) o'quvchimi
+  rank?: number;         // butun (real+sintetik) guruh ichidagi o'rin
+  percentile?: number;   // butun guruh bo'yicha foizli o'rni
 }
 
 export interface RaschStats {
@@ -31,6 +34,7 @@ export interface RaschFullStats {
   sigmaLogit: number;        // logit qiyinchilik sigmasi
   itemDifficultyPct: number[]; // har savol qiyinchiligi (% xato)
   itemLogit: number[];         // har savol logit qiyinligi (b_j)
+  referenceN?: number;         // qo'shilgan sintetik (tayanch) o'quvchilar soni
 }
 
 export interface RaschReport {
@@ -90,6 +94,108 @@ export function computeRaschReport(
   };
 
   return { results, stats: full };
+}
+
+/**
+ * Real + sintetik o'quvchilarni BITTA Rasch hisobiga qo'shadi.
+ *
+ * Real o'quvchilar katta, barqaror guruh (real + sintetik) ichida baholanadi —
+ * shunda natija topshirgan real o'quvchilar soniga (masalan 50) emas, haqiqiy
+ * imtihon xarakteriga bog'liq bo'ladi. Ball/daraja butun guruhga nisbatan
+ * hisoblanadi, lekin QAYTARILADIGAN natijalar faqat REAL o'quvchilar (sintetik
+ * 10 000 tasi bazaga saqlanmaydi). Savol qiyinligi (%) real o'quvchilar bo'yicha.
+ */
+export function computeRaschWithReference(
+  real: { studentId: string; studentName: string; items: number[] }[],
+  synthetic: { studentId: string; studentName: string; items: number[] }[],
+  returnSynthetic: boolean = false
+): RaschReport {
+  const combined = [...real, ...synthetic];
+  const { results: allResults, stats: base } = calculateRasch(combined); // ball bo'yicha kamayish tartibida
+  const total = allResults.length;
+
+  const rankById = new Map<string, number>();
+  allResults.forEach((r, i) => rankById.set(r.studentId, i + 1));
+  const byId = new Map(allResults.map(r => [r.studentId, r]));
+
+  // Faqat real o'quvchilar natijasi (butun guruhga nisbatan ball/daraja/o'rin)
+  const realResults: RaschResult[] = real
+    .map(r => {
+      const cr = byId.get(r.studentId)!;
+      const rank = rankById.get(r.studentId) ?? total;
+      const percentile = total > 0 ? Math.round(((total - rank) / total) * 100) : 0;
+      return {
+        studentId: cr.studentId,
+        studentName: cr.studentName,
+        correct: cr.correct,
+        theta: cr.theta,
+        ball: cr.ball,
+        grade: cr.grade,
+        rank,
+        percentile,
+      } as RaschResult;
+    });
+    
+  let finalResults = realResults;
+  
+  if (returnSynthetic) {
+    const syntheticResults: RaschResult[] = synthetic.map(r => {
+      const cr = byId.get(r.studentId)!;
+      const rank = rankById.get(r.studentId) ?? total;
+      const percentile = total > 0 ? Math.round(((total - rank) / total) * 100) : 0;
+      return {
+        studentId: cr.studentId,
+        studentName: cr.studentName,
+        correct: cr.correct,
+        theta: cr.theta,
+        ball: cr.ball,
+        grade: cr.grade,
+        rank,
+        percentile,
+        synthetic: true
+      } as RaschResult;
+    });
+    finalResults = [...realResults, ...syntheticResults];
+  }
+  
+  finalResults.sort((a, b) => b.ball - a.ball);
+
+  // Savol qiyinligi (%) — KOMBINATSIYALANGAN (real + sintetik) o'quvchilar bo'yicha
+  const cohortForStats = combined;
+  const N = cohortForStats.length;
+  const numItems = N > 0 ? cohortForStats[0].items.length : 0;
+  const itemDifficultyPct: number[] = [];
+  for (let j = 0; j < numItems; j++) {
+    let c = 0;
+    for (let i = 0; i < N; i++) c += cohortForStats[i].items[j] ? 1 : 0;
+    itemDifficultyPct.push(N > 0 ? ((N - c) / N) * 100 : 0);
+  }
+
+  // Statistikani ham butun guruh (real + sintetik) bo'yicha hisoblaymiz
+  const thetasR = allResults.map(r => r.theta);
+  const ballsR = allResults.map(r => r.ball);
+  const correctsR = allResults.map(r => r.correct);
+
+  const stats: RaschFullStats = {
+    n: real.length,
+    referenceN: synthetic.length,
+    numItems,
+    mu: base.mu,
+    sigma: base.sigma,
+    minTheta: thetasR.length ? Math.min(...thetasR) : 0,
+    maxTheta: thetasR.length ? Math.max(...thetasR) : 0,
+    meanBall: _mean(ballsR),
+    meanCorrect: _mean(correctsR),
+    testDifficulty: _mean(itemDifficultyPct),
+    minItemDifficulty: itemDifficultyPct.length ? Math.min(...itemDifficultyPct) : 0,
+    maxItemDifficulty: itemDifficultyPct.length ? Math.max(...itemDifficultyPct) : 0,
+    meanLogit: _mean(base.itemDifficulties),
+    sigmaLogit: _sd(base.itemDifficulties),
+    itemDifficultyPct,
+    itemLogit: base.itemDifficulties,
+  };
+
+  return { results: finalResults, stats };
 }
 
 /**

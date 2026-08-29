@@ -7,6 +7,7 @@ import { doc, setDoc, updateDoc, collection } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import toast from 'react-hot-toast';
 import MathAnswerField from '../../components/MathAnswerField';
+import { recalculateCertificateExams } from '../../lib/recalculate';
 
 interface Props {
   initialData: TestData & { id?: string };
@@ -79,6 +80,10 @@ export default function AdminCertificateBuilder({ initialData, onClose, onSave }
       setIsSaving(true);
       if (testData.id) {
          await updateDoc(doc(db, 'tests', testData.id), { ...testData });
+         // Test o'zgarganda imtihonlarni qayta hisoblash
+         toast.loading("Natijalar qayta hisoblanmoqda...", { id: 'recalc' });
+         await recalculateCertificateExams(testData);
+         toast.success("Sertifikat testi saqlandi va barcha mos imtihon natijalari yangilandi!", { id: 'recalc' });
       } else {
          const newDocRef = doc(collection(db, 'tests'));
          await setDoc(newDocRef, {
@@ -86,13 +91,13 @@ export default function AdminCertificateBuilder({ initialData, onClose, onSave }
             id: newDocRef.id,
             createdAt: new Date().toISOString()
          });
+         toast.success("Sertifikat testi saqlandi!");
       }
-      toast.success("Sertifikat testi saqlandi!");
       onSave();
       onClose();
     } catch (err) {
       console.error(err);
-      toast.error("Xatolik yuz berdi");
+      toast.error("Xatolik yuz berdi", { id: 'recalc' });
     } finally {
       setIsSaving(false);
     }
@@ -129,6 +134,17 @@ export default function AdminCertificateBuilder({ initialData, onClose, onSave }
       {isFastMode ? (
         <div className="flex-1 overflow-y-auto p-6 md:p-12 custom-scrollbar bg-[#0a0a0a]">
           <div className="max-w-5xl mx-auto">
+            <div className="mb-8">
+              <label className="block text-sm font-bold text-white/70 mb-2">Test Nomi</label>
+              <input
+                type="text"
+                value={testData.title}
+                onChange={(e) => setTestData({ ...testData, title: e.target.value })}
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#FEC204]"
+                placeholder="Test nomini kiriting (Masalan: Milliy Sertifikat 1-variant)"
+              />
+            </div>
+            
             <h3 className="text-xl font-bold text-white mb-2">Javoblar varaqasi (Kalitlarni belgilash)</h3>
             <p className="text-white/50 mb-8 text-sm">O'quvchilar testni qog'ozda ishlashadi va faqat javoblarni onlayn tizimga kiritishadi, yoki siz shu yerda to'g'ri kalitlarni belgilaysiz.</p>
             

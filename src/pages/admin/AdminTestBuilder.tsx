@@ -7,6 +7,7 @@ import 'katex/dist/katex.min.css';
 import Latex from 'react-latex-next';
 import { collection, addDoc, updateDoc, doc, setDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
+import { recalculateStandardExams } from '../../lib/recalculate';
 
 interface Props {
   initialData: TestData;
@@ -51,6 +52,9 @@ export default function AdminTestBuilder({ initialData, onClose, onSave }: Props
          await updateDoc(doc(db, 'tests', testData.id), {
             ...testData
          });
+         toast.loading("Natijalar qayta hisoblanmoqda...", { id: 'recalc' });
+         await recalculateStandardExams(testData);
+         toast.success("Test saqlandi va mos imtihon natijalari yangilandi!", { id: 'recalc' });
       } else {
          const newDocRef = doc(collection(db, 'tests'));
          await setDoc(newDocRef, {
@@ -58,13 +62,13 @@ export default function AdminTestBuilder({ initialData, onClose, onSave }: Props
             id: newDocRef.id,
             createdAt: new Date().toISOString()
          });
+         toast.success("Test saqlandi!");
       }
-      toast.success("Test saqlandi!");
       onSave();
       onClose();
     } catch (err) {
       console.error(err);
-      toast.error("Xatolik yuz berdi");
+      toast.error("Xatolik yuz berdi", { id: 'recalc' });
     } finally {
       setIsSaving(false);
     }

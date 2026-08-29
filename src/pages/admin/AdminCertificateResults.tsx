@@ -6,8 +6,9 @@ import autoTable from 'jspdf-autotable';
 import { Exam } from '../../types';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
-import { computeRaschReport, dedupeBestAttempts, RaschResult, RaschReport } from '../../lib/rasch';
-import { X, Download } from 'lucide-react';
+import { computeRaschReport, dedupeBestAttempts, RaschResult, RaschReport, computeRaschWithReference } from '../../lib/rasch';
+import { generateSyntheticMatrix, itemDifficultiesFromMatrix, seedFromString } from '../../lib/synthetic';
+import { X, Download, Search } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import RaschStatsPanel from '../../components/RaschStatsPanel';
 
@@ -19,15 +20,13 @@ interface Props {
 export default function AdminCertificateResults({ exam, onClose }: Props) {
   const [report, setReport] = useState<RaschReport | null>(null);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showOnlyReal, setShowOnlyReal] = useState(false);
   const isFrozen = exam.status === 'ended' && !!exam.raschReport;
 
   useEffect(() => {
     const loadResults = async () => {
       try {
-        if (isFrozen) {
-          setReport(exam.raschReport as RaschReport);
-          return;
-        }
         const snap = await getDocs(query(collection(db, 'exam_results'), where('examId', '==', exam.id)));
         const all = snap.docs.map(d => d.data());
         const bestPerStudent = dedupeBestAttempts(
@@ -46,8 +45,22 @@ export default function AdminCertificateResults({ exam, onClose }: Props) {
           }));
 
           if (matrix.length > 0) {
-            setReport(computeRaschReport(matrix));
+            const synCount = exam.syntheticEnabled ? Math.max(0, Math.floor(exam.syntheticCount || 0)) : 0;
+            if (synCount > 0) {
+              const difficulties = itemDifficultiesFromMatrix(matrix);
+              const synthetic = generateSyntheticMatrix(difficulties, {
+                count: synCount,
+                seed: seedFromString(exam.id),
+              });
+              // Modal uchun syntheticlarni ham qaytaramiz (true parametr)
+              setReport(computeRaschWithReference(matrix, synthetic, true));
+            } else {
+              setReport(computeRaschReport(matrix));
+            }
           }
+        } else if (isFrozen) {
+           // Fallback to frozen if no docs found for some reason
+           setReport(exam.raschReport as RaschReport);
         }
       } catch (e) {
         console.error(e);
@@ -59,6 +72,12 @@ export default function AdminCertificateResults({ exam, onClose }: Props) {
   }, [exam]);
 
   const results: RaschResult[] = report?.results ?? [];
+
+  const filteredResults = results.filter(r => {
+    if (showOnlyReal && r.synthetic) return false;
+    if (searchQuery && !r.studentName.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+    return true;
+  });
 
   const exportPDF = async () => {
     const numItems = report?.stats?.numItems || 45;
@@ -105,7 +124,7 @@ export default function AdminCertificateResults({ exam, onClose }: Props) {
     doc.setFontSize(12);
     doc.text(`${exam.subject} • ${exam.date}`, 14, 28);
     
-    const tableData = results.map((r, i) => {
+    const tableData = filteredResults.map((r, i) => {
       const xato = numItems - r.correct;
       const foiz = ((r.correct / numItems) * 100).toFixed(1);
       return [
@@ -152,7 +171,7 @@ export default function AdminCertificateResults({ exam, onClose }: Props) {
   const exportExcel = () => {
     const numItems = report?.stats?.numItems || 45; // Default to 45 if not found
     
-    const data = results.map((r, i) => {
+    const data = filteredResults.map((r, i) => {
       const xato = numItems - r.correct;
       const foiz = ((r.correct / numItems) * 100).toFixed(1);
       
@@ -234,10 +253,10 @@ export default function AdminCertificateResults({ exam, onClose }: Props) {
             <p className="text-white/50 text-sm mt-1">{exam.subject} • {exam.date}</p>
           </div>
           <div className="flex gap-3">
-            <button onClick={exportPDF} disabled={results.length === 0} className="px-4 py-2 bg-red-500/20 text-red-400 hover:bg-red-500/30 rounded-lg text-sm font-bold flex items-center gap-2 transition-colors disabled:opacity-50">
+            <button onClick={exportPDF} disabled={filteredResults.length === 0} className="px-4 py-2 bg-red-500/20 text-red-400 hover:bg-red-500/30 rounded-lg text-sm font-bold flex items-center gap-2 transition-colors disabled:opacity-50">
               <Download size={16} /> PDF Export
             </button>
-            <button onClick={exportExcel} disabled={results.length === 0} className="px-4 py-2 bg-green-500/20 text-green-400 hover:bg-green-500/30 rounded-lg text-sm font-bold flex items-center gap-2 transition-colors disabled:opacity-50">
+            <button onClick={exportExcel} disabled={filteredResults.length === 0} className="px-4 py-2 bg-green-500/20 text-green-400 hover:bg-green-500/30 rounded-lg text-sm font-bold flex items-center gap-2 transition-colors disabled:opacity-50">
               <Download size={16} /> Excel Export
             </button>
             <button onClick={onClose} className="p-2 text-white/50 hover:text-white bg-white/5 hover:bg-white/10 rounded-lg transition-colors">
@@ -249,7 +268,7 @@ export default function AdminCertificateResults({ exam, onClose }: Props) {
         <div className="p-6 flex-1 overflow-y-auto custom-scrollbar">
           {loading ? (
             <div className="flex justify-center items-center h-40 text-[#FEC204] font-bold">Yuklanmoqda...</div>
-          ) : results.length === 0 ? (
+          ) : filteredResults.length === 0 ? (
             <div className="text-center text-white/50 py-10 bg-white/5 rounded-xl border border-white/10">
               Hech qanday natija topilmadi (Topshirganlar yo'q yoki test formatiga to'g'ri kelmaydi).
               
@@ -264,7 +283,30 @@ export default function AdminCertificateResults({ exam, onClose }: Props) {
 
               {report && <div id="rasch-stats-panel-pdf" className="p-4 bg-[#111111] rounded-xl"><RaschStatsPanel report={report} /></div>}
 
-              <h3 className="text-white font-bold pt-2">Reyting jadvali</h3>
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pt-2">
+                <h3 className="text-white font-bold">Reyting jadvali</h3>
+                <div className="flex items-center gap-4 w-full sm:w-auto">
+                  <div className="relative flex-1 sm:w-64">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40" size={18} />
+                    <input
+                      type="text"
+                      placeholder="Ism bo'yicha qidirish..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-2 text-white text-sm focus:outline-none focus:border-[#FEC204]"
+                    />
+                  </div>
+                  <label className="flex items-center gap-2 cursor-pointer shrink-0">
+                    <input
+                      type="checkbox"
+                      checked={showOnlyReal}
+                      onChange={(e) => setShowOnlyReal(e.target.checked)}
+                      className="w-4 h-4 accent-[#FEC204]"
+                    />
+                    <span className="text-sm font-bold text-white/70">Faqat real o'quvchilar</span>
+                  </label>
+                </div>
+              </div>
               <div className="overflow-x-auto rounded-xl border border-white/10">
                 <table className="w-full text-left text-sm text-white/80">
                   <thead className="bg-[#1a1a1a] text-white/50 border-b border-white/10">
@@ -278,10 +320,13 @@ export default function AdminCertificateResults({ exam, onClose }: Props) {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/5">
-                    {results.map((r, i) => (
-                      <tr key={r.studentId} className="hover:bg-white/5 transition-colors">
-                        <td className="p-4 font-bold text-white/50">{i + 1}</td>
-                        <td className="p-4 font-bold text-white">{r.studentName}</td>
+                    {filteredResults.map((r, i) => (
+                      <tr key={r.studentId} className={`hover:bg-white/5 transition-colors ${r.synthetic ? 'opacity-50 bg-blue-500/5' : ''}`}>
+                        <td className="p-4 font-bold text-white/50">{r.rank ?? (i + 1)}</td>
+                        <td className="p-4 font-bold text-white">
+                          {r.studentName}
+                          {r.synthetic && <span className="ml-2 text-[10px] bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full uppercase tracking-wider font-bold">Tayanch</span>}
+                        </td>
                         <td className="p-4">{r.correct} / 55</td>
                         <td className="p-4 font-mono text-[#FEC204]">{r.theta.toFixed(3)}</td>
                         <td className="p-4 font-black text-white text-lg">{r.ball.toFixed(1)}</td>
