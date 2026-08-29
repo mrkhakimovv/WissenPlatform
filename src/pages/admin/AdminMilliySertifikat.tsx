@@ -584,36 +584,7 @@ export default function AdminMilliySertifikat() {
                   <input type="number" min="1" value={assignForm.duration} onChange={e => setAssignForm({...assignForm, duration: e.target.value})} className="w-full glass-panel p-3 outline-none text-white focus:border-[#FEC204]/50 text-sm rounded-xl" required />
                 </div>
 
-                {/* Qo'shimcha (sintetik) o'quvchilar */}
-                <div className="glass-panel p-3 rounded-xl border border-white/10">
-                  <label className="flex items-center justify-between cursor-pointer">
-                    <div>
-                      <span className="text-sm font-bold text-white">Qo'shimcha o'quvchi qo'shish</span>
-                      <p className="text-xs text-white/40 mt-0.5">Kam real o'quvchi bo'lsa, haqiqiy imtihonga o'xshash katta guruh ichida baholash uchun.</p>
-                    </div>
-                    <input
-                      type="checkbox"
-                      checked={assignForm.syntheticEnabled}
-                      onChange={e => setAssignForm({ ...assignForm, syntheticEnabled: e.target.checked })}
-                      className="w-5 h-5 accent-[#FEC204] shrink-0 ml-3"
-                    />
-                  </label>
-                  {assignForm.syntheticEnabled && (
-                    <div className="mt-3">
-                      <label className="text-xs font-bold text-white/60 block mb-1">Nechta qo'shimcha o'quvchi?</label>
-                      <input
-                        type="number"
-                        min="1"
-                        step="1000"
-                        value={assignForm.syntheticCount}
-                        onChange={e => setAssignForm({ ...assignForm, syntheticCount: e.target.value })}
-                        placeholder="Masalan: 10000"
-                        className="w-full glass-panel p-3 outline-none text-white focus:border-[#FEC204]/50 text-sm rounded-xl"
-                      />
-                      <p className="text-[11px] text-white/40 mt-1">Sintetik o'quvchilar Rasch modeli asosida turli natijalar oladi va faqat baholash bazasi sifatida ishlatiladi (bazaga saqlanmaydi).</p>
-                    </div>
-                  )}
-                </div>
+
 
                 <button type="submit" className="w-full py-3 bg-[#FEC204] text-black font-bold rounded-xl mt-4 hover:opacity-90">
                   Imtihonni Yaratish
