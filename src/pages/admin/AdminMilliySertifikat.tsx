@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { TestData, Group, Exam } from '../../types';
-import { Trash2, Edit2, Copy, FileText, X, Award, BarChart2 } from 'lucide-react';
+import { Trash2, Edit2, Copy, FileText, X, Award, BarChart2, Search } from 'lucide-react';
 import { collection, doc, deleteDoc, addDoc, updateDoc, onSnapshot, query, orderBy, getDocs, where } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { useConfirm } from '../../contexts/ConfirmContext';
@@ -27,6 +27,9 @@ export default function AdminMilliySertifikat() {
   const [isCreationModeModalOpen, setIsCreationModeModalOpen] = useState(false);
   const [assigningTest, setAssigningTest] = useState<TestData & { id?: string } | null>(null);
   const [assignForm, setAssignForm] = useState({ title: '', subject: '', date: '', startTime: '', duration: '120', groupIds: [] as string[], syntheticEnabled: false, syntheticCount: '10000' });
+
+  const [activeTab, setActiveTab] = useState<'tests' | 'exams'>('exams');
+  const [searchQuery, setSearchQuery] = useState('');
 
   const [isEditExamModalOpen, setIsEditExamModalOpen] = useState(false);
   const [editingExam, setEditingExam] = useState<Exam | null>(null);
@@ -293,27 +296,53 @@ export default function AdminMilliySertifikat() {
 
   return (
     <div className="p-4 md:p-6 lg:p-8 space-y-8">
-      {/* Testlar section */}
+      <div className="flex flex-wrap gap-2 bg-[#1a1a1a] p-1 rounded-xl w-fit border border-white/5">
+        <button
+          onClick={() => { setActiveTab('exams'); setSearchQuery(''); }}
+          className={`px-6 py-2.5 rounded-lg text-sm font-bold transition-colors ${activeTab === 'exams' ? 'bg-[#FEC204] text-black' : 'text-white/60 hover:text-white'}`}
+        >
+          Faol Imtihonlar
+        </button>
+        <button
+          onClick={() => { setActiveTab('tests'); setSearchQuery(''); }}
+          className={`px-6 py-2.5 rounded-lg text-sm font-bold transition-colors ${activeTab === 'tests' ? 'bg-[#FEC204] text-black' : 'text-white/60 hover:text-white'}`}
+        >
+          Milliy Sertifikat Testlari
+        </button>
+      </div>
+
+      {activeTab === 'tests' && (
       <div>
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-          <div>
-            <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+          <div className="flex-1 w-full">
+            <h2 className="text-2xl font-bold text-white flex items-center gap-2 mb-2">
               <Award className="text-[#FEC204]" /> Milliy Sertifikat Testlari (Rasch)
             </h2>
-            <p className="text-white/50 text-sm mt-1">Sertifikat imtihonlari uchun 45-savollik bazalar</p>
+            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center w-full">
+               <div className="relative flex-1 w-full">
+                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40" size={18} />
+                 <input
+                   type="text"
+                   placeholder="Testlarni izlash..."
+                   value={searchQuery}
+                   onChange={e => setSearchQuery(e.target.value)}
+                   className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-white text-sm focus:outline-none focus:border-[#FEC204]"
+                 />
+               </div>
+               <button onClick={handleCreateTest} className="w-full sm:w-auto px-4 py-2.5 rounded-lg bg-[#FEC204] text-black font-bold hover:opacity-90 transition-opacity whitespace-nowrap">
+                 + Yangi Test Yaratish
+               </button>
+            </div>
           </div>
-          <button onClick={handleCreateTest} className="w-full sm:w-auto px-4 py-2 rounded-lg bg-[#FEC204] text-black font-bold hover:opacity-90 transition-opacity">
-            + Yangi Test Yaratish
-          </button>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {tests.length === 0 ? (
+          {tests.filter(t => t.title.toLowerCase().includes(searchQuery.toLowerCase())).length === 0 ? (
             <div className="col-span-full glass-panel p-8 text-center text-white/50 rounded-2xl">
               Hozircha testlar yo'q
             </div>
           ) : (
-            tests.map(test => (
+            tests.filter(t => t.title.toLowerCase().includes(searchQuery.toLowerCase())).map(test => (
               <div key={test.id} className="glass-panel p-5 rounded-2xl border border-white/10 flex flex-col h-full">
                 <div className="flex-1">
                   <h3 className="font-bold text-white text-lg mb-1">{test.title}</h3>
@@ -338,24 +367,37 @@ export default function AdminMilliySertifikat() {
           )}
         </div>
       </div>
+      )}
 
-      <hr className="border-white/10" />
-
-      {/* Exams section */}
+      {activeTab === 'exams' && (
       <div>
-        <div className="mb-6">
-          <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-            <BarChart2 className="text-blue-400" /> Faol va Yakunlangan Sertifikat Imtihonlari
-          </h2>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+          <div className="flex-1 w-full">
+            <h2 className="text-2xl font-bold text-white flex items-center gap-2 mb-2">
+              <BarChart2 className="text-blue-400" /> Faol va Yakunlangan Sertifikat Imtihonlari
+            </h2>
+            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center w-full">
+               <div className="relative flex-1 w-full">
+                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40" size={18} />
+                 <input
+                   type="text"
+                   placeholder="Imtihonlarni izlash..."
+                   value={searchQuery}
+                   onChange={e => setSearchQuery(e.target.value)}
+                   className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-white text-sm focus:outline-none focus:border-[#FEC204]"
+                 />
+               </div>
+            </div>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {exams.length === 0 ? (
+          {exams.filter(e => e.title.toLowerCase().includes(searchQuery.toLowerCase())).length === 0 ? (
              <div className="col-span-full glass-panel p-8 text-center text-white/50 rounded-2xl">
                 Imtihonlar yo'q
              </div>
           ) : (
-             exams.map(exam => {
+             exams.filter(e => e.title.toLowerCase().includes(searchQuery.toLowerCase())).map(exam => {
                const examTest = tests.find(t => t.id === exam.testId);
                return (
                  <div key={exam.id} className="glass-panel p-5 rounded-2xl border border-white/10 flex flex-col justify-between">
@@ -413,6 +455,7 @@ export default function AdminMilliySertifikat() {
           )}
         </div>
       </div>
+      )}
 
       {isBuilderOpen && editingTest && (
         <AdminCertificateBuilder
