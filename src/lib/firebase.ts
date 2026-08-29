@@ -51,10 +51,13 @@ console.log("Final Firebase Config:", firebaseConfig);
 export const app = initializeApp(firebaseConfig);
 const secondaryApp = initializeApp(firebaseConfig, "Secondary");
 
-import { initializeFirestore } from "firebase/firestore";
+import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from "firebase/firestore";
 export const db = initializeFirestore(
   app,
-  { experimentalAutoDetectLongPolling: true },
+  { 
+    experimentalAutoDetectLongPolling: true,
+    localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
+  },
   firestoreDatabaseId,
 );
 

@@ -59,10 +59,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         }, (err) => {
           console.error('Error fetching user:', err);
-          toast.error("Tizimga kirishda xatolik (Ruxsat yo'q). Firebase qoidalarini tekshiring.");
-          signOut(auth);
-          setUser(null);
-          setLoading(false);
+          if (err.message && err.message.toLowerCase().includes('offline')) {
+            console.warn('Client is offline. Keeping current auth state.');
+            setLoading(false);
+          } else {
+            toast.error("Tizimga kirishda xatolik (Ruxsat yo'q). Firebase qoidalarini tekshiring.");
+            signOut(auth);
+            setUser(null);
+            setLoading(false);
+          }
         });
       } else {
         setUser(null);

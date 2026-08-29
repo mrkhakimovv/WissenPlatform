@@ -8,7 +8,7 @@ const ADMIN_ID = process.env.ADMIN_ID || '1986422890';
 export const bot = new Telegraf(BOT_TOKEN);
 bot.use(session());
 
-const DOMAIN = process.env.WEB_APP_URL || 'https://ais-pre-ilqavbqhmw4a4t26oxwzro-188441935411.asia-southeast1.run.app';
+const DOMAIN = process.env.APP_URL || process.env.WEB_APP_URL || 'https://ais-dev-ilqavbqhmw4a4t26oxwzro-188441935411.asia-southeast1.run.app';
 
 // Handle /start
 bot.start((ctx) => {
