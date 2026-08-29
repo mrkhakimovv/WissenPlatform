@@ -273,20 +273,20 @@ export function calculateRasch(matrix: { studentId: string, studentName: string,
   for (let s of thetas) sumSq += Math.pow(s.theta - mu, 2);
   const sigma = N > 1 ? Math.sqrt(sumSq / (N - 1)) : 1;
 
-  // 7 & 8. Ball and Grade — daraja YAXLITLANMAGAN balldan hisoblanadi
+  // 7 & 8. Ball and Grade — daraja YAXLITLANMAGAN (qirqib olingan) balldan hisoblanadi
   const results = thetas.map(s => {
     const Z_i = sigma === 0 ? 0 : (s.theta - mu) / sigma;
     const rawBall = 50 + 10 * Z_i;
 
-    let grade = 'NC';
-    if (rawBall >= 70) grade = 'A+';
-    else if (rawBall >= 65) grade = 'A';
-    else if (rawBall >= 60) grade = 'B+';
-    else if (rawBall >= 55) grade = 'B';
-    else if (rawBall >= 50) grade = 'C+';
-    else if (rawBall >= 46) grade = 'C';
+    const ball = Math.floor(rawBall * 10) / 10; // ballar yaxlitlanmasligi uchun floor (masalan 45.96 => 45.9)
 
-    const ball = Math.round(rawBall * 10) / 10; // ko'rsatish uchun 1 xona
+    let grade = 'NC';
+    if (ball >= 70) grade = 'A+';
+    else if (ball >= 65) grade = 'A';
+    else if (ball >= 60) grade = 'B+';
+    else if (ball >= 55) grade = 'B';
+    else if (ball >= 50) grade = 'C+';
+    else if (ball >= 46) grade = 'C';
 
     return {
       studentId: s.studentId,

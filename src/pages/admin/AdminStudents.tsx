@@ -1,7 +1,8 @@
 import { useConfirm } from '../../contexts/ConfirmContext';
 import React, { useEffect, useState } from 'react';
 import { collection, onSnapshot, query, doc, setDoc, deleteDoc, addDoc, updateDoc, secondaryAuth, createUserWithEmailAndPassword, getDocs, where } from '../../lib/firebase';
-import { db } from '../../lib/firebase';
+import { db, auth } from '../../lib/firebase';
+import { formatDateTimeUz } from '../../lib/utils';
 import { Plus, Search, Trash2, Edit2, X, ChevronRight, CheckCircle2, Layers } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'motion/react';
@@ -22,7 +23,7 @@ export default function AdminStudents() {
 
   const [editingStudent, setEditingStudent] = useState<any>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [editData, setEditData] = useState({ groupId: '', monthlyFee: '' });
+  const [editData, setEditData] = useState({ fullName: '', username: '', password: '', groupId: '', monthlyFee: '', joinedDate: '' });
 
   const [selectedStudent, setSelectedStudent] = useState<any>(null);
   const [studentPayments, setStudentPayments] = useState<Payment[]>([]);
@@ -94,10 +95,29 @@ export default function AdminStudents() {
     e.preventDefault();
     try {
       if (editingStudent) {
-        await updateDoc(doc(db, 'users', editingStudent.id), {
-          groupId: editData.groupId,
-          monthlyFee: Number(editData.monthlyFee)
+        const token = await auth.currentUser?.getIdToken();
+        if (!token) throw new Error("Avtorizatsiya xatosi");
+
+        const res = await fetch('/api/update-student', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            uid: editingStudent.id,
+            fullName: editData.fullName,
+            username: editData.username,
+            password: editData.password,
+            groupId: editData.groupId,
+            monthlyFee: Number(editData.monthlyFee),
+            joinedDate: editData.joinedDate
+          })
         });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Xatolik yuz berdi");
+
         toast.success("Ma'lumotlar yangilandi!");
         setIsEditModalOpen(false);
         setEditingStudent(null);
@@ -112,7 +132,7 @@ export default function AdminStudents() {
   const openEdit = (e: React.MouseEvent, student: any) => {
     e.stopPropagation(); // prevent card click
     setEditingStudent(student);
-    setEditData({ groupId: student.groupId || '', monthlyFee: student.monthlyFee?.toString() || '' });
+    setEditData({ fullName: student.fullName || '', username: student.username || '', password: student.password || '', groupId: student.groupId || '', monthlyFee: student.monthlyFee?.toString() || '', joinedDate: student.joinedDate || '' });
     setIsEditModalOpen(true);
   };
 
@@ -340,7 +360,19 @@ export default function AdminStudents() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm sm:absolute">
           <div className="glass-panel w-full max-w-sm p-6 bg-[#1a1a1a]/80">
             <h2 className="text-lg font-bold mb-4 text-[color:var(--theme-text-primary)]">Tahrirlash: {editingStudent.fullName}</h2>
-            <form onSubmit={handleEdit} className="space-y-4">
+            <form onSubmit={handleEdit} className="space-y-4 max-h-[70vh] overflow-y-auto pr-2 custom-scrollbar">
+              <div>
+                <label className="text-[11px] text-[color:var(--theme-text-primary)]/50 px-1 uppercase tracking-wider font-bold mb-1 block">F.I.SH.</label>
+                <input required placeholder="F.I.SH." value={editData.fullName} onChange={e=>setEditData({...editData, fullName: e.target.value})} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm placeholder-white/30 text-[color:var(--theme-text-primary)]" />
+              </div>
+              <div>
+                <label className="text-[11px] text-[color:var(--theme-text-primary)]/50 px-1 uppercase tracking-wider font-bold mb-1 block">Login</label>
+                <input required placeholder="Login" value={editData.username} onChange={e=>setEditData({...editData, username: e.target.value})} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm placeholder-white/30 text-[color:var(--theme-text-primary)]" />
+              </div>
+              <div>
+                <label className="text-[11px] text-[color:var(--theme-text-primary)]/50 px-1 uppercase tracking-wider font-bold mb-1 block">Parol</label>
+                <input required placeholder="Parol" type="text" value={editData.password} onChange={e=>setEditData({...editData, password: e.target.value})} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm placeholder-white/30 text-[color:var(--theme-text-primary)]" />
+              </div>
               <div>
                 <label className="text-[11px] text-[color:var(--theme-text-primary)]/50 px-1 uppercase tracking-wider font-bold mb-1 block">Guruh</label>
                 <select required value={editData.groupId} onChange={e=>setEditData({...editData, groupId: e.target.value})} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm text-[color:var(--theme-text-primary)] appearance-none" style={{ colorScheme: "dark" }}>
@@ -350,10 +382,14 @@ export default function AdminStudents() {
               </div>
               <div>
                 <label className="text-[11px] text-[color:var(--theme-text-primary)]/50 px-1 uppercase tracking-wider font-bold mb-1 block">Oylik to'lov</label>
-                <input required type="number" placeholder="Oylik to'lov (so'm)" value={editData.monthlyFee} onChange={e=>setEditData({...editData, monthlyFee: e.target.value})} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm placeholder-white/30" />
+                <input required type="number" placeholder="Oylik to'lov (so'm)" value={editData.monthlyFee} onChange={e=>setEditData({...editData, monthlyFee: e.target.value})} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm placeholder-white/30 text-[color:var(--theme-text-primary)]" />
               </div>
-              <div className="flex gap-3 pt-2 mt-4">
-                <button type="button" onClick={()=>{setIsEditModalOpen(false); setEditingStudent(null);}} className="flex-1 py-3 rounded-xl border border-[color:var(--glass-border)] text-sm font-medium hover:bg-white/5">Bekor qilish</button>
+              <div className="space-y-1">
+                <label className="text-[11px] text-[color:var(--theme-text-primary)]/50 px-1 uppercase tracking-wider font-bold">Kelgan sanasi:</label>
+                <input required type="date" value={editData.joinedDate} onChange={e=>setEditData({...editData, joinedDate: e.target.value})} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm text-[color:var(--theme-text-primary)]/90" style={{ colorScheme: "dark" }} />
+              </div>
+              <div className="flex gap-3 pt-2 mt-4 sticky bottom-0 bg-[#1a1a1a]/90 backdrop-blur pb-2">
+                <button type="button" onClick={()=>{setIsEditModalOpen(false); setEditingStudent(null);}} className="flex-1 py-3 rounded-xl border border-[color:var(--glass-border)] text-sm font-medium hover:bg-white/5 text-[color:var(--theme-text-primary)]">Bekor qilish</button>
                 <button type="submit" className="flex-1 bg-[#FEC204] text-black rounded-xl py-3 text-sm font-bold active:scale-95 transition-transform">Saqlash</button>
               </div>
             </form>
@@ -424,9 +460,7 @@ export default function AdminStudents() {
                   <h4 className="text-[11px] uppercase tracking-widest font-bold text-white/40 mb-3">Oxirgi Faollik</h4>
                   <div className="glass-panel p-4">
                     <p className="text-[14px] text-white">
-                      {selectedStudent.lastActive 
-                        ? new Date(selectedStudent.lastActive).toLocaleString('uz-UZ', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }) 
-                        : "Tizimga kirmagan"}
+                      {selectedStudent.lastActive ? formatDateTimeUz(selectedStudent.lastActive) : "Tizimga kirmagan"}
                     </p>
                   </div>
                 </div>

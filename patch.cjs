@@ -1,16 +1,9 @@
 const fs = require('fs');
-let code = fs.readFileSync('src/pages/student/StudentCertificateTake.tsx', 'utf8');
+let code = fs.readFileSync('src/lib/rasch.ts', 'utf-8');
 
-const targetStr = "const [isSubmitting, setIsSubmitting] = useState(false);";
-const replacement = targetStr + "\n" +
-  "  const handleSelectOption = (qId, optIndex) => {\n" +
-  "    setUserAnswers(prev => ({ ...prev, [qId]: optIndex }));\n" +
-  "  };\n" +
-  "\n" +
-  "  const handleOpenAnswer = (qId, part, latex) => {\n" +
-  "    setUserAnswers(prev => ({ ...prev, [qId + '_' + part]: latex }));\n" +
-  "  };\n";
+code = code.replace(
+  "    let grade = 'NC';\n    if (rawBall >= 70) grade = 'A+';\n    else if (rawBall >= 65) grade = 'A';\n    else if (rawBall >= 60) grade = 'B+';\n    else if (rawBall >= 55) grade = 'B';\n    else if (rawBall >= 50) grade = 'C+';\n    else if (rawBall >= 46) grade = 'C';\n\n    const ball = Math.round(rawBall * 10) / 10; // ko'rsatish uchun 1 xona",
+  "    const ball = Math.round(rawBall * 10) / 10; // ko'rsatish uchun 1 xona\n\n    let grade = 'NC';\n    if (ball >= 70) grade = 'A+';\n    else if (ball >= 65) grade = 'A';\n    else if (ball >= 60) grade = 'B+';\n    else if (ball >= 55) grade = 'B';\n    else if (ball >= 50) grade = 'C+';\n    else if (ball >= 46) grade = 'C';"
+);
 
-code = code.replace(targetStr, replacement);
-fs.writeFileSync('src/pages/student/StudentCertificateTake.tsx', code);
-console.log("Patched");
+fs.writeFileSync('src/lib/rasch.ts', code);
