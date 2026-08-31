@@ -203,6 +203,7 @@ export default function AdminSATDatabase() {
   });
   const [isTestConfigOpen, setIsTestConfigOpen] = useState(false);
   const [existingTests, setExistingTests] = useState<string[]>([]);
+  const [activeTab, setActiveTab] = useState<'exams' | 'base'>('exams');
 
   useEffect(() => {
     const unsub = onSnapshot(collection(db, 'tests'), snap => {
@@ -241,85 +242,54 @@ export default function AdminSATDatabase() {
 
   return (
     <div className="space-y-6 pb-6">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-        <div>
-          <h1 className="text-[24px] font-black tracking-tight text-white mb-1">SAT BAZA</h1>
-          <p className="text-[12px] font-bold text-white/40 uppercase tracking-widest">Barcha yaratilgan testlar to'plami ({tests.length})</p>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-2">
+        <div className="flex bg-white/5 p-1 rounded-xl w-fit border border-white/10">
+          <button 
+            onClick={() => setActiveTab('exams')}
+            className={`px-6 py-2.5 rounded-lg font-bold text-sm transition-all ${activeTab === 'exams' ? 'bg-[#FEC204] text-black shadow-[0_0_10px_rgba(254,194,4,0.3)]' : 'text-white/60 hover:text-white hover:bg-white/5'}`}
+          >
+            SAT EXAMS
+          </button>
+          <button 
+            onClick={() => setActiveTab('base')}
+            className={`px-6 py-2.5 rounded-lg font-bold text-sm transition-all ${activeTab === 'base' ? 'bg-[#FEC204] text-black shadow-[0_0_10px_rgba(254,194,4,0.3)]' : 'text-white/60 hover:text-white hover:bg-white/5'}`}
+          >
+            SAT BASE
+          </button>
         </div>
         <div className="flex gap-2">
-          <button 
-            onClick={() => {
-              setTestConfig({
-                title: '',
-                questionCount: 10,
-                variantCount: 4,
-                testType: 'sat',
-                satType: 'SAT Mavzulashtirilgan',
-                questions: [],
-                createdAt: ''
-              });
-              setIsTestConfigOpen(true);
-            }}
-            className="bg-[#FEC204] text-black px-6 py-2.5 rounded-[12px] font-bold hover:bg-[#FEC204]/90 transition-colors shadow-[0_0_15px_rgba(254,194,4,0.3)] flex items-center gap-2 text-[14px]"
-          >
-            <span className="text-xl leading-none">+</span> Test yaratish
-          </button>
-          <button onClick={openExamAdd} className="glass-panel px-6 py-3 font-bold text-[#FEC204] hover:bg-[#FEC204] hover:text-black transition-colors rounded-[12px]">
-            Sat online test
-          </button>
+          {activeTab === 'base' ? (
+             <button 
+                onClick={() => {
+                  setTestConfig({
+                    title: '',
+                    questionCount: 10,
+                    variantCount: 4,
+                    testType: 'sat',
+                    satType: 'SAT Mavzulashtirilgan',
+                    questions: [],
+                    createdAt: ''
+                  });
+                  setIsTestConfigOpen(true);
+                }}
+                className="bg-[#FEC204] text-black px-6 py-2.5 rounded-[12px] font-bold hover:bg-[#FEC204]/90 transition-colors shadow-[0_0_15px_rgba(254,194,4,0.3)] flex items-center gap-2 text-[14px]"
+             >
+                <span className="text-xl leading-none">+</span> Test yaratish
+             </button>
+          ) : (
+             <button onClick={openExamAdd} className="bg-[#FEC204] text-black px-6 py-2.5 rounded-[12px] font-bold hover:bg-[#FEC204]/90 transition-colors shadow-[0_0_15px_rgba(254,194,4,0.3)] flex items-center gap-2 text-[14px]">
+                <span className="text-xl leading-none">+</span> Sat online test
+             </button>
+          )}
         </div>
       </div>
-
-      {tests.length === 0 ? (
-        <div className="glass-panel p-6 flex flex-col items-center justify-center opacity-70 border-dashed border-2 px-12 py-16">
-          <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mb-4">
-            <span className="text-[24px]">📁</span>
-          </div>
-          <h3 className="text-[18px] font-bold text-white mb-2">Baza bo'sh</h3>
-          <p className="text-[13px] text-white/40 text-center max-w-sm font-medium">Hozircha hech qanday test yaratilmagan.</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {tests.map(t => (
-            <div key={t.id} className="glass-panel p-5 relative group border border-white/5 hover:border-white/10 transition-colors rounded-[16px]">
-              <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button onClick={() => handleAssignClick(t)} className="h-8 px-3 rounded-lg bg-[rgba(254,194,4,0.15)] text-[#FEC204] hover:bg-[rgba(254,194,4,0.25)] flex items-center gap-1.5 transition-colors font-bold text-xs" title="Online test olish">
-                  <FileText size={14} />
-                  <span>Test olish</span>
-                </button>
-                <button onClick={() => handleEdit(t)} className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center text-white/70 hover:text-white transition-colors" title="Tahrirlash">
-                  <Edit2 size={14} />
-                </button>
-                <button onClick={() => handleDelete(t.id!)} className="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center text-red-500 hover:bg-red-500/20 transition-colors" title="O'chirish">
-                  <Trash2 size={14} />
-                </button>
+      <div>
+        {activeTab === 'exams' ? (
+           <>
+              <div className="mb-4">
+                 <p className="text-[12px] font-bold text-white/40 uppercase tracking-widest">Markaz ichki SAT imtihonlari ro'yxati</p>
               </div>
-              <h3 className="text-white font-bold text-lg pr-20 mb-3">{t.title}</h3>
-              
-              <div className="flex gap-4 text-xs font-bold">
-                <div className="flex flex-col gap-1">
-                  <span className="text-white/40 uppercase text-[9px] tracking-wider">Savollar</span>
-                  <span className="text-white">{t.questions?.length || t.questionCount} ta</span>
-                </div>
-                <div className="flex flex-col gap-1">
-                  <span className="text-white/40 uppercase text-[9px] tracking-wider">Sana</span>
-                  <span className="text-white">{t.createdAt ? new Date(t.createdAt).toLocaleDateString('uz-UZ') : '-'}</span>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-      
-      
-      <div className="mt-12 flex flex-col md:flex-row md:items-end justify-between gap-4">
-        <div>
-          <h2 className="text-[20px] font-black tracking-tight text-white mb-1">SAT Imtihonlar</h2>
-          <p className="text-[12px] font-bold text-white/40 uppercase tracking-widest">Markaz ichki SAT imtihonlari</p>
-        </div>
-      </div>
-      
-      {satExams.length === 0 ? (
+              {satExams.length === 0 ? (
         <div className="glass-panel p-6 flex flex-col items-center justify-center opacity-70 border-dashed border-2 px-12 py-16">
           <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mb-4">
             <span className="text-[24px]">📝</span>
@@ -367,6 +337,55 @@ export default function AdminSATDatabase() {
           ))}
         </div>
       )}
+           </>
+        ) : (
+           <>
+              <div className="mb-4">
+                 <p className="text-[12px] font-bold text-white/40 uppercase tracking-widest">Barcha yaratilgan testlar to'plami</p>
+              </div>
+              {tests.length === 0 ? (
+        <div className="glass-panel p-6 flex flex-col items-center justify-center opacity-70 border-dashed border-2 px-12 py-16">
+          <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mb-4">
+            <span className="text-[24px]">📁</span>
+          </div>
+          <h3 className="text-[18px] font-bold text-white mb-2">Baza bo'sh</h3>
+          <p className="text-[13px] text-white/40 text-center max-w-sm font-medium">Hozircha hech qanday test yaratilmagan.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {tests.map(t => (
+            <div key={t.id} className="glass-panel p-5 relative group border border-white/5 hover:border-white/10 transition-colors rounded-[16px]">
+              <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button onClick={() => handleAssignClick(t)} className="h-8 px-3 rounded-lg bg-[rgba(254,194,4,0.15)] text-[#FEC204] hover:bg-[rgba(254,194,4,0.25)] flex items-center gap-1.5 transition-colors font-bold text-xs" title="Online test olish">
+                  <FileText size={14} />
+                  <span>Test olish</span>
+                </button>
+                <button onClick={() => handleEdit(t)} className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center text-white/70 hover:text-white transition-colors" title="Tahrirlash">
+                  <Edit2 size={14} />
+                </button>
+                <button onClick={() => handleDelete(t.id!)} className="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center text-red-500 hover:bg-red-500/20 transition-colors" title="O'chirish">
+                  <Trash2 size={14} />
+                </button>
+              </div>
+              <h3 className="text-white font-bold text-lg pr-20 mb-3">{t.title}</h3>
+              
+              <div className="flex gap-4 text-xs font-bold">
+                <div className="flex flex-col gap-1">
+                  <span className="text-white/40 uppercase text-[9px] tracking-wider">Savollar</span>
+                  <span className="text-white">{t.questions?.length || t.questionCount} ta</span>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <span className="text-white/40 uppercase text-[9px] tracking-wider">Sana</span>
+                  <span className="text-white">{t.createdAt ? new Date(t.createdAt).toLocaleDateString('uz-UZ') : '-'}</span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+           </>
+        )}
+      </div>
 
       {isExamModalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex flex-col items-center justify-end md:justify-center animate-in fade-in duration-200">
