@@ -126,11 +126,26 @@ bot.on('text', async (ctx) => {
 });
 
 // Launch bot internally when imported
-bot.launch().then(() => {
-  console.log("Telegram Bot started!");
-}).catch((err) => {
-  console.error("Bot launch failed:", err);
-});
+let retries = 5;
+const startBot = async () => {
+  while (retries > 0) {
+    try {
+      await bot.launch();
+      console.log("Telegram Bot started!");
+      return;
+    } catch (err: any) {
+      if (err?.response?.error_code === 409) {
+        console.warn(`Bot launch 409 conflict. Retrying in 2s... (${retries} retries left)`);
+        retries--;
+        await new Promise(res => setTimeout(res, 2000));
+      } else {
+        console.error("Bot launch failed:", err);
+        return;
+      }
+    }
+  }
+};
+startBot();
 
 // Enable graceful stop
 process.once('SIGINT', () => bot.stop('SIGINT'));
