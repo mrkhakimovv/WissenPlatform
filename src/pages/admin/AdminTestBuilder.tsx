@@ -16,20 +16,20 @@ interface Props {
 }
 
 export default function AdminTestBuilder({ initialData, onClose, onSave }: Props) {
-  const [testData, setTestData] = useState<TestData>(initialData);
+  const [testData, setTestData] = useState<TestData>(() => {
+    if (initialData.questions.length === 0) {
+      const initialQuestions = Array.from({ length: initialData.questionCount }).map((_, i) => ({
+        id: Math.random().toString(),
+        text: '',
+        options: Array(initialData.variantCount).fill(''),
+        correctOptionIndex: 0
+      }));
+      return { ...initialData, questions: initialQuestions };
+    }
+    return initialData;
+  });
   const [activeQuestion, setActiveQuestion] = useState<number>(0);
   const [isSaving, setIsSaving] = useState(false);
-
-  // Initialize questions if empty
-  if (testData.questions.length === 0) {
-    const initialQuestions = Array.from({ length: testData.questionCount }).map((_, i) => ({
-      id: Math.random().toString(),
-      text: '',
-      options: Array(testData.variantCount).fill(''),
-      correctOptionIndex: 0
-    }));
-    setTestData({ ...testData, questions: initialQuestions });
-  }
 
   const updateQuestion = (index: number, field: keyof TestQuestion, value: any) => {
     const newQuestions = [...testData.questions];
