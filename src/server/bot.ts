@@ -8,7 +8,8 @@ const ADMIN_ID = process.env.ADMIN_ID || '1986422890';
 export const bot = new Telegraf(BOT_TOKEN);
 bot.use(session());
 
-const DOMAIN = process.env.APP_URL || process.env.WEB_APP_URL || 'https://ais-dev-ilqavbqhmw4a4t26oxwzro-188441935411.asia-southeast1.run.app';
+// Quyidagi havolani o'zingizning render.com havolangiz bilan almashtiring (masalan: 'https://mening-loyiham.onrender.com')
+const DOMAIN = process.env.APP_URL || process.env.WEB_APP_URL || 'https://wissenedu.onrender.com'; // <-- O'zingizning render dagi havolangizni shu yerga yozing
 
 // Handle /start
 bot.start((ctx) => {
