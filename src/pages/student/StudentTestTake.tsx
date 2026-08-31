@@ -480,7 +480,7 @@ export default function StudentTestTake({ exam, onClose }: Props) {
             {testData.questions.map((_, idx) => (
               <button 
                 key={idx}
-                onClick={() => setCurrentQuestion(idx)}
+                onClick={() => document.getElementById(`question-${idx}`)?.scrollIntoView({ behavior: 'smooth' })}
                 className={`relative shrink-0 w-10 h-10 md:w-full md:h-auto md:aspect-square rounded-lg flex items-center justify-center text-[13px] md:text-[14px] font-bold transition-all ${
                   false 
                     ? 'bg-[#FEC204] text-black shadow-[0_0_15px_rgba(254,194,4,0.3)] md:scale-105' 

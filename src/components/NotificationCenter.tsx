@@ -27,7 +27,7 @@ export default function NotificationCenter() {
     if (!user) return;
     
     const unsub = onSnapshot(collection(db, 'notifications'), (snap) => {
-      let all = snap.docs.map(d => ({id: d.id, ...d.data()}));
+      let all: any[] = snap.docs.map(d => ({id: d.id, ...(d.data() as any)}));
       
       // Filter for this user
       const myGroups = user.groups?.length ? user.groups : (user.groupId ? [user.groupId] : []);

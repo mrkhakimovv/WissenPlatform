@@ -9,6 +9,9 @@ import { initMathLive, showVirtualKeyboard, hideVirtualKeyboard } from '../servi
 // MUHIM: fontlar va tovushlarni birinchi maydon yaratilishidan OLDIN sozlaymiz.
 initMathLive();
 
+
+
+
 interface Props {
   value: string; // LaTeX
   onChange: (latex: string) => void;

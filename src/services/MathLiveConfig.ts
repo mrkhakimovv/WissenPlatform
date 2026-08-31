@@ -1,11 +1,7 @@
 import 'mathlive';
 import { MathfieldElement, initVirtualKeyboardInCurrentBrowsingContext } from 'mathlive';
 
-declare global {
-  interface Window {
-    mathVirtualKeyboard: any;
-  }
-}
+
 
 let isInitialized = false;
 
@@ -46,29 +42,29 @@ export const initMathLive = () => {
 
   // Asl holatdagi, to'liq MathLive klaviaturasidan (Barcha funksiyalari, qatlamlari bilan)
   // foydalanish uchun maxsus cheklovlarni olib tashlaymiz.
-  if (window.mathVirtualKeyboard) {
-    window.mathVirtualKeyboard.layouts = 'default';
+  if ((window as any).mathVirtualKeyboard) {
+    (window as any).mathVirtualKeyboard.layouts = 'default';
   }
 
   isInitialized = true;
 };
 
 export const showVirtualKeyboard = () => {
-  if (window.mathVirtualKeyboard) {
+  if ((window as any).mathVirtualKeyboard) {
     try {
-      window.mathVirtualKeyboard.show();
+      (window as any).mathVirtualKeyboard.show();
     } catch (e) {
       console.warn('Failed to show virtual keyboard:', e);
     }
   } else {
-    console.error('window.mathVirtualKeyboard is undefined! The keyboard cannot be shown.');
+    console.error('(window as any).mathVirtualKeyboard is undefined! The keyboard cannot be shown.');
   }
 };
 
 export const hideVirtualKeyboard = () => {
-  if (window.mathVirtualKeyboard) {
+  if ((window as any).mathVirtualKeyboard) {
     try {
-      window.mathVirtualKeyboard.hide();
+      (window as any).mathVirtualKeyboard.hide();
     } catch (e) {
       console.warn('Failed to hide virtual keyboard:', e);
     }
@@ -82,20 +78,20 @@ export type KeyboardLayoutPreset = 'default' | 'compact' | 'scientific' | 'geome
  * to optimize the interface for specific subjects or use cases.
  */
 export const setKeyboardLayout = (preset: KeyboardLayoutPreset) => {
-  if (!window.mathVirtualKeyboard) return;
+  if (!(window as any).mathVirtualKeyboard) return;
 
   switch (preset) {
     case 'compact':
       // Minimal layout, good for simple arithmetic or when screen real estate is critical
-      window.mathVirtualKeyboard.layouts = ['numeric'];
+      (window as any).mathVirtualKeyboard.layouts = ['numeric'];
       break;
     case 'scientific':
       // The default comprehensive MathLive layout for complex equations
-      window.mathVirtualKeyboard.layouts = 'default';
+      (window as any).mathVirtualKeyboard.layouts = 'default';
       break;
     case 'geometry':
       // Custom layout focused on Geometry symbols, plus the standard numeric keyboard
-      window.mathVirtualKeyboard.layouts = [
+      (window as any).mathVirtualKeyboard.layouts = [
         'numeric',
         {
           label: 'Geometriya',
@@ -142,7 +138,7 @@ export const setKeyboardLayout = (preset: KeyboardLayoutPreset) => {
       break;
     case 'default':
     default:
-      window.mathVirtualKeyboard.layouts = 'default';
+      (window as any).mathVirtualKeyboard.layouts = 'default';
       break;
   }
 };

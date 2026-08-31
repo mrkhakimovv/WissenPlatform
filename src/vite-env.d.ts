@@ -8,6 +8,8 @@ declare namespace JSX {
       onInput?: (e: Event) => void;
       value?: string;
       readonly?: boolean;
+      virtualKeyboardMode?: string;
+      'math-virtual-keyboard-policy'?: string;
     };
   }
 }

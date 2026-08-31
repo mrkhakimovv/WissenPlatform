@@ -1,5 +1,5 @@
 const fs = require('fs');
-let code = fs.readFileSync('src/pages/admin/AdminTestBuilder.tsx', 'utf-8');
+let code = fs.readFileSync('src/pages/admin/AdminSATBuilder.tsx', 'utf-8');
 
 const target = `                 {currentQ.isOpenEnded ? (
                        <div className="w-full text-left p-3 md:p-4 rounded-[14px] md:rounded-xl border transition-all border-gray-300 bg-gray-50">
@@ -109,8 +109,8 @@ const replacement = `                 {currentQ.isOpenEnded ? (
 
 if (code.includes(target)) {
   code = code.replace(target, replacement);
-  fs.writeFileSync('src/pages/admin/AdminTestBuilder.tsx', code);
-  console.log('Fixed AdminTestBuilder.tsx');
+  fs.writeFileSync('src/pages/admin/AdminSATBuilder.tsx', code);
+  console.log('Fixed AdminSATBuilder.tsx');
 } else {
-  console.log('Target not found in AdminTestBuilder.tsx');
+  console.log('Target not found in AdminSATBuilder.tsx');
 }

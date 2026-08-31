@@ -228,7 +228,7 @@ app.get("/api/notification-debug", async (_req, res) => {
 
       const { uid, fullName, username, password, groupId, monthlyFee, joinedDate } = req.body;
       
-      const updateAuthPayload = {};
+      const updateAuthPayload: Record<string, any> = {};
       if (username) updateAuthPayload.email = `${username}@wissen.internal`;
       if (password) updateAuthPayload.password = password;
 
@@ -236,7 +236,7 @@ app.get("/api/notification-debug", async (_req, res) => {
         await adminAuth.updateUser(uid, updateAuthPayload);
       }
 
-      const updateDbPayload = {};
+      const updateDbPayload: Record<string, any> = {};
       if (fullName !== undefined) updateDbPayload.fullName = fullName;
       if (username !== undefined) updateDbPayload.username = username;
       if (password !== undefined) updateDbPayload.password = password;

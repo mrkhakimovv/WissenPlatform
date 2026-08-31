@@ -45,7 +45,7 @@ export default function ExamStatsModal({ exam, groupName, onClose }: Props) {
         }
         const studentDocs = await getDocs(studentsQ);
         const stData: User[] = [];
-        studentDocs.forEach(d => stData.push({ id: d.id, ...d.data() } as User));
+        studentDocs.forEach(d => stData.push({ id: d.id, ...(d.data() as any) } as User));
         setStudents(stData);
 
         // Fetch results

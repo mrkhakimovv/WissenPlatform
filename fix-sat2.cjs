@@ -1,35 +1,42 @@
 const fs = require('fs');
-let code = fs.readFileSync('src/pages/admin/AdminTestBuilder.tsx', 'utf-8');
+let code = fs.readFileSync('src/pages/admin/AdminSATBuilder.tsx', 'utf-8');
 
-const target = `                 {currentQ.isOpenEnded ? (
-                       <div className="w-full text-left p-3 md:p-4 rounded-[14px] md:rounded-xl border transition-all border-gray-300 bg-gray-50">
-                          <p className="text-gray-500 text-sm mb-3">O'z javobingizni kiriting:</p>
-                          <div className="w-full bg-white p-4 rounded-lg border border-gray-300 text-gray-400 font-bold">
-                             Javobingizni shu yerga yozing...
-                          </div>
-                       </div>
-                    ) : (
-                    currentQ.options.map((opt, optIndex) => (
-                       <div key={optIndex} className={\`flex items-start gap-3 p-3 rounded-lg border \${currentQ.correctOptionIndex === optIndex ? 'border-green-500 bg-green-50' : 'border-gray-200'}\`}>
-                          <span className="font-bold text-gray-500">{ALPHABET[optIndex]})</span>
-                          <div className="flex-1 whitespace-pre-wrap overflow-x-auto custom-scrollbar" style={{ wordBreak: "break-word", overflowWrap: "anywhere" }}>
-                             <Latex>{opt || '...'}</Latex>
-                          </div>
-                       </div>
-                    ))
-                    )}
+const regex = /<Type size=\{14\} \/> \{currentQ\.isOpenEnded \? "Test \(Yopiq\) qilish" : "Ochiq savol qilish"\}\s*<\/button>\s*<\/div>\s*\{currentQ\.isOpenEnded \? \(\s*<div className="w-full text-left p-3 md:p-4 rounded-\[14px\] md:rounded-xl border transition-all border-gray-300 bg-gray-50">[\s\S]*?<\/\/\s*\}\)\s*<\/div>\s*<\/div>\s*<\/div>\s*<\/div>\s*\)\}\s*<\/div>/;
+
+// wait, it is better to just do string index replacement to avoid regex issues.
+const startStr = `<Type size={14} /> {currentQ.isOpenEnded ? "Test (Yopiq) qilish" : "Ochiq savol qilish"}
+                   </button>
                  </div>
+                 {currentQ.isOpenEnded ? (
+                       <div className="w-full text-left p-3 md:p-4 rounded-[14px] md:rounded-xl border transition-all border-gray-300 bg-gray-50">`;
+
+let startIndex = code.indexOf('<Type size={14} /> {currentQ.isOpenEnded ? "Test (Yopiq) qilish" : "Ochiq savol qilish"}');
+
+if (startIndex === -1) {
+  console.log('Not found');
+  process.exit(1);
+}
+
+// In the corrupted file, the end of the block is `</Latex>\n                          </div>\n                       </div>\n                    ))\n                    )}\n                 </div>\n              </div>\n           </div>\n        </div>\n        )}\n      </div>`
+// Let's just find `</Latex>\n                          </div>\n                       </div>\n                    ))\n                    )}\n                 </div>\n              </div>\n           </div>\n        </div>\n        )}\n      </div>`
+
+const endStr = `                 </div>
               </div>
            </div>
         </div>
         )}
-      </div>
-    </div>,
-    document.body
-  );
-}`;
+      </div>`;
+let endIndex = code.indexOf(endStr, startIndex);
 
-const replacement = `                 {currentQ.isOpenEnded ? (
+if (endIndex === -1) {
+    console.log('End not found');
+    process.exit(1);
+}
+
+const replacement = `<Type size={14} /> {currentQ.isOpenEnded ? "Test (Yopiq) qilish" : "Ochiq savol qilish"}
+                   </button>
+                 </div>
+                 {currentQ.isOpenEnded ? (
                    <div className="bg-white/5 p-4 rounded-xl border border-white/10">
                       <MathAnswerField
                         value={currentQ.correctAnswerText || ''}
@@ -101,16 +108,8 @@ const replacement = `                 {currentQ.isOpenEnded ? (
            </div>
         </div>
         )}
-      </div>
-    </div>,
-    document.body
-  );
-}`;
+      </div>`;
 
-if (code.includes(target)) {
-  code = code.replace(target, replacement);
-  fs.writeFileSync('src/pages/admin/AdminTestBuilder.tsx', code);
-  console.log('Fixed AdminTestBuilder.tsx');
-} else {
-  console.log('Target not found in AdminTestBuilder.tsx');
-}
+code = code.substring(0, startIndex) + replacement + code.substring(endIndex + endStr.length);
+fs.writeFileSync('src/pages/admin/AdminSATBuilder.tsx', code);
+console.log('Fixed AdminSATBuilder.tsx');

@@ -197,6 +197,7 @@ export default function AdminSATDatabase() {
     variantCount: 4,
     testType: 'sat',
     satType: 'SAT Mavzulashtirilgan',
+    isFastMode: false,
     questions: [],
     createdAt: ''
   });
@@ -572,6 +573,14 @@ export default function AdminSATDatabase() {
                 </select>
               </div>
               
+              <div>
+                <label className="text-[10px] uppercase font-bold text-white/40 ml-1 mb-1 block">Test formati</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button type="button" onClick={() => setTestConfig({...testConfig, isFastMode: false})} className={`py-3 px-4 rounded-xl font-bold text-sm transition-colors border-2 ${!testConfig.isFastMode ? 'bg-[#FEC204]/10 border-[#FEC204] text-[#FEC204]' : 'bg-white/5 border-transparent text-white/50 hover:bg-white/10'}`}>Savol + Javob</button>
+                  <button type="button" onClick={() => setTestConfig({...testConfig, isFastMode: true})} className={`py-3 px-4 rounded-xl font-bold text-sm transition-colors border-2 ${testConfig.isFastMode ? 'bg-[#FEC204]/10 border-[#FEC204] text-[#FEC204]' : 'bg-white/5 border-transparent text-white/50 hover:bg-white/10'}`}>Faqat Javoblar</button>
+                </div>
+              </div>
+
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-[10px] uppercase font-bold text-white/40 ml-1 mb-1 block">Savollar soni</label>

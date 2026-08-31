@@ -1,11 +1,25 @@
 import { Telegraf, Markup, session } from 'telegraf';
+
+import { Context } from 'telegraf';
+
+interface SessionData {
+  state?: string;
+  username?: string;
+  password?: string;
+  userId?: string;
+}
+
+interface MyContext extends Context {
+  session?: SessionData;
+}
+
 import { adminDb } from './notifications';
 
 const BOT_TOKEN = process.env.BOT_TOKEN || '8799934388:AAFamw30dy3yQMzI8rSZCwOaxfHsxLq4TLA';
 const ADMIN_ID = process.env.ADMIN_ID || '1986422890';
 
 // Initialize Bot
-export const bot = new Telegraf(BOT_TOKEN);
+export const bot = new Telegraf<MyContext>(BOT_TOKEN);
 bot.use(session());
 
 // Quyidagi havolani o'zingizning render.com havolangiz bilan almashtiring (masalan: 'https://mening-loyiham.onrender.com')

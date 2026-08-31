@@ -19,6 +19,7 @@ export default function AdminCertificateBuilder({ initialData, onClose, onSave }
   const [testData, setTestData] = useState<TestData & { id?: string }>(initialData);
   const [activeQuestion, setActiveQuestion] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
+  const [isFastAnswerModeOpen, setIsFastAnswerModeOpen] = useState(false);
 
   // Initialize the 45 questions if they don't exist
   useEffect(() => {
@@ -197,7 +198,8 @@ export default function AdminCertificateBuilder({ initialData, onClose, onSave }
       ) : (
         <div className="flex flex-1 overflow-hidden min-w-0">
         {/* Sidebar */}
-        <div className="w-64 border-r border-white/10 bg-[#0a0a0a] flex flex-col overflow-y-auto custom-scrollbar p-2 gap-1">
+        <div className="w-64 border-r border-white/10 bg-[#0a0a0a] flex flex-col p-2 gap-1 overflow-hidden">
+          <div className="flex-1 overflow-y-auto custom-scrollbar flex flex-col gap-1">
           {testData.questions.map((q, i) => {
             let label = "4 variant";
             if (i >= 32 && i < 35) label = "6 variant";
@@ -206,7 +208,7 @@ export default function AdminCertificateBuilder({ initialData, onClose, onSave }
             return (
               <button
                 key={q.id}
-                onClick={() => setActiveQuestion(i)}
+                onClick={() => { setActiveQuestion(i); setIsFastAnswerModeOpen(false); }}
                 className={`w-full text-left p-3 rounded-lg flex flex-col transition-colors ${activeQuestion === i ? 'bg-white/10 text-white' : 'text-white/50 hover:bg-white/5'}`}
               >
                 <div className="flex items-center justify-between w-full">
@@ -217,9 +219,68 @@ export default function AdminCertificateBuilder({ initialData, onClose, onSave }
               </button>
             );
           })}
+          </div>
+          <div className="mt-2 pt-2 border-t border-white/10 shrink-0">
+            <button
+               onClick={() => setIsFastAnswerModeOpen(true)}
+               className="w-full py-3 px-4 bg-[#FEC204]/10 text-[#FEC204] hover:bg-[#FEC204]/20 rounded-lg font-bold text-sm transition-colors flex items-center justify-center gap-2"
+            >
+               <CheckCircle2 size={18} /> To'g'ri javoblar
+            </button>
+          </div>
         </div>
 
         {/* Main Editor */}
+        {isFastAnswerModeOpen ? (
+          <div className="flex-1 overflow-y-auto p-6 md:p-8 bg-[#121212] custom-scrollbar">
+              <div className="flex items-center justify-between mb-6">
+                 <h2 className="text-xl font-black text-white">To'g'ri javoblarni tez kiritish</h2>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                {testData.questions.map((q, i) => (
+                  <div key={q.id} className="bg-white/5 rounded-xl p-4 flex flex-col items-center gap-3 border border-white/10 relative">
+                    <span className="font-bold text-white/70 text-lg">{i + 1}-savol</span>
+                    {q.isOpenEnded ? (
+                      <div className="flex flex-col gap-2 w-full">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[#FEC204] font-bold">a)</span>
+                          <div className="flex-1 min-w-0">
+                            <MathAnswerField
+                              value={q.subAnswers?.[0]?.correctAnswerText || ''}
+                              onChange={(val) => updateSubAnswer(i, 0, val)}
+                              placeholder="Javob"
+                            />
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[#FEC204] font-bold">b)</span>
+                          <div className="flex-1 min-w-0">
+                            <MathAnswerField
+                              value={q.subAnswers?.[1]?.correctAnswerText || ''}
+                              onChange={(val) => updateSubAnswer(i, 1, val)}
+                              placeholder="Javob"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex gap-1 sm:gap-1.5 xl:gap-2 w-full justify-center flex-wrap">
+                        {q.options.map((_, optIndex) => (
+                          <button
+                            key={optIndex}
+                            onClick={() => updateQuestion(i, 'correctOptionIndex', optIndex)}
+                            className={`w-8 h-8 sm:w-9 sm:h-9 xl:w-10 xl:h-10 text-xs sm:text-sm xl:text-base shrink-0 rounded-full font-bold transition-colors flex items-center justify-center ${q.correctOptionIndex === optIndex ? 'bg-[#FEC204] text-black' : 'bg-white/10 text-white hover:bg-white/20'}`}
+                          >
+                            {ALPHABET[optIndex]}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+          </div>
+        ) : (
         <div className="flex-1 min-w-0 flex flex-col lg:flex-row overflow-hidden bg-[#0d0d0d]">
            {/* Editor panel */}
            <div className="flex-1 min-w-0 flex flex-col border-r border-white/10 overflow-y-auto custom-scrollbar p-6">
@@ -335,6 +396,7 @@ export default function AdminCertificateBuilder({ initialData, onClose, onSave }
               </div>
            </div>
         </div>
+        )}
       </div>
       )}
     </div>,

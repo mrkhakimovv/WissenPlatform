@@ -18,7 +18,7 @@ export default function AdminExams() {
   const [groups, setGroups] = useState<Group[]>([]);
   const [subjects, setSubjects] = useState<any[]>([]);
   const [existingTests, setExistingTests] = useState<string[]>([]);
-  const [allTests, setAllTests] = useState<{id: string, title: string, totalCount: number}[]>([]);
+  const [allTests, setAllTests] = useState<{id: string, title: string, totalCount: number, testType?: string}[]>([]);
 
   const [selectedExamForStats, setSelectedExamForStats] = useState<Exam | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
