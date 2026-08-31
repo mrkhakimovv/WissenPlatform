@@ -4,12 +4,13 @@ import jsPDF from 'jspdf';
 import { toPng } from 'html-to-image';
 import autoTable from 'jspdf-autotable';
 import { Exam } from '../../types';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, deleteDoc, updateDoc, arrayUnion } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { computeRaschReport, dedupeBestAttempts, RaschResult, RaschReport, computeRaschWithReference } from '../../lib/rasch';
 import { generateSyntheticMatrix, itemDifficultiesFromMatrix, seedFromString } from '../../lib/synthetic';
-import { X, Download, Search } from 'lucide-react';
+import { X, Download, Search, Trash2 } from 'lucide-react';
 import { createPortal } from 'react-dom';
+import { useConfirm } from '../../contexts/ConfirmContext';
 import RaschStatsPanel from '../../components/RaschStatsPanel';
 
 interface Props {
@@ -22,7 +23,66 @@ export default function AdminCertificateResults({ exam, onClose }: Props) {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [showOnlyReal, setShowOnlyReal] = useState(false);
+  const { confirm } = useConfirm();
   const isFrozen = exam.status === 'ended' && !!exam.raschReport;
+
+  const handleDeleteResult = async (studentId: string, synthetic?: boolean) => {
+    if (synthetic) return; // Cannot delete synthetic base students
+    if (await confirm({ title: "O'chirish", message: "Haqiqatan ham bu o'quvchining natijasini o'chirib yubormoqchimisiz? O'chirilgach natijalar boshqadan hisoblanadi." })) {
+      setLoading(true);
+      try {
+        const snap = await getDocs(query(collection(db, 'exam_results'), where('examId', '==', exam.id), where('studentId', '==', studentId)));
+        for (const d of snap.docs) {
+          await deleteDoc(doc(db, 'exam_results', d.id));
+        }
+        
+        // Reload and recalculate
+        const newSnap = await getDocs(query(collection(db, 'exam_results'), where('examId', '==', exam.id)));
+        const all = newSnap.docs.map(d => d.data());
+        const bestPerStudent = dedupeBestAttempts(
+          all.filter(r => Array.isArray(r.raschItems) && r.raschItems.length > 0)
+        );
+        
+        if (bestPerStudent.length > 0) {
+          const numItems = bestPerStudent[0].raschItems.length;
+          const validResults = bestPerStudent.filter(r => r.raschItems.length === numItems);
+          const matrix = validResults.map(r => ({
+            studentId: r.studentId,
+            studentName: r.studentName,
+            items: r.raschItems
+          }));
+          
+          if (matrix.length > 0) {
+            const synCount = exam.syntheticEnabled ? Math.max(0, Math.floor(exam.syntheticCount || 0)) : 0;
+            if (synCount > 0) {
+              const difficulties = itemDifficultiesFromMatrix(matrix);
+              const syntheticData = generateSyntheticMatrix(difficulties, {
+                count: synCount,
+                seed: seedFromString(exam.id),
+              });
+              const newRep = computeRaschWithReference(matrix, syntheticData, true);
+              setReport(newRep);
+              await updateDoc(doc(db, "exams", exam.id), { raschReport: computeRaschWithReference(matrix, syntheticData, false), allowedRetakes: arrayUnion(studentId) });
+            } else {
+              const newRep = computeRaschReport(matrix);
+              setReport(newRep);
+              await updateDoc(doc(db, "exams", exam.id), { raschReport: newRep, allowedRetakes: arrayUnion(studentId) });
+            }
+          } else {
+            setReport(null);
+            await updateDoc(doc(db, "exams", exam.id), { raschReport: null, allowedRetakes: arrayUnion(studentId) });
+          }
+        } else {
+          setReport(null);
+          await updateDoc(doc(db, "exams", exam.id), { raschReport: null, allowedRetakes: arrayUnion(studentId) });
+        }
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
 
   useEffect(() => {
     const loadResults = async () => {
@@ -68,6 +128,7 @@ export default function AdminCertificateResults({ exam, onClose }: Props) {
         setLoading(false);
       }
     };
+    
     loadResults();
   }, [exam]);
 
@@ -317,6 +378,7 @@ export default function AdminCertificateResults({ exam, onClose }: Props) {
                       <th className="p-4 font-bold">Qobiliyat (θ)</th>
                       <th className="p-4 font-bold">Ball (T-shkala)</th>
                       <th className="p-4 font-bold text-center">Daraja</th>
+                      <th className="p-4 font-bold text-center">Amallar</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/5">
@@ -337,6 +399,9 @@ export default function AdminCertificateResults({ exam, onClose }: Props) {
                           }`}>
                             {r.grade}
                           </span>
+                        </td>
+                        <td className="p-4 text-center">
+                          {!r.synthetic && <button onClick={() => handleDeleteResult(r.studentId, r.synthetic)} className="p-2 bg-red-500/10 text-red-500 hover:bg-red-500/20 rounded-lg transition-colors" title="Natijani o'chirish"><Trash2 size={16} /></button>}
                         </td>
                       </tr>
                     ))}

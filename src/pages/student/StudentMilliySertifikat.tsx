@@ -66,6 +66,7 @@ export default function StudentMilliySertifikat() {
           exams.map(exam => {
             const result = myResults.find(r => r.examId === exam.id);
             const ended = exam.status === 'ended';
+            const isAllowedRetake = exam.allowedRetakes?.includes(user?.id || "");
             const myR = getMyResult(exam);
 
             return (
@@ -83,12 +84,12 @@ export default function StudentMilliySertifikat() {
                 </div>
 
                 <div className="mt-auto">
-                  {!result && !ended && (
+                  {!result && (!ended || isAllowedRetake) && (
                     <button onClick={() => setTakingExam(exam)} className="w-full py-3 bg-[#FEC204] text-black font-bold rounded-xl hover:opacity-90 transition-opacity">
                       Imtihonni Boshlash
                     </button>
                   )}
-                  {!result && ended && (
+                  {!result && ended && !isAllowedRetake && (
                     <div className="p-4 bg-white/5 text-white/50 rounded-xl text-center text-sm">
                       Imtihon yakunlangan. Siz bu imtihonni topshirmagansiz.
                     </div>
@@ -127,7 +128,7 @@ export default function StudentMilliySertifikat() {
                       </button>
                     </div>
                   )}
-                  {result && ended && !myR && (
+                  {result && ended && !myR && !isAllowedRetake && (
                     <div className="p-4 bg-white/5 text-white/50 rounded-xl text-center text-sm">Natijangiz topilmadi.</div>
                   )}
                 </div>

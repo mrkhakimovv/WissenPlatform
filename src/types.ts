@@ -93,6 +93,7 @@ export interface Exam {
   finalizedAt?: string;      // imtihon yakunlangan vaqt
   raschReport?: any;         // yakunlanganda muzlatilgan Rasch hisoboti { results, stats }
   syntheticEnabled?: boolean; // qo'shimcha (sintetik) o'quvchilar qo'shilsinmi
+  allowedRetakes?: string[]; // o'chirilganidan keyin qayta topshirishga ruxsat berilgan o'quvchilar ID lari
   syntheticCount?: number;    // nechta sintetik o'quvchi qo'shiladi
   createdAt: string;
 }

@@ -79,7 +79,8 @@ export default function StudentExams() {
   const renderExamCard = (exam: Exam, isPast: boolean) => {
     const attemptsCount = results.filter(r => r.examId === exam.id).length;
     const maxAttempts = exam.maxAttempts || 1;
-    const canAttempt = attemptsCount < maxAttempts;
+    const isAllowedRetake = exam.allowedRetakes?.includes(user?.id || "");
+    const canAttempt = attemptsCount < maxAttempts || isAllowedRetake;
     
     const isOnlineTest = exam.isOnline || (exam.testSources && exam.testSources.length > 0) || exam.testId;
     const showRedDot = !isPast && isOnlineTest && attemptsCount === 0;
@@ -140,7 +141,7 @@ export default function StudentExams() {
         {isOnlineTest && (
           <button 
             onClick={() => {
-              if (exam.status === 'ended') {
+              if (exam.status === 'ended' && !isAllowedRetake) {
                 toast.error("Ushbu imtihon admin tomonidan yakunlangan.");
               } else if (canAttempt) {
                 setTakingExam(exam);
@@ -148,10 +149,10 @@ export default function StudentExams() {
                 toast.error(`Siz ushbu testni ${maxAttempts} marta ishlagansiz. Boshqa urinish qolmadi.`);
               }
             }}
-            className={`w-full mt-2 py-3 rounded-[12px] font-bold flex items-center justify-center gap-2 transition-colors border ${(!canAttempt || exam.status === 'ended') ? 'bg-white/5 text-white/30 border-white/5 cursor-not-allowed opacity-60' : attemptsCount > 0 ? 'bg-white/5 text-white/50 border-white/10 hover:bg-white/10' : 'bg-[rgba(254,194,4,0.15)] text-[#FEC204] border-[#FEC204]/20 hover:bg-[rgba(254,194,4,0.25)]'}`}
+            className={`w-full mt-2 py-3 rounded-[12px] font-bold flex items-center justify-center gap-2 transition-colors border ${(!canAttempt || (exam.status === 'ended' && !isAllowedRetake)) ? 'bg-white/5 text-white/30 border-white/5 cursor-not-allowed opacity-60' : attemptsCount > 0 ? 'bg-white/5 text-white/50 border-white/10 hover:bg-white/10' : 'bg-[rgba(254,194,4,0.15)] text-[#FEC204] border-[#FEC204]/20 hover:bg-[rgba(254,194,4,0.25)]'}`}
           >
             <MapPin size={16} className="hidden" /> {/* just to align imports */}
-            {exam.status === 'ended' ? (
+            {(exam.status === 'ended' && !isAllowedRetake) ? (
               <>Yakunlangan</>
             ) : attemptsCount > 0 ? (
               canAttempt ? <>Qayta ishlash</> : <>Urinishlar tugagan</>
