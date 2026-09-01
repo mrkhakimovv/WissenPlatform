@@ -13,7 +13,10 @@ export default function AdminDashboard() {
     paidThisMonth: 0,
     unpaidThisMonth: 0,
     attendanceRate: 0,
-    subjects: 0
+    subjects: 0,
+    groups: 0,
+    hasUnassignedStudents: false,
+    hasUpcomingClass: false
   });
   const [recentPayments, setRecentPayments] = useState<any[]>([]);
 
@@ -28,9 +31,56 @@ export default function AdminDashboard() {
 
     const qStudents = query(collection(db, 'users'), where('role', '==', 'student'));
     const unsubStudents = onSnapshot(qStudents, (snap) => {
-      setStats(s => ({ ...s, students: snap.docs.length }));
+      let unassigned = false;
+      snap.docs.forEach(d => {
+        const data = d.data();
+        if ((!data.groups || data.groups.length === 0) && !data.groupId) {
+           unassigned = true;
+        }
+      });
+      setStats(s => ({ ...s, students: snap.docs.length, hasUnassignedStudents: unassigned }));
     });
 
+    
+    const qGroups = query(collection(db, 'groups'));
+    let groupsData = [];
+    const unsubGroups = onSnapshot(qGroups, (snap) => {
+      groupsData = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      setStats(s => ({ ...s, groups: snap.docs.length }));
+      checkUpcomingClasses();
+    });
+
+    let intervalId;
+    const checkUpcomingClasses = () => {
+      const now = new Date();
+      const currentDay = now.getDay();
+      const currentDayId = currentDay === 0 ? '7' : String(currentDay);
+      const currentHours = now.getHours();
+      const currentMinutes = now.getMinutes();
+      const currentTimeInMins = currentHours * 60 + currentMinutes;
+
+      let hasUpcoming = false;
+      for (const group of groupsData) {
+        if (group.days && group.days.includes(currentDayId)) {
+          const sched = group.schedule?.[currentDayId] || { startTime: group.startTime, endTime: group.endTime };
+          if (sched && sched.startTime) {
+             const [h, m] = sched.startTime.split(':').map(Number);
+             const classTimeInMins = h * 60 + m;
+             const diff = classTimeInMins - currentTimeInMins;
+             // class starts in 10 minutes or less (and hasn't started more than 0 mins ago, to just flash before class)
+             // or let's say diff is between 0 and 10
+             if (diff >= 0 && diff <= 10) {
+               hasUpcoming = true;
+               break;
+             }
+          }
+        }
+      }
+      setStats(s => ({ ...s, hasUpcomingClass: hasUpcoming }));
+    };
+
+    intervalId = setInterval(checkUpcomingClasses, 60000);
+    
     const qSubjects = query(collection(db, 'subjects'));
     const unsubSubjects = onSnapshot(qSubjects, (snap) => {
       setStats(s => ({ ...s, subjects: snap.docs.length }));
@@ -80,7 +130,7 @@ export default function AdminDashboard() {
     });
 
     return () => { 
-       unsubStudents(); 
+       unsubGroups(); clearInterval(intervalId); unsubStudents(); 
        unsubSubjects(); 
        unsubPayments(); 
        unsubRecentPayments(); 
@@ -91,13 +141,21 @@ export default function AdminDashboard() {
   return (
     <div className="space-y-6 md:space-y-8">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 w-full">
-        <div onClick={() => navigate('/admin/students', { replace: true })} className="glass-panel p-4 md:p-6 border-l-4 border-[#FEC204] hover:scale-[1.02] transition-transform cursor-pointer">
+        
+          <div onClick={() => navigate('/admin/students', { replace: true })} className="relative glass-panel p-4 md:p-6 border-l-4 border-[#FEC204] hover:scale-[1.02] transition-transform cursor-pointer">
+          {stats.hasUnassignedStudents && (
+             <div className="absolute inset-0 rounded-[1.5rem] border-2 border-[#FEC204] shadow-[0_0_15px_rgba(254,194,4,0.5)] animate-pulse pointer-events-none z-10"></div>
+          )}
+
           <p className="text-[9px] md:text-[11px] uppercase tracking-[2px] font-bold text-white/40 mb-1">O'quvchilar</p>
           <p className="text-[26px] md:text-[32px] font-[900] tracking-[-1px] text-white">{stats.students}</p>
           <p className="text-xs font-bold text-white/40 mt-1.5">+ Barcha</p>
         </div>
         
-        <div onClick={() => navigate('/admin/attendance', { replace: true })} className="glass-panel p-4 md:p-6 border-l-4 border-[#FEC204] hover:scale-[1.02] transition-transform cursor-pointer">
+        <div onClick={() => navigate('/admin/attendance', { replace: true })} className="relative glass-panel p-4 md:p-6 border-l-4 border-[#FEC204] hover:scale-[1.02] transition-transform cursor-pointer">
+          {stats.hasUpcomingClass && (
+             <div className="absolute inset-0 rounded-[1.5rem] border-2 border-[#FEC204] shadow-[0_0_15px_rgba(254,194,4,0.5)] animate-pulse pointer-events-none z-10"></div>
+          )}
           <p className="text-[9px] md:text-[11px] uppercase tracking-[2px] font-bold text-white/40 mb-1">Davomat %</p>
           <p className="text-[26px] md:text-[32px] font-[900] tracking-[-1px] text-white">{stats.attendanceRate}%</p>
           <div className="w-full h-1.5 bg-[#f0f0f0]/20 rounded-full mt-2 overflow-hidden">
@@ -105,10 +163,10 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        <div onClick={() => navigate('/admin/more', { replace: true })} className="glass-panel p-4 md:p-6 border-l-4 border-[#FEC204] hover:scale-[1.02] transition-transform cursor-pointer">
-          <p className="text-[9px] md:text-[11px] uppercase tracking-[2px] font-bold text-white/40 mb-1">Fanlar</p>
-          <p className="text-[26px] md:text-[32px] font-[900] tracking-[-1px] text-white">{stats.subjects}</p>
-          <p className="text-xs font-bold text-white/40 mt-1.5">Aktiv kurslar</p>
+        <div onClick={() => navigate('/admin/groups', { replace: true })} className="glass-panel p-4 md:p-6 border-l-4 border-[#FEC204] hover:scale-[1.02] transition-transform cursor-pointer">
+          <p className="text-[9px] md:text-[11px] uppercase tracking-[2px] font-bold text-white/40 mb-1">Guruhlar</p>
+          <p className="text-[26px] md:text-[32px] font-[900] tracking-[-1px] text-white">{stats.groups}</p>
+          <p className="text-xs font-bold text-white/40 mt-1.5">Aktiv guruhlar</p>
         </div>
 
         <div onClick={() => navigate('/admin/payments', { replace: true })} className="glass-panel p-4 md:p-6 border-l-4 border-[#FEC204] hover:scale-[1.02] transition-transform cursor-pointer">

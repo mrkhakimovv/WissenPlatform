@@ -18,10 +18,7 @@ export default function AdminLayout() {
   
   let navItems = [
     { to: ".", icon: <Home size={22} />, label: "Asosiy" },
-    { to: "groups", icon: <Layers size={22} />, label: "Guruhlar" },
-    { to: "students", icon: <Users size={22} />, label: "O'quvchilar" },
     { to: "payments", icon: <CreditCard size={22} />, label: "To'lov" },
-    { to: "attendance", icon: <CalendarCheck size={22} />, label: "Davomat" },
     { to: "more", icon: <BookOpen size={22} />, label: "Boshqa" },
     { to: "milliy-sertifikat", icon: <Award size={22} />, label: "Milliy Sertifikat" },
     { to: "sat", icon: <Database size={22} />, label: "SAT BAZA" },
@@ -33,7 +30,7 @@ export default function AdminLayout() {
 
   if (user?.role === 'teacher') {
     navItems = navItems.filter(item => 
-      ['.', 'students', 'attendance', 'homeworks', 'tests', 'sat', 'milliy-sertifikat', 'exams'].includes(item.to)
+      ['.', 'homeworks', 'tests', 'sat', 'milliy-sertifikat', 'exams'].includes(item.to)
     );
   }
 
