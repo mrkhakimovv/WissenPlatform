@@ -1,11 +1,12 @@
 import { useConfirm } from '../contexts/ConfirmContext';
 import React, { useState, useEffect } from 'react';
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { Home, Users, CreditCard, CalendarCheck, BookOpen, Layers, LogOut, FileText, Megaphone, QrCode, X, Copy, CheckCircle2, Database, Award } from 'lucide-react';
+import { Home, Users, CreditCard, CalendarCheck, BookOpen, Layers, LogOut, FileText, Megaphone, QrCode, X, Copy, CheckCircle2, Database, Award , UserPlus } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { db, collection, query, getDocs, orderBy, where } from '../lib/firebase';
 import { QRCodeSVG } from 'qrcode.react';
 import { Group } from '../types';
+import AdminAddStudentModal from './AdminAddStudentModal';
 
 export default function AdminLayout() {
   const { confirm } = useConfirm();
@@ -35,6 +36,7 @@ export default function AdminLayout() {
   }
 
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+  const [isAddStudentModalOpen, setIsAddStudentModalOpen] = useState(false);
   const [copied, setCopied] = useState(false);
 
   const handleCopyLink = () => {
@@ -87,13 +89,22 @@ export default function AdminLayout() {
           </div>
           <div className="flex items-center gap-3">
             {isStudentsPage && (
-              <button 
-                onClick={() => setIsInviteModalOpen(true)}
-                className="w-10 h-10 rounded-2xl bg-[rgba(254,194,4,0.1)] flex items-center justify-center text-[#FEC204] hover:bg-[rgba(254,194,4,0.2)] active:scale-95 transition-all border border-[#FEC204]/20"
-                title="O'quvchi qabul qilish"
-              >
-                <QrCode size={18} />
-              </button>
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={() => setIsAddStudentModalOpen(true)}
+                  className="w-10 h-10 rounded-2xl bg-[rgba(254,194,4,0.1)] flex items-center justify-center text-[#FEC204] hover:bg-[rgba(254,194,4,0.2)] active:scale-95 transition-all border border-[#FEC204]/20"
+                  title="O'quvchi qo'shish"
+                >
+                  <UserPlus size={18} />
+                </button>
+                <button 
+                  onClick={() => setIsInviteModalOpen(true)}
+                  className="w-10 h-10 rounded-2xl bg-[rgba(254,194,4,0.1)] flex items-center justify-center text-[#FEC204] hover:bg-[rgba(254,194,4,0.2)] active:scale-95 transition-all border border-[#FEC204]/20"
+                  title="O'quvchi qabul qilish"
+                >
+                  <QrCode size={18} />
+                </button>
+              </div>
             )}
             <button onClick={async () => { if (await confirm({ title: 'Diqqat', message: `Rostdan tizimdan chiqmoqchimisiz?` })) { logout().then(() => navigate('/login', { replace: true })); } }} className="w-10 h-10 rounded-2xl glass-panel flex items-center justify-center text-white/70 hover:text-[#FEC204] active:scale-95 transition-all">
               <LogOut size={18} />
@@ -105,13 +116,22 @@ export default function AdminLayout() {
         <header className="hidden md:flex h-[80px] px-8 items-center justify-end shrink-0  border-b border-white/5">
           <div className="flex items-center gap-4">
             {isStudentsPage && (
-              <button 
-                onClick={() => setIsInviteModalOpen(true)}
-                className="h-11 px-4 rounded-2xl bg-[rgba(254,194,4,0.1)] flex items-center gap-2 text-[#FEC204] hover:bg-[rgba(254,194,4,0.2)] active:scale-95 transition-all border border-[#FEC204]/20 font-bold text-[13px] mr-2"
-              >
-                <QrCode size={18} />
-                <span>O'quvchi qabul qilish</span>
-              </button>
+              <div className="flex items-center gap-2 mr-2">
+                <button 
+                  onClick={() => setIsAddStudentModalOpen(true)}
+                  className="h-11 px-4 rounded-2xl bg-[rgba(254,194,4,0.1)] flex items-center gap-2 text-[#FEC204] hover:bg-[rgba(254,194,4,0.2)] active:scale-95 transition-all border border-[#FEC204]/20 font-bold text-[13px]"
+                >
+                  <UserPlus size={18} />
+                  <span>O'quvchi qo'shish</span>
+                </button>
+                <button 
+                  onClick={() => setIsInviteModalOpen(true)}
+                  className="h-11 px-4 rounded-2xl bg-[rgba(254,194,4,0.1)] flex items-center gap-2 text-[#FEC204] hover:bg-[rgba(254,194,4,0.2)] active:scale-95 transition-all border border-[#FEC204]/20 font-bold text-[13px]"
+                >
+                  <QrCode size={18} />
+                  <span>O'quvchi qabul qilish</span>
+                </button>
+              </div>
             )}
             <div className="flex flex-col items-end mr-2">
               <span className="text-[14px] font-bold text-white/90 tracking-wide">{user?.fullName || 'Administrator'}</span>
@@ -148,6 +168,7 @@ export default function AdminLayout() {
           ))}
         </nav>
 
+        {isAddStudentModalOpen && <AdminAddStudentModal onClose={() => setIsAddStudentModalOpen(false)} />}
         {isInviteModalOpen && (
           <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[100] flex flex-col items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => setIsInviteModalOpen(false)}>
             <div className="w-full max-w-[400px] glass-panel border border-white/10 rounded-[24px] p-8 flex flex-col items-center text-center shadow-2xl relative" onClick={e => e.stopPropagation()}>

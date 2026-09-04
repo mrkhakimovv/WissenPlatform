@@ -10,6 +10,7 @@ export default function AdminDashboard() {
   const navigate = useNavigate();
   const [stats, setStats] = useState({
     students: 0,
+    archivedStudents: 0,
     paidThisMonth: 0,
     unpaidThisMonth: 0,
     attendanceRate: 0,
@@ -38,7 +39,9 @@ export default function AdminDashboard() {
            unassigned = true;
         }
       });
-      setStats(s => ({ ...s, students: snap.docs.length, hasUnassignedStudents: unassigned }));
+      const activeDocs = snap.docs.filter(d => d.data().status !== 'archived');
+      const archivedCount = snap.docs.length - activeDocs.length;
+      setStats(s => ({ ...s, students: activeDocs.length, archivedStudents: archivedCount, hasUnassignedStudents: unassigned }));
     });
 
     
@@ -149,7 +152,10 @@ export default function AdminDashboard() {
 
           <p className="text-[9px] md:text-[11px] uppercase tracking-[2px] font-bold text-white/40 mb-1">O'quvchilar</p>
           <p className="text-[26px] md:text-[32px] font-[900] tracking-[-1px] text-white">{stats.students}</p>
-          <p className="text-xs font-bold text-white/40 mt-1.5">+ Barcha</p>
+          <p className="text-xs font-bold mt-1.5 flex items-center gap-2">
+            <span className="text-[#4ade80]">+ Barcha</span>
+            {stats.archivedStudents > 0 && <span className="text-white/40">&bull; {stats.archivedStudents} arxivda</span>}
+          </p>
         </div>
         
         <div onClick={() => navigate('/admin/attendance', { replace: true })} className="relative glass-panel p-4 md:p-6 border-l-4 border-[#FEC204] hover:scale-[1.02] transition-transform cursor-pointer">

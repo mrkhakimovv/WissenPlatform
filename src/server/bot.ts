@@ -15,18 +15,18 @@ interface MyContext extends Context {
 
 import { adminDb } from './notifications';
 
-const BOT_TOKEN = process.env.BOT_TOKEN || '8799934388:AAFamw30dy3yQMzI8rSZCwOaxfHsxLq4TLA';
+const BOT_TOKEN = process.env.BOT_TOKEN;
 const ADMIN_ID = process.env.ADMIN_ID || '1986422890';
 
 // Initialize Bot
-export const bot = new Telegraf<MyContext>(BOT_TOKEN);
-bot.use(session());
+export const bot = BOT_TOKEN ? new Telegraf<MyContext>(BOT_TOKEN) : null as any;
+if (bot) bot.use(session());
 
 // Quyidagi havolani o'zingizning render.com havolangiz bilan almashtiring (masalan: 'https://mening-loyiham.onrender.com')
 const DOMAIN = process.env.APP_URL || process.env.WEB_APP_URL || 'https://wissenedu.onrender.com'; // <-- O'zingizning render dagi havolangizni shu yerga yozing
 
 // Handle /start
-bot.start((ctx) => {
+if (bot) bot.start((ctx) => {
   ctx.session = ctx.session || {};
   ctx.session.state = 'idle';
   
@@ -38,13 +38,13 @@ bot.start((ctx) => {
   );
 });
 
-bot.action('login_start', (ctx) => {
+if (bot) bot.action('login_start', (ctx) => {
   ctx.session = ctx.session || {};
   ctx.session.state = 'awaiting_username';
   ctx.reply("Foydalanuvchi nomini kiriting:");
 });
 
-bot.action('show_exams', async (ctx) => {
+if (bot) bot.action('show_exams', async (ctx) => {
   if (!adminDb) {
     return ctx.reply("Tizimda xatolik (DB).");
   }
@@ -72,7 +72,7 @@ bot.action('show_exams', async (ctx) => {
   }
 });
 
-bot.on('text', async (ctx) => {
+if (bot) bot.on('text', async (ctx) => {
   ctx.session = ctx.session || {};
   const text = ctx.message.text.trim();
   
@@ -143,6 +143,7 @@ bot.on('text', async (ctx) => {
 // Launch bot internally when imported
 let retries = 5;
 const startBot = async () => {
+  if (!bot) { console.warn('No BOT_TOKEN provided, skipping telegram bot setup'); return; }
   while (retries > 0) {
     try {
       await bot.launch();
@@ -163,5 +164,5 @@ const startBot = async () => {
 startBot();
 
 // Enable graceful stop
-process.once('SIGINT', () => bot.stop('SIGINT'));
-process.once('SIGTERM', () => bot.stop('SIGTERM'));
+process.once('SIGINT', () => bot && bot.stop('SIGINT'));
+process.once('SIGTERM', () => bot && bot.stop('SIGTERM'));

@@ -584,7 +584,14 @@ export default function AdminSATDatabase() {
 
               <div>
                 <label className="text-[10px] uppercase font-bold text-white/40 ml-1 mb-1 block">Test turi</label>
-                <select required value={testConfig.satType} onChange={e=>setTestConfig({...testConfig, satType: e.target.value})} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm text-[color:var(--theme-text-primary)] appearance-none" style={{ colorScheme: "dark" }}>
+                <select required value={testConfig.satType} onChange={e => {
+                    const type = e.target.value;
+                    if (type === 'SAT real EXAM') {
+                      setTestConfig({ ...testConfig, satType: type, questionCount: 44, isFastMode: false });
+                    } else {
+                      setTestConfig({ ...testConfig, satType: type });
+                    }
+                  }} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm text-[color:var(--theme-text-primary)] appearance-none" style={{ colorScheme: "dark" }}>
                   <option value="SAT Mavzulashtirilgan" className="bg-[#1a1a1a]">SAT Mavzulashtirilgan</option>
                   <option value="SAT Homework" className="bg-[#1a1a1a]">SAT Homework</option>
                   <option value="SAT practice" className="bg-[#1a1a1a]">SAT practice</option>
@@ -595,15 +602,15 @@ export default function AdminSATDatabase() {
               <div>
                 <label className="text-[10px] uppercase font-bold text-white/40 ml-1 mb-1 block">Test formati</label>
                 <div className="grid grid-cols-2 gap-2">
-                  <button type="button" onClick={() => setTestConfig({...testConfig, isFastMode: false})} className={`py-3 px-4 rounded-xl font-bold text-sm transition-colors border-2 ${!testConfig.isFastMode ? 'bg-[#FEC204]/10 border-[#FEC204] text-[#FEC204]' : 'bg-white/5 border-transparent text-white/50 hover:bg-white/10'}`}>Savol + Javob</button>
-                  <button type="button" onClick={() => setTestConfig({...testConfig, isFastMode: true})} className={`py-3 px-4 rounded-xl font-bold text-sm transition-colors border-2 ${testConfig.isFastMode ? 'bg-[#FEC204]/10 border-[#FEC204] text-[#FEC204]' : 'bg-white/5 border-transparent text-white/50 hover:bg-white/10'}`}>Faqat Javoblar</button>
+                  <button type="button" onClick={() => testConfig.satType !== 'SAT real EXAM' && setTestConfig({...testConfig, isFastMode: false})} className={`py-3 px-4 rounded-xl font-bold text-sm transition-colors border-2 ${!testConfig.isFastMode ? 'bg-[#FEC204]/10 border-[#FEC204] text-[#FEC204]' : 'bg-white/5 border-transparent text-white/50 hover:bg-white/10'}`}>Savol + Javob</button>
+                  <button type="button" onClick={() => testConfig.satType !== 'SAT real EXAM' && setTestConfig({...testConfig, isFastMode: true})} className={`py-3 px-4 rounded-xl font-bold text-sm transition-colors border-2 ${testConfig.isFastMode ? 'bg-[#FEC204]/10 border-[#FEC204] text-[#FEC204]' : 'bg-white/5 border-transparent text-white/50 hover:bg-white/10'}`}>Faqat Javoblar</button>
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-[10px] uppercase font-bold text-white/40 ml-1 mb-1 block">Savollar soni</label>
-                  <input required type="number" min="1" max="100" value={testConfig.questionCount} onChange={e=>setTestConfig({...testConfig, questionCount: Number(e.target.value)})} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm text-white" />
+                  <input required type="number" min="1" max="100" value={testConfig.questionCount} onChange={e=>setTestConfig({...testConfig, questionCount: Number(e.target.value)})} disabled={testConfig.satType === 'SAT real EXAM'} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm text-white disabled:opacity-50" />
                 </div>
                 <div>
                   <label className="text-[10px] uppercase font-bold text-white/40 ml-1 mb-1 block">Variantlar soni</label>

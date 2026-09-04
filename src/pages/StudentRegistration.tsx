@@ -97,8 +97,12 @@ export default function StudentRegistration() {
           await login(email, password);
           navigate('/student', { replace: true });
           return;
-        } catch (loginErr) {
-          toast.error("Ushbu username band yoki parol noto'g'ri. Agar bu sizning akkauntingiz bo'lsa, to'g'ri parolni kiritib kiring.");
+        } catch (loginErr: any) {
+          if (loginErr.message.includes('arxivlangan')) {
+            toast.error(loginErr.message);
+          } else {
+            toast.error("Ushbu username band yoki parol noto'g'ri. Agar bu sizning akkauntingiz bo'lsa, to'g'ri parolni kiritib kiring.");
+          }
           setSubmitting(false);
           return;
         }
@@ -142,10 +146,13 @@ export default function StudentRegistration() {
             await login(email, password);
             navigate('/student', { replace: true });
             return;
-          } catch (loginErr) {
-            // Parol xato bo'lsa, demak bu nom rostdan ham boshqa birovga tegishli yoki parol unutilgan.
-            setUsernameStatus('taken');
-            toast.error(`Bu username band. Iltimos: ${username}1 yoki ${username}_2026 deb kiritib ko'ring.`);
+          } catch (loginErr: any) {
+            if (loginErr.message && loginErr.message.includes('arxivlangan')) {
+              toast.error(loginErr.message);
+            } else {
+              setUsernameStatus('taken');
+              toast.error(`Bu username band. Iltimos: ${username}1 yoki ${username}_2026 deb kiritib ko'ring.`);
+            }
             setSubmitting(false);
             return;
           }

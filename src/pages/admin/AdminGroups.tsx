@@ -41,7 +41,7 @@ export default function AdminGroups() {
       setGroups(snap.docs.map(d => ({id: d.id, ...d.data()})));
     });
     const unsubStudents = onSnapshot(query(collection(db, 'users'), where('role', '==', 'student')), snap => {
-      setStudents(snap.docs.map(d => ({id: d.id, ...d.data()})));
+      setStudents(snap.docs.map(d => ({id: d.id, ...d.data()})).filter((s: any) => s.status !== 'archived'));
     });
     const unsubSubjects = onSnapshot(collection(db, 'subjects'), snap => {
       setSubjects(snap.docs.map(d => ({id: d.id, ...d.data()})));

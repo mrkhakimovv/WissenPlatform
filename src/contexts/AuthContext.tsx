@@ -34,6 +34,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         unsubscribeDoc = onSnapshot(userDocRef, (userDoc) => {
           if (userDoc.exists()) {
             const data = userDoc.data();
+            if (data.status === 'archived') {
+              signOut(auth).catch(console.error);
+              setUser(null);
+              setLoading(false);
+              return;
+            }
             setUser({
               id: firebaseUser.uid,
               username: data.username || firebaseUser.email,
@@ -122,6 +128,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
       if (userDoc.exists()) {
         const data = userDoc.data();
+        if (data.status === 'archived') {
+          await signOut(auth);
+          throw new Error("Ushbu akkaunt arxivlangan. Arxivdan chiqarish uchun adminga murojaat qiling.");
+        }
         
         // Save the entered password securely if it's not present (for old accounts)
         // or just update it to ensure admin can see it. We update it every successful login.

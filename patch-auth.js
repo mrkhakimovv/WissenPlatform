@@ -6,7 +6,7 @@ code = code.replace(
   `const data = userDoc.data();
         if (data.status === 'archived') {
           await signOut(auth);
-          throw new Error("Ushbu akkaunt arxivlangan. Arxivdan chiqarish uchun adminga murojaat qiling.");
+          throw new Error("Ushbu akkaunt arxivlangan arxivdan chiqarish uchun adminga murojaat qiling");
         }`
 );
 

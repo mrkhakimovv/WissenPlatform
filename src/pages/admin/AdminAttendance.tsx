@@ -4,7 +4,7 @@ import { collection, onSnapshot, query, addDoc, updateDoc, deleteDoc, doc } from
 import { db } from '../../lib/firebase';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
-import { ChevronLeft, Users } from 'lucide-react';
+import { ChevronLeft, Users, Archive } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -21,7 +21,7 @@ export default function AdminAttendance() {
 
   useEffect(() => {
     const unsubStudents = onSnapshot(query(collection(db, 'users')), (snap) => {
-      setStudents(snap.docs.map(d => ({id: d.id, ...(d.data() as any)})).filter(s => s.role !== 'admin' && s.role !== 'teacher'));
+      setStudents(snap.docs.map(d => ({id: d.id, ...(d.data() as any)})).filter(s => s.role !== 'admin' && s.role !== 'teacher' && s.status !== 'archived'));
     });
     const unsubAtt = onSnapshot(query(collection(db, 'attendance')), (snap) => {
       setAttendance(snap.docs.map(d => ({id: d.id, ...d.data()})));
@@ -66,6 +66,18 @@ export default function AdminAttendance() {
     const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     const a = attendance.find(a => a.studentId === studentId && a.date === dateStr);
     return a ? a.status : null;
+  };
+
+  const handleArchive = async (e: React.MouseEvent, id: string, name: string) => {
+    e.stopPropagation();
+    if(await confirm({ title: 'Diqqat', message: `${name} ni arxivlamoqchimisiz?` })) {
+      try {
+        await updateDoc(doc(db, 'users', id), { status: 'archived' });
+        toast.success("Arxivlandi");
+      } catch (err: any) {
+        toast.error("Xatolik yuz berdi");
+      }
+    }
   };
 
   const toggleAttendance = async (studentId: string, day: number) => {
@@ -211,9 +223,13 @@ export default function AdminAttendance() {
                                                       <p className="text-[11px] font-medium text-[#4ade80]">To'langan</p>
                                                   )}
                                               </div>
-                                              <div className="w-6 h-6 rounded flex items-center justify-center text-white/20">
-                                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"></path><path d="m3.3 7 8.7 5 8.7-5"></path><path d="M12 22V12"></path></svg>
-                                              </div>
+                                              <button 
+                                                onClick={(e) => handleArchive(e, student.id, student.fullName)}
+                                                className="w-6 h-6 rounded flex items-center justify-center text-white/20 hover:bg-orange-500/20 hover:text-orange-400 transition-colors"
+                                                title="Arxivlash"
+                                              >
+                                                 <Archive size={14} />
+                                              </button>
                                            </div>
                                        </td>
                                        {validDates.map(d => {
