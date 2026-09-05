@@ -1,74 +1,149 @@
 const fs = require('fs');
 let code = fs.readFileSync('src/pages/admin/AdminPayments.tsx', 'utf-8');
 
-const targetStatsGrid = `<div className="glass-panel p-4 md:p-5">
-             <div className="text-[11px] font-bold text-white/40 uppercase tracking-widest mb-1">Bajarildi</div>
-             <div className="text-lg md:text-xl font-black text-[#FEC204]">{students.length > 0 ? Math.round((students.filter(s => getPaymentRecord(s.id)).length / students.length) * 100) : 0}%</div>
-             <div className="w-full bg-white/5 h-1.5 rounded-full mt-3 overflow-hidden">
-                <div className="h-full bg-[#FEC204] rounded-full" style={{ width: \`\${students.length > 0 ? Math.round((students.filter(s => getPaymentRecord(s.id)).length / students.length) * 100) : 0}%\` }}></div>
-             </div>
-          </div>
-        </div>`;
+const targetUI = `<div className="space-y-3 md:space-y-0 md:grid md:grid-cols-2 lg:grid-cols-3 md:gap-4 pb-20">
+        {students.map(student => {
+          const paymentRecord = getPaymentRecord(student.id);
+          const initials = student.fullName?.substring(0,2).toUpperCase() || 'ST';
+          return (
+            <div key={student.id} className="glass-panel-list p-3 flex flex-col gap-3 group">
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 shrink-0 rounded-xl bg-gradient-to-br from-white/10 to-white/5 flex items-center justify-center font-bold text-[color:var(--theme-text-primary)] border border-white/5">
+                  {initials}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[color:var(--theme-text-primary)] text-sm font-semibold truncate">{student.fullName}</p>
+                  <p className="text-[color:var(--theme-text-primary)]/40 text-[10px] truncate">{student.monthlyFee?.toLocaleString()} so'm</p>
+                </div>
+                <div className="text-right shrink-0 flex items-center gap-2">
+                  {paymentRecord ? (
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-500/20 text-green-400 border border-green-500/20 leading-none mt-0.5">To'landi</span>
+                  ) : (
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 border border-red-500/20 leading-none mt-0.5">To'lanmagan</span>
+                  )}
+                </div>
+              </div>
 
-const newGroupStats = `<div className="glass-panel p-4 md:p-5">
-             <div className="text-[11px] font-bold text-white/40 uppercase tracking-widest mb-1">Bajarildi</div>
-             <div className="text-lg md:text-xl font-black text-[#FEC204]">{students.length > 0 ? Math.round((students.filter(s => getPaymentRecord(s.id)).length / students.length) * 100) : 0}%</div>
-             <div className="w-full bg-white/5 h-1.5 rounded-full mt-3 overflow-hidden">
-                <div className="h-full bg-[#FEC204] rounded-full" style={{ width: \`\${students.length > 0 ? Math.round((students.filter(s => getPaymentRecord(s.id)).length / students.length) * 100) : 0}%\` }}></div>
-             </div>
-          </div>
-        </div>
-
-        {/* Group Stats */}
-        {groups.length > 0 && (
-          <div className="mt-2 flex flex-col gap-3">
-            <h3 className="text-white/40 text-[11px] font-bold uppercase tracking-widest mb-1 ml-1">Guruhlar bo'yicha statistika</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-               {groups.map(g => {
-                  const groupStudents = students.filter(s => s.groups?.includes(g.id) || s.groupId === g.id);
-                  if (groupStudents.length === 0) return null;
-                  const expected = groupStudents.reduce((acc, s) => acc + (Number(s.monthlyFee) || 0), 0);
-                  const paidStudents = groupStudents.filter(s => getPaymentRecord(s.id));
-                  const collected = paidStudents.reduce((acc, s) => acc + (getPaymentRecord(s.id)?.amount || 0), 0);
-                  const debt = Math.max(0, expected - collected);
-                  const percentage = groupStudents.length > 0 ? Math.round((paidStudents.length / groupStudents.length) * 100) : 0;
-                  
-                  return (
-                     <div key={g.id} className="glass-panel p-4 flex flex-col gap-3 hover:bg-white/[0.02] transition-colors border border-white/5">
-                        <div className="flex items-center justify-between">
-                           <div className="flex items-center gap-2">
-                             <div className="w-2 h-2 rounded-full bg-[#FEC204]"></div>
-                             <h4 className="text-white font-bold text-[13px] truncate">{g.name}</h4>
-                           </div>
-                           <span className="text-[10px] bg-white/5 border border-white/10 text-white/70 px-2 py-0.5 rounded-full font-medium">{groupStudents.length} o'quvchi</span>
-                        </div>
-                        
-                        <div className="grid grid-cols-2 gap-3 bg-[#1a1a1a] p-3 rounded-xl border border-white/5">
-                           <div>
-                              <span className="text-white/30 text-[10px] font-bold uppercase tracking-wider block mb-0.5">Yig'ildi</span>
-                              <p className="text-green-400 font-black text-[13px]">{collected.toLocaleString()} <span className="text-[10px] text-green-500/40 font-medium font-sans">UZS</span></p>
-                           </div>
-                           <div>
-                              <span className="text-white/30 text-[10px] font-bold uppercase tracking-wider block mb-0.5">Qarzdorlik</span>
-                              <p className="text-red-400 font-black text-[13px]">{debt.toLocaleString()} <span className="text-[10px] text-red-500/40 font-medium font-sans">UZS</span></p>
-                           </div>
-                        </div>
-                        
-                        <div className="flex items-center gap-3 mt-1">
-                           <div className="flex-1 bg-[#1a1a1a] border border-white/5 h-2 rounded-full overflow-hidden">
-                              <div className="h-full bg-[#FEC204] rounded-full relative" style={{ width: \`\${percentage}%\` }}>
-                                 <div className="absolute inset-0 bg-gradient-to-r from-transparent to-white/20"></div>
-                              </div>
-                           </div>
-                           <span className="text-[11px] font-black text-[#FEC204] w-8 text-right">{percentage}%</span>
-                        </div>
-                     </div>
-                  );
-               })}
+              {paymentRecord ? (
+                <div className="w-full flex items-center justify-between py-2 px-3 bg-green-500/5 border border-green-500/10 rounded-xl">
+                  <span className="text-[11px] text-green-400 font-bold">{new Date(paymentRecord.paidAt).toLocaleDateString('uz-UZ')}</span>
+                  <button onClick={() => handleDelete(paymentRecord.id)} className="w-6 h-6 rounded bg-red-500/10 flex items-center justify-center text-red-500 hover:bg-red-500/20 transition-colors">
+                    <Trash2 size={12} />
+                  </button>
+                </div>
+              ) : (
+                <button 
+                  onClick={() => handlePay(student.id, student.monthlyFee)}
+                  className="w-full py-2 bg-gradient-to-r from-white/5 to-white/10 hover:from-white/10 hover:to-white/15 border border-white/5 text-[color:var(--theme-text-primary)]/90 font-medium rounded-xl text-xs transition-colors"
+                >
+                  To'lovni kiritish
+                </button>
+              )}
             </div>
-          </div>
-        )}`;
+          )
+        })}
+        {students.length === 0 && <p className="text-center text-[color:var(--theme-text-primary)]/40 py-6 text-sm col-span-full">O'quvchilar yo'q</p>}
+      </div>`;
 
-code = code.replace(targetStatsGrid, newGroupStats);
+const replacementUI = `<div className="space-y-4 md:space-y-0 md:grid md:grid-cols-2 lg:grid-cols-3 md:gap-4 pb-20">
+        {students.map(student => {
+          const debtInfo = getDebtInfo(student);
+          const isFullyPaid = debtInfo.totalDebt === 0;
+          const initials = student.fullName?.substring(0,2).toUpperCase() || 'ST';
+          
+          return (
+            <div key={student.id} className="glass-panel p-4 flex flex-col gap-4 relative overflow-hidden group">
+              {/* Initials & Name */}
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 shrink-0 rounded-2xl bg-gradient-to-br from-white/10 to-white/5 flex items-center justify-center font-black text-lg text-white border border-white/5">
+                  {initials}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-white font-bold truncate">{student.fullName}</p>
+                  
+                  {/* Monthly Fee Edit */}
+                  {editingFeeId === student.id ? (
+                     <div className="flex items-center gap-2 mt-1">
+                        <input 
+                           type="number" 
+                           value={newFee}
+                           onChange={(e) => setNewFee(e.target.value)}
+                           className="bg-[#1a1a1a] border border-white/10 text-white text-[11px] px-2 py-1 rounded w-24 outline-none focus:border-[#FEC204]/50"
+                        />
+                        <button onClick={() => handleUpdateFee(student.id)} className="w-6 h-6 bg-green-500/20 text-green-400 rounded flex items-center justify-center hover:bg-green-500/30 transition-colors">
+                           <Check size={12} />
+                        </button>
+                        <button onClick={() => setEditingFeeId(null)} className="w-6 h-6 bg-white/10 text-white/50 rounded flex items-center justify-center hover:bg-white/20 transition-colors">
+                           <X size={12} />
+                        </button>
+                     </div>
+                  ) : (
+                     <div className="flex items-center gap-2 mt-0.5">
+                        <p className="text-white/40 text-[11px] font-medium truncate">Oylik to'lov: {(Number(student.monthlyFee)||0).toLocaleString()} so'm</p>
+                        <button onClick={() => { setEditingFeeId(student.id); setNewFee(student.monthlyFee?.toString() || ''); }} className="text-white/20 hover:text-[#FEC204] transition-colors">
+                           <Edit2 size={12} />
+                        </button>
+                     </div>
+                  )}
+                </div>
+              </div>
 
+              {/* Debt Info */}
+              <div className="grid grid-cols-2 gap-3 bg-[#1a1a1a] rounded-xl p-3 border border-white/5">
+                 <div>
+                    <span className="text-[10px] text-white/30 uppercase tracking-wider font-bold mb-1 block">Ushbu oy</span>
+                    <p className={\`text-[13px] font-black \${debtInfo.currentMonthDebt > 0 ? 'text-[#FEC204]' : 'text-green-400'}\`}>
+                       {debtInfo.currentMonthDebt > 0 ? \`-\${debtInfo.currentMonthDebt.toLocaleString()}\` : 'To\\'langan'}
+                    </p>
+                 </div>
+                 <div>
+                    <span className="text-[10px] text-white/30 uppercase tracking-wider font-bold mb-1 block">Boshqa oylar</span>
+                    <p className={\`text-[13px] font-black \${debtInfo.otherMonthsDebt > 0 ? 'text-red-400' : 'text-green-400'}\`}>
+                       {debtInfo.otherMonthsDebt > 0 ? \`-\${debtInfo.otherMonthsDebt.toLocaleString()}\` : 'Yo\\'q'}
+                    </p>
+                 </div>
+              </div>
+
+              {/* Actions & Total Debt */}
+              <div className="flex items-center justify-between mt-auto pt-2 border-t border-white/5">
+                 <div>
+                    <span className="text-[10px] text-white/30 font-bold uppercase tracking-wider block mb-0.5">Jami qarzdorlik</span>
+                    <p className={\`text-lg font-black \${isFullyPaid ? 'text-green-400' : 'text-red-500'}\`}>
+                       {debtInfo.totalDebt.toLocaleString()} <span className="text-[10px] font-medium opacity-50 font-sans">UZS</span>
+                    </p>
+                 </div>
+                 
+                 {!isFullyPaid && (
+                   <div className="flex gap-2">
+                     {debtInfo.totalDebt > 0 && (
+                        <button 
+                           onClick={() => handleForgiveDebt(student.id, debtInfo.totalDebt)}
+                           title="Qarzdorlikni kechish"
+                           className="w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center border border-white/5 text-white/40 hover:text-white transition-all active:scale-95"
+                        >
+                           <X size={16} />
+                        </button>
+                     )}
+                     <button 
+                        onClick={() => handlePay(student.id, debtInfo.totalDebt)}
+                        className="h-10 px-4 rounded-xl bg-gradient-to-r from-[#FEC204] to-[#f97316] hover:from-[#f5b800] hover:to-[#ea580c] text-black font-bold text-xs transition-all shadow-[0_0_15px_rgba(254,194,4,0.3)] active:scale-95"
+                     >
+                        To'lash
+                     </button>
+                   </div>
+                 )}
+              </div>
+              
+              {isFullyPaid && (
+                <div className="absolute top-4 right-4 bg-green-500/10 border border-green-500/20 text-green-400 text-[10px] font-bold px-2 py-1 rounded-lg">
+                   To'liq to'langan
+                </div>
+              )}
+            </div>
+          )
+        })}
+        {students.length === 0 && <p className="text-center text-white/40 py-6 text-sm col-span-full font-medium">O'quvchilar yo'q</p>}
+      </div>`;
+
+code = code.replace(targetUI, replacementUI);
 fs.writeFileSync('src/pages/admin/AdminPayments.tsx', code);

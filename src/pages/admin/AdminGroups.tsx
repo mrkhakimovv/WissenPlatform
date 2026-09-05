@@ -130,7 +130,7 @@ export default function AdminGroups() {
         <button 
           onClick={() => {
             setEditingGroup(null);
-            setFormData({ name: '', subject: '', teacherName: '', days: [], startTime: '', endTime: '', schedule: {} });
+            setFormData({ name: '', subject: '', teacherName: '', days: [], startTime: '', endTime: '', schedule: {}, monthlyFee: '' });
             setIsModalOpen(true);
           }}
           className="w-10 h-10 rounded-[12px] bg-[#FEC204] flex items-center justify-center text-[#000] shadow-sm transform active:scale-95 transition-all"
@@ -146,7 +146,7 @@ export default function AdminGroups() {
         <input 
           type="text"
           placeholder="Guruh nomini qidirish..."
-          value={searchTerm}
+          value={searchTerm || ""}
           onChange={e => setSearchTerm(e.target.value)}
           className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm text-white/90 pl-11 !rounded-[10px]"
         />
@@ -205,18 +205,18 @@ export default function AdminGroups() {
             </div>
             
             <form onSubmit={handleSave} className="space-y-4">
-              <input placeholder="Guruh nomi" value={formData.name} onChange={e=>setFormData({...formData, name: e.target.value})} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm placeholder-white/30" />
+              <input placeholder="Guruh nomi" value={formData.name || ""} onChange={e=>setFormData({...formData, name: e.target.value})} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm placeholder-white/30" />
               
-              <input type="number" onWheel={(e) => (e.target as HTMLInputElement).blur()} placeholder="Oylik to'lov summasi (so'm)" value={formData.monthlyFee} onChange={e=>setFormData({...formData, monthlyFee: e.target.value})} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm placeholder-white/30" />
+              <input type="number" onWheel={(e) => (e.target as HTMLInputElement).blur()} placeholder="Oylik to'lov summasi (so'm)" value={formData.monthlyFee || ""} onChange={e=>setFormData({...formData, monthlyFee: e.target.value})} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm placeholder-white/30" />
               
-              <select value={formData.subject} onChange={e=>setFormData({...formData, subject: e.target.value})} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm text-[color:var(--theme-text-primary)] appearance-none" style={{ colorScheme: "dark" }}>
+              <select value={formData.subject || ""} onChange={e=>setFormData({...formData, subject: e.target.value})} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm text-[color:var(--theme-text-primary)] appearance-none" style={{ colorScheme: "dark" }}>
                 <option value="" disabled>Fanni tanlang</option>
-                {subjects.map(s => <option key={s.id} value={s.name} className="bg-[#1a1a1a]">{s.name}</option>)}
+                {subjects.map(s => <option key={s.id} value={s.name || ""} className="bg-[#1a1a1a]">{s.name}</option>)}
               </select>
 
-              <select value={formData.teacherName} onChange={e=>setFormData({...formData, teacherName: e.target.value})} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm text-[color:var(--theme-text-primary)] appearance-none" style={{ colorScheme: "dark" }}>
+              <select value={formData.teacherName || ""} onChange={e=>setFormData({...formData, teacherName: e.target.value})} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm text-[color:var(--theme-text-primary)] appearance-none" style={{ colorScheme: "dark" }}>
                 <option value="" disabled>O'qituvchini tanlang</option>
-                {teachers.map(t => <option key={t.id} value={t.fullName} className="bg-[#1a1a1a]">{t.fullName}</option>)}
+                {teachers.map(t => <option key={t.id} value={t.fullName || ""} className="bg-[#1a1a1a]">{t.fullName}</option>)}
               </select>
 
               <div className="space-y-2">
@@ -255,7 +255,7 @@ export default function AdminGroups() {
                         <div className="flex-1">
                           <input 
                             type="time" 
-                            value={sched.startTime} 
+                            value={sched.startTime || ""} 
                             onChange={e => setFormData({
                               ...formData, 
                               schedule: { ...formData.schedule, [day.id]: { ...sched, startTime: e.target.value } }
@@ -268,7 +268,7 @@ export default function AdminGroups() {
                         <div className="flex-1">
                           <input 
                             type="time" 
-                            value={sched.endTime} 
+                            value={sched.endTime || ""} 
                             onChange={e => setFormData({
                               ...formData, 
                               schedule: { ...formData.schedule, [day.id]: { ...sched, endTime: e.target.value } }

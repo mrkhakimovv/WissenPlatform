@@ -38,7 +38,9 @@ export default function AdminAttendance() {
   const [year, month] = selectedMonth.split('-').map(Number);
   const daysInMonth = new Date(year, month, 0).getDate();
   
-  const groupStudents = students.filter(s => s.groups?.includes(selectedGroupId) || s.groupId === selectedGroupId).sort((a, b) => (a.fullName || '').localeCompare(b.fullName || ''));
+  const groupStudents = selectedGroupId === 'unassigned' 
+    ? students.filter(s => !s.groups?.length && !s.groupId).sort((a, b) => (a.fullName || '').localeCompare(b.fullName || ''))
+    : students.filter(s => s.groups?.includes(selectedGroupId) || s.groupId === selectedGroupId).sort((a, b) => (a.fullName || '').localeCompare(b.fullName || ''));
   const selectedGroup = groups.find(g => g.id === selectedGroupId);
 
   const allowedDaysOfWeek = (selectedGroup?.days || []).map(Number); // e.g. [1, 3, 5]
@@ -170,7 +172,7 @@ export default function AdminAttendance() {
                  </button>
                  <div>
                     <h2 className="text-[20px] font-black text-white flex items-center gap-3">
-                        {selectedGroup?.name} 
+                        {selectedGroupId === 'unassigned' ? "Guruhsiz o'quvchilar" : selectedGroup?.name} 
                         {selectedGroup?.startTime && <span className="text-white/40 text-[16px] font-medium">{selectedGroup.startTime}{selectedGroup.endTime ? ` - ${selectedGroup.endTime}` : ''}</span>}
                     </h2>
                     <p className="text-[12px] font-bold text-white/40 mt-1">{darslarSoni} ta dars • {groupStudents.length} ta o'quvchi</p>

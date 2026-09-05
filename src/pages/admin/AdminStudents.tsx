@@ -73,10 +73,20 @@ export default function AdminStudents() {
       
       const userCred = await createUserWithEmailAndPassword(secondaryAuth, email, formData.password);
       
+      
+      // Try to find the group to set the correct monthly fee if it's empty
+      let finalFee = Number(formData.monthlyFee) || 0;
+      if (!finalFee && formData.groupId) {
+         const group = groups.find(g => g.id === formData.groupId);
+         if (group && group.monthlyFee) {
+             finalFee = Number(group.monthlyFee);
+         }
+      }
+
       await setDoc(doc(db, 'users', userCred.user.uid), {
         ...formData,
         role: 'student',
-        monthlyFee: Number(formData.monthlyFee),
+        monthlyFee: finalFee,
         createdAt: new Date().toISOString()
       });
       toast.success("O'quvchi qo'shildi!");
@@ -111,7 +121,7 @@ export default function AdminStudents() {
             username: editData.username,
             password: editData.password,
             groupId: editData.groupId,
-            monthlyFee: Number(editData.monthlyFee),
+            monthlyFee: Number(editData.monthlyFee) || (groups.find(g => g.id === editData.groupId)?.monthlyFee ? Number(groups.find(g => g.id === editData.groupId)?.monthlyFee) : 0),
             joinedDate: editData.joinedDate
           })
         });
@@ -245,7 +255,7 @@ export default function AdminStudents() {
         <input 
           type="text" 
           placeholder="O'quvchilarni qidirish..." 
-          value={search}
+          value={search || ""}
           onChange={e => setSearch(e.target.value)}
           className="w-full glass-panel py-3 pl-11 pr-4 focus:outline-none focus:border-[#FEC204]/50 text-[color:var(--theme-text-primary)] placeholder-white/30 text-sm"
         />
@@ -346,18 +356,18 @@ export default function AdminStudents() {
           <div className="glass-panel w-full max-w-sm p-6 bg-[#1a1a1a]/80 max-h-[85vh] overflow-y-auto">
             <h2 className="text-lg font-bold mb-4 text-[color:var(--theme-text-primary)]">Yangi o'quvchi</h2>
             <form onSubmit={handleAdd} className="space-y-4">
-              <input required placeholder="F.I.SH." value={formData.fullName} onChange={e=>setFormData({...formData, fullName: e.target.value})} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm placeholder-white/30" />
-              <input required placeholder="Login" value={formData.username} onChange={e=>setFormData({...formData, username: e.target.value})} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm placeholder-white/30" />
-              <input required placeholder="Parol" type="text" value={formData.password} onChange={e=>setFormData({...formData, password: e.target.value})} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm placeholder-white/30" />
-              <select required value={formData.groupId} onChange={e=>setFormData({...formData, groupId: e.target.value})} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm placeholder-white/30 text-[color:var(--theme-text-primary)] appearance-none" style={{ colorScheme: "dark" }}>
+              <input required placeholder="F.I.SH." value={formData.fullName || ""} onChange={e=>setFormData({...formData, fullName: e.target.value})} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm placeholder-white/30" />
+              <input required placeholder="Login" value={formData.username || ""} onChange={e=>setFormData({...formData, username: e.target.value})} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm placeholder-white/30" />
+              <input required placeholder="Parol" type="text" value={formData.password || ""} onChange={e=>setFormData({...formData, password: e.target.value})} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm placeholder-white/30" />
+              <select required value={formData.groupId || ""} onChange={e=>setFormData({...formData, groupId: e.target.value})} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm placeholder-white/30 text-[color:var(--theme-text-primary)] appearance-none" style={{ colorScheme: "dark" }}>
                 <option value="" disabled>Guruhni tanlang</option>
-                {groups.map(g => <option key={g.id} value={g.id} className="bg-[#1a1a1a]">{g.name} — {g.subject}</option>)}
+                {groups.map(g => <option key={g.id} value={g.id || ""} className="bg-[#1a1a1a]">{g.name} — {g.subject}</option>)}
               </select>
-              <input required placeholder="Oylik to'lov (so'm)" type="number" value={formData.monthlyFee} onChange={e=>setFormData({...formData, monthlyFee: e.target.value})} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm placeholder-white/30" />
+              <input required placeholder="Oylik to'lov (so'm)" type="number" value={formData.monthlyFee || ""} onChange={e=>setFormData({...formData, monthlyFee: e.target.value})} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm placeholder-white/30" />
               
               <div className="space-y-1">
                 <label className="text-[11px] text-[color:var(--theme-text-primary)]/50 px-1 uppercase tracking-wider font-bold">Kelgan sanasi:</label>
-                <input required type="date" value={formData.joinedDate} onChange={e=>setFormData({...formData, joinedDate: e.target.value})} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm text-[color:var(--theme-text-primary)]/90" style={{ colorScheme: "dark" }} />
+                <input required type="date" value={formData.joinedDate || ""} onChange={e=>setFormData({...formData, joinedDate: e.target.value})} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm text-[color:var(--theme-text-primary)]/90" style={{ colorScheme: "dark" }} />
               </div>
 
               {formData.monthlyFee && formData.joinedDate && (
@@ -398,30 +408,30 @@ export default function AdminStudents() {
             <form onSubmit={handleEdit} className="space-y-4 max-h-[70vh] overflow-y-auto pr-2 custom-scrollbar">
               <div>
                 <label className="text-[11px] text-[color:var(--theme-text-primary)]/50 px-1 uppercase tracking-wider font-bold mb-1 block">F.I.SH.</label>
-                <input required placeholder="F.I.SH." value={editData.fullName} onChange={e=>setEditData({...editData, fullName: e.target.value})} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm placeholder-white/30 text-[color:var(--theme-text-primary)]" />
+                <input required placeholder="F.I.SH." value={editData.fullName || ""} onChange={e=>setEditData({...editData, fullName: e.target.value})} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm placeholder-white/30 text-[color:var(--theme-text-primary)]" />
               </div>
               <div>
                 <label className="text-[11px] text-[color:var(--theme-text-primary)]/50 px-1 uppercase tracking-wider font-bold mb-1 block">Login</label>
-                <input required placeholder="Login" value={editData.username} onChange={e=>setEditData({...editData, username: e.target.value})} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm placeholder-white/30 text-[color:var(--theme-text-primary)]" />
+                <input required placeholder="Login" value={editData.username || ""} onChange={e=>setEditData({...editData, username: e.target.value})} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm placeholder-white/30 text-[color:var(--theme-text-primary)]" />
               </div>
               <div>
                 <label className="text-[11px] text-[color:var(--theme-text-primary)]/50 px-1 uppercase tracking-wider font-bold mb-1 block">Parol</label>
-                <input required placeholder="Parol" type="text" value={editData.password} onChange={e=>setEditData({...editData, password: e.target.value})} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm placeholder-white/30 text-[color:var(--theme-text-primary)]" />
+                <input required placeholder="Parol" type="text" value={editData.password || ""} onChange={e=>setEditData({...editData, password: e.target.value})} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm placeholder-white/30 text-[color:var(--theme-text-primary)]" />
               </div>
               <div>
                 <label className="text-[11px] text-[color:var(--theme-text-primary)]/50 px-1 uppercase tracking-wider font-bold mb-1 block">Guruh</label>
-                <select required value={editData.groupId} onChange={e=>setEditData({...editData, groupId: e.target.value})} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm text-[color:var(--theme-text-primary)] appearance-none" style={{ colorScheme: "dark" }}>
+                <select required value={editData.groupId || ""} onChange={e=>setEditData({...editData, groupId: e.target.value})} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm text-[color:var(--theme-text-primary)] appearance-none" style={{ colorScheme: "dark" }}>
                   <option value="" disabled>Guruhni tanlang</option>
-                  {groups.map(g => <option key={g.id} value={g.id} className="bg-[#1a1a1a]">{g.name} — {g.subject}</option>)}
+                  {groups.map(g => <option key={g.id} value={g.id || ""} className="bg-[#1a1a1a]">{g.name} — {g.subject}</option>)}
                 </select>
               </div>
               <div>
                 <label className="text-[11px] text-[color:var(--theme-text-primary)]/50 px-1 uppercase tracking-wider font-bold mb-1 block">Oylik to'lov</label>
-                <input required type="number" placeholder="Oylik to'lov (so'm)" value={editData.monthlyFee} onChange={e=>setEditData({...editData, monthlyFee: e.target.value})} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm placeholder-white/30 text-[color:var(--theme-text-primary)]" />
+                <input required type="number" placeholder="Oylik to'lov (so'm)" value={editData.monthlyFee || ""} onChange={e=>setEditData({...editData, monthlyFee: e.target.value})} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm placeholder-white/30 text-[color:var(--theme-text-primary)]" />
               </div>
               <div className="space-y-1">
                 <label className="text-[11px] text-[color:var(--theme-text-primary)]/50 px-1 uppercase tracking-wider font-bold">Kelgan sanasi:</label>
-                <input required type="date" value={editData.joinedDate} onChange={e=>setEditData({...editData, joinedDate: e.target.value})} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm text-[color:var(--theme-text-primary)]/90" style={{ colorScheme: "dark" }} />
+                <input required type="date" value={editData.joinedDate || ""} onChange={e=>setEditData({...editData, joinedDate: e.target.value})} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm text-[color:var(--theme-text-primary)]/90" style={{ colorScheme: "dark" }} />
               </div>
               <div className="flex gap-3 pt-2 mt-4 sticky bottom-0 bg-[#1a1a1a]/90 backdrop-blur pb-2">
                 <button type="button" onClick={()=>{setIsEditModalOpen(false); setEditingStudent(null);}} className="flex-1 py-3 rounded-xl border border-[color:var(--glass-border)] text-sm font-medium hover:bg-white/5 text-[color:var(--theme-text-primary)]">Bekor qilish</button>
