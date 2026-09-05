@@ -18,6 +18,8 @@ export default function AdminPayments() {
   const [newFee, setNewFee] = useState<string>('');
   const [historyModalStudent, setHistoryModalStudent] = useState<any>(null);
   const [historyModalYear, setHistoryModalYear] = useState<number>(new Date().getFullYear());
+  const [payingStudent, setPayingStudent] = useState<{ id: string, debt: number, name: string } | null>(null);
+  const [payAmount, setPayAmount] = useState<string>('');
 
   const getDebtInfo = (student: any) => {
     const fee = Number(student.monthlyFee) || 0;
@@ -103,30 +105,30 @@ export default function AdminPayments() {
     return () => { unsubStudents(); unsubPayments(); unsubGroups(); }
   }, []);
 
-  const handlePay = async (studentId: string, _amount: number) => {
-    const student = students.find(s => s.id === studentId);
-    if (!student) return;
+  const handleConfirmPay = async () => {
+    if (!payingStudent) return;
+    const amountToPay = Number(payAmount);
+    if (amountToPay <= 0 || isNaN(amountToPay)) {
+      toast.error("Iltimos, to'g'ri summa kiriting");
+      return;
+    }
     
-    if(await confirm({ title: 'Diqqat', message: "To'lov qabul qilinganini tasdiqlaysizmi?" })) {
-      try {
-        const unpaidMonths = getUnpaidMonths(student);
-        const now = new Date().toISOString();
-        
-        for (const up of unpaidMonths) {
-          await addDoc(collection(db, 'payments'), {
-            studentId,
-            amount: Number(student.monthlyFee) || 0,
-            month: up.month,
-            year: up.year,
-            status: 'paid',
-            paidAt: now
-          });
-        }
-        toast.success("To'lov qabul qilindi");
-      } catch (err: any) {
-        console.error('Kontekst:', err);
-        toast.error(err instanceof Error ? err.message : "Noma'lum xatolik");
-      }
+    try {
+      const now = new Date().toISOString();
+      await addDoc(collection(db, 'payments'), {
+        studentId: payingStudent.id,
+        amount: amountToPay,
+        month: filterMonth,
+        year: filterYear,
+        status: 'paid',
+        paidAt: now
+      });
+      toast.success("To'lov qabul qilindi");
+      setPayingStudent(null);
+      setPayAmount('');
+    } catch (err: any) {
+      console.error('Kontekst:', err);
+      toast.error(err instanceof Error ? err.message : "Noma'lum xatolik");
     }
   };
 
@@ -178,19 +180,31 @@ export default function AdminPayments() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-6 mb-6">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <h2 className="text-white text-xl font-black tracking-tight">To'lovlar statistikasi</h2>
-            <p className="text-white/40 text-[13px] font-medium mt-1">Oylik to'lovlar va qarzdorliklar</p>
-          </div>
-          <div className="flex gap-2">
-            <select value={filterMonth} onChange={e=>setFilterMonth(Number(e.target.value))} className="glass-panel p-2 outline-none text-sm text-[color:var(--theme-text-primary)] rounded-[10px]" style={{ colorScheme: "dark" }}>
-              {months.map((m, i) => <option key={m} value={i+1} className="bg-[#1a1a1a]">{m}</option>)}
-            </select>
-            <select value={filterYear} onChange={e=>setFilterYear(Number(e.target.value))} className="glass-panel p-2 outline-none text-sm text-[color:var(--theme-text-primary)] rounded-[10px]" style={{ colorScheme: "dark" }}>
-              {years.map(y => <option key={y} value={y} className="bg-[#1a1a1a]">{y}</option>)}
-            </select>
-          </div>
+        <div className="flex flex-col gap-4">
+           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+             <div>
+               <h2 className="text-white text-xl font-black tracking-tight">To'lovlar statistikasi</h2>
+               <p className="text-white/40 text-[13px] font-medium mt-1">Oylik to'lovlar va qarzdorliklar</p>
+             </div>
+             
+             <div className="flex items-center gap-2">
+                <div className="relative flex-1 md:w-64">
+                  <input 
+                    type="text"
+                    placeholder="O'quvchi izlash..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full bg-[#1a1a1a] border border-white/10 rounded-xl px-4 py-2 text-white text-sm focus:outline-none focus:border-[#FEC204] transition-colors"
+                  />
+                </div>
+                <select value={filterMonth} onChange={e=>setFilterMonth(Number(e.target.value))} className="glass-panel py-2 px-3 outline-none text-sm text-[color:var(--theme-text-primary)] rounded-xl border border-white/10" style={{ colorScheme: "dark" }}>
+                  {months.map((m, i) => <option key={m} value={i+1} className="bg-[#1a1a1a]">{m}</option>)}
+                </select>
+                <select value={filterYear} onChange={e=>setFilterYear(Number(e.target.value))} className="glass-panel py-2 px-3 outline-none text-sm text-[color:var(--theme-text-primary)] rounded-xl border border-white/10" style={{ colorScheme: "dark" }}>
+                  {years.map(y => <option key={y} value={y} className="bg-[#1a1a1a]">{y}</option>)}
+                </select>
+             </div>
+           </div>
         </div>
 
         {/* Stats Grid */}
@@ -228,7 +242,7 @@ export default function AdminPayments() {
       </div>
       
       <div className="space-y-4 md:space-y-0 md:grid md:grid-cols-2 lg:grid-cols-3 md:gap-4 pb-20">
-        {students.map(student => {
+        {students.filter(s => searchTerm === '' || s.fullName?.toLowerCase().includes(searchTerm.toLowerCase())).map(student => {
           const debtInfo = getDebtInfo(student);
           const isFullyPaid = debtInfo.totalDebt === 0;
           const initials = student.fullName?.substring(0,2).toUpperCase() || 'ST';
@@ -298,9 +312,9 @@ export default function AdminPayments() {
               {/* Actions & Total Debt */}
               <div className="flex items-center justify-between mt-auto pt-2 border-t border-white/5">
                  <div>
-                    <span className="text-[10px] text-white/30 font-bold uppercase tracking-wider block mb-0.5">Jami qarzdorlik</span>
-                    <p className={`text-lg font-black ${isFullyPaid ? 'text-green-400' : 'text-red-500'}`}>
-                       {debtInfo.totalDebt.toLocaleString()} <span className="text-[10px] font-medium opacity-50 font-sans">UZS</span>
+                    <span className="text-[10px] text-white/30 font-bold uppercase tracking-wider block mb-0.5">Ushbu oy uchun</span>
+                    <p className={`text-lg font-black ${debtInfo.currentMonthDebt === 0 ? 'text-green-400' : 'text-red-500'}`}>
+                       {debtInfo.currentMonthDebt.toLocaleString()} <span className="text-[10px] font-medium opacity-50 font-sans">UZS</span>
                     </p>
                  </div>
                  
@@ -316,7 +330,7 @@ export default function AdminPayments() {
                         </button>
                      )}
                      <button 
-                        onClick={() => handlePay(student.id, debtInfo.totalDebt)}
+                        onClick={() => { setPayingStudent({ id: student.id, debt: debtInfo.totalDebt, name: student.fullName }); setPayAmount(String(debtInfo.totalDebt)); }}
                         className="h-10 px-4 rounded-xl bg-gradient-to-r from-[#FEC204] to-[#f97316] hover:from-[#f5b800] hover:to-[#ea580c] text-black font-bold text-xs transition-all shadow-[0_0_15px_rgba(254,194,4,0.3)] active:scale-95"
                      >
                         To'lash
@@ -336,6 +350,43 @@ export default function AdminPayments() {
         {students.length === 0 && <p className="text-center text-white/40 py-6 text-sm col-span-full font-medium">O'quvchilar yo'q</p>}
       </div>
 
+      {payingStudent && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setPayingStudent(null)}></div>
+           <div className="bg-[#1a1a1a] border border-white/10 p-6 rounded-2xl w-full max-w-sm relative z-10 shadow-2xl flex flex-col gap-4">
+              <div>
+                <h3 className="text-lg font-bold text-white mb-1">To'lov kiritish</h3>
+                <p className="text-white/40 text-sm">{payingStudent.name}</p>
+              </div>
+              <div>
+                <label className="text-white/40 text-xs font-bold uppercase tracking-wider mb-2 block">To'lanayotgan summa</label>
+                <input 
+                  type="number"
+                  value={payAmount}
+                  onChange={e => setPayAmount(e.target.value)}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-[#FEC204] transition-colors"
+                  placeholder="Summani kiriting"
+                  autoFocus
+                />
+                <p className="text-white/30 text-xs mt-2">Jami qarzdorlik: {payingStudent.debt.toLocaleString()} UZS</p>
+              </div>
+              <div className="flex gap-2 mt-2">
+                 <button 
+                   onClick={() => setPayingStudent(null)}
+                   className="flex-1 bg-white/5 hover:bg-white/10 text-white py-3 rounded-xl font-bold transition-colors"
+                 >
+                   Bekor qilish
+                 </button>
+                 <button 
+                   onClick={handleConfirmPay}
+                   className="flex-1 bg-gradient-to-r from-[#FEC204] to-[#f97316] hover:from-[#f5b800] hover:to-[#ea580c] text-black py-3 rounded-xl font-bold transition-colors"
+                 >
+                   Tasdiqlash
+                 </button>
+              </div>
+           </div>
+        </div>
+      )}
       {historyModalStudent && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setHistoryModalStudent(null)}></div>
