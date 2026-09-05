@@ -23,7 +23,8 @@ export default function AdminGroups() {
     days: [] as string[],
     startTime: '',
     endTime: '',
-    schedule: {} as Record<string, {startTime: string, endTime: string}>
+    schedule: {} as Record<string, {startTime: string, endTime: string}>,
+    monthlyFee: ''
   });
 
   const WEEKDAYS = [
@@ -61,17 +62,27 @@ export default function AdminGroups() {
     try {
       if (editingGroup) {
         await updateDoc(doc(db, 'groups', editingGroup.id), formData);
+        
+        // Update all students in this group
+        if (formData.monthlyFee && Number(formData.monthlyFee) > 0) {
+          const groupStudents = students.filter(s => s.groups?.includes(editingGroup.id) || s.groupId === editingGroup.id);
+          const promises = groupStudents.map(student => 
+             updateDoc(doc(db, 'users', student.id), { monthlyFee: Number(formData.monthlyFee) })
+          );
+          await Promise.all(promises);
+        }
         toast.success("Guruh yangilandi");
       } else {
-        await addDoc(collection(db, 'groups'), {
+        const newGroupRef = await addDoc(collection(db, 'groups'), {
           ...formData,
           createdAt: new Date().toISOString()
         });
+        // (New groups don't have students yet, so no need to update students)
         toast.success("Guruh qo'shildi");
       }
       setIsModalOpen(false);
       setEditingGroup(null);
-      setFormData({ name: '', subject: '', teacherName: '', days: [], startTime: '', endTime: '', schedule: {} });
+      setFormData({ name: '', subject: '', teacherName: '', days: [], startTime: '', endTime: '', schedule: {}, monthlyFee: '' });
     } catch (err) {
       console.error('Kontekst:', err);
       const msg = err instanceof Error ? err.message : "Noma'lum xatolik";
@@ -88,7 +99,8 @@ export default function AdminGroups() {
       days: group.days || [],
       startTime: group.startTime || '',
       endTime: group.endTime || '',
-      schedule: group.schedule || {}
+      schedule: group.schedule || {},
+      monthlyFee: group.monthlyFee || ''
     });
     setIsModalOpen(true);
   };
@@ -186,7 +198,7 @@ export default function AdminGroups() {
 
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex flex-col items-center justify-end md:justify-center animate-in fade-in duration-200">
-          <div className="w-full md:w-[400px] bg-[#0d0d0d] border border-white/10 rounded-t-[20px] md:rounded-[20px] p-5 animate-in slide-in-from-bottom-10 md:slide-in-from-bottom-0 md:zoom-in-95">
+          <div className="w-full md:w-[400px] bg-[#0d0d0d] border border-white/10 rounded-t-[20px] md:rounded-[20px] p-5 animate-in slide-in-from-bottom-10 md:slide-in-from-bottom-0 md:zoom-in-95 max-h-[85vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-5">
               <h2 className="text-[18px] font-black tracking-tight text-white">{editingGroup ? 'Guruhni tahrirlash' : 'Yangi guruh'}</h2>
               <button onClick={() => setIsModalOpen(false)} className="p-2 bg-white/5 rounded-full text-white/40"><X size={16} /></button>
@@ -194,6 +206,8 @@ export default function AdminGroups() {
             
             <form onSubmit={handleSave} className="space-y-4">
               <input placeholder="Guruh nomi" value={formData.name} onChange={e=>setFormData({...formData, name: e.target.value})} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm placeholder-white/30" />
+              
+              <input type="number" onWheel={(e) => (e.target as HTMLInputElement).blur()} placeholder="Oylik to'lov summasi (so'm)" value={formData.monthlyFee} onChange={e=>setFormData({...formData, monthlyFee: e.target.value})} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm placeholder-white/30" />
               
               <select value={formData.subject} onChange={e=>setFormData({...formData, subject: e.target.value})} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm text-[color:var(--theme-text-primary)] appearance-none" style={{ colorScheme: "dark" }}>
                 <option value="" disabled>Fanni tanlang</option>

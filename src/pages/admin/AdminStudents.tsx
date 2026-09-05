@@ -343,7 +343,7 @@ export default function AdminStudents() {
 
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm sm:absolute">
-          <div className="glass-panel w-full max-w-sm p-6 bg-[#1a1a1a]/80">
+          <div className="glass-panel w-full max-w-sm p-6 bg-[#1a1a1a]/80 max-h-[85vh] overflow-y-auto">
             <h2 className="text-lg font-bold mb-4 text-[color:var(--theme-text-primary)]">Yangi o'quvchi</h2>
             <form onSubmit={handleAdd} className="space-y-4">
               <input required placeholder="F.I.SH." value={formData.fullName} onChange={e=>setFormData({...formData, fullName: e.target.value})} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm placeholder-white/30" />

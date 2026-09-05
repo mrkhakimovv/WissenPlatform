@@ -38,7 +38,7 @@ export default function AdminAttendance() {
   const [year, month] = selectedMonth.split('-').map(Number);
   const daysInMonth = new Date(year, month, 0).getDate();
   
-  const groupStudents = students.filter(s => s.groups?.includes(selectedGroupId) || s.groupId === selectedGroupId);
+  const groupStudents = students.filter(s => s.groups?.includes(selectedGroupId) || s.groupId === selectedGroupId).sort((a, b) => (a.fullName || '').localeCompare(b.fullName || ''));
   const selectedGroup = groups.find(g => g.id === selectedGroupId);
 
   const allowedDaysOfWeek = (selectedGroup?.days || []).map(Number); // e.g. [1, 3, 5]
