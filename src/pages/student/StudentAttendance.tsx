@@ -31,7 +31,7 @@ export default function StudentAttendance() {
     setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
   };
 
-  const monthName = currentDate.toLocaleString('uz-UZ', { month: 'long' });
+  const monthName = ['Yanvar', 'Fevral', 'Mart', 'Aprel', 'May', 'Iyun', 'Iyul', 'Avgust', 'Sentyabr', 'Oktyabr', 'Noyabr', 'Dekabr'][currentDate.getMonth()];
   const year = currentDate.getFullYear();
   const daysInMonth = new Date(year, currentDate.getMonth() + 1, 0).getDate();
   const firstDayOfMonth = new Date(year, currentDate.getMonth(), 1).getDay(); // 0 is Sunday, 1 is Monday...

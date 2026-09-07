@@ -10,7 +10,7 @@ service cloud.firestore {
     }
 
     match /users/{userId} {
-      allow get: if request.auth != null && (request.auth.uid == userId || isAdmin());
+      allow read: if request.auth != null && (request.auth.uid == userId || isAdmin());
       allow list: if true; // allow checking usernames
       allow write: if isAdmin() || (request.auth != null && request.auth.uid == userId);
     }

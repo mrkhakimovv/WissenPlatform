@@ -177,7 +177,7 @@ export default function StudentDashboard() {
                 <p className="text-[17px] md:text-[20px] font-black text-red-500 leading-none">To'lanmagan</p>
             )}
           </div>
-          <p className="text-[10px] md:text-[12px] font-bold text-white/40 mt-auto">{new Date().toLocaleString('uz-UZ', {month: 'long'})} oyi uchun</p>
+          <p className="text-[10px] md:text-[12px] font-bold text-white/40 mt-auto">{['Yanvar', 'Fevral', 'Mart', 'Aprel', 'May', 'Iyun', 'Iyul', 'Avgust', 'Sentyabr', 'Oktyabr', 'Noyabr', 'Dekabr'][new Date().getMonth()]} oyi uchun</p>
         </Link>
 
         {/* News Carousel */}

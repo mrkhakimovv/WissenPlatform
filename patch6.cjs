@@ -1,13 +1,6 @@
 const fs = require('fs');
 let code = fs.readFileSync('src/pages/student/StudentSAT.tsx', 'utf-8');
 
-// Add state
-const targetState = `  const [takingExam, setTakingExam] = useState<Exam | null>(null);`;
-const replacementState = `  const [takingExam, setTakingExam] = useState<Exam | null>(null);
-  const [activeTab, setActiveTab] = useState<'lessons' | 'exams'>('exams');`;
-code = code.replace(targetState, replacementState);
-
-// Add header & tabs
 const targetHeader = `      <div>
         <h1 className="text-[20px] font-black text-white tracking-[-0.5px]">SAT Imtihonlar</h1>
         <p className="text-[12px] text-white/40 font-medium">Sizning kelgusi imtihon va olimpiadalaringiz</p>

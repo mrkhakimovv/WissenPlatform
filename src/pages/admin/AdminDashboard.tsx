@@ -19,7 +19,6 @@ export default function AdminDashboard() {
     hasUnassignedStudents: false,
     hasUpcomingClass: false
   });
-  const [recentPayments, setRecentPayments] = useState<any[]>([]);
 
   useEffect(() => {
     if (user?.role === 'teacher') {
@@ -100,27 +99,6 @@ export default function AdminDashboard() {
       setStats(s => ({ ...s, paidThisMonth: paid, unpaidThisMonth: unpaid }));
     });
 
-    // Only fetch payments that are actually paid, ordered by paidAt
-    const qRecentPayments = query(collection(db, 'payments'), where('status', '==', 'paid'), orderBy('paidAt', 'desc'), limit(5));
-    const unsubRecentPayments = onSnapshot(qRecentPayments, async (snap) => {
-      const data = await Promise.all(snap.docs.map(async (d) => {
-        const p = d.data();
-        let studentName = 'Noma\'lum o\'quvchi';
-        if (p.studentId) {
-           try {
-             const userDoc = await getDoc(doc(db, 'users', p.studentId));
-             if (userDoc.exists()) {
-               studentName = userDoc.data().fullName || 'Noma\'lum';
-             }
-           } catch (e) {
-             console.error("Error fetching user", e);
-           }
-        }
-        return { id: d.id, studentName, ...p };
-      }));
-      setRecentPayments(data);
-    });
-
     // Attendance rate for current month
     const qAttendance = query(collection(db, 'attendance'), where('date', '>=', startOfMonth));
     const unsubAttendance = onSnapshot(qAttendance, (snap) => {
@@ -136,7 +114,6 @@ export default function AdminDashboard() {
        unsubGroups(); clearInterval(intervalId); unsubStudents(); 
        unsubSubjects(); 
        unsubPayments(); 
-       unsubRecentPayments(); 
        unsubAttendance();
     };
   }, []);
@@ -182,34 +159,6 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      <div className="h-[1px] bg-white/10 w-full mb-6"></div>
-
-      <div className="flex flex-col min-h-0">
-        <div className="flex justify-between items-center mb-4 md:mb-6 px-1">
-          <h2 className="text-[13px] md:text-[16px] text-white font-bold tracking-wide">So'nggi to'lovlar</h2>
-          <button onClick={() => navigate('/admin/payments')} className="text-[#FEC204] text-[13px] md:text-[14px] font-bold hover:underline transition-all">Barchasi &rarr;</button>
-        </div>
-        
-        <div className="space-y-3 md:space-y-0 md:grid md:grid-cols-2 md:gap-5">
-          {recentPayments.length === 0 && <p className="text-white/40 col-span-2 text-sm italic">Hozircha to'lovlar yo'q</p>}
-          {recentPayments.map((p) => {
-            const initials = p.studentName ? p.studentName.split(' ').map((n: string) => n[0]).join('') : 'U';
-            return (
-              <div key={p.id} onClick={() => navigate('/admin/students', { replace: true })} className="glass-panel p-4 md:p-5 flex items-center gap-3 md:gap-4 hover:border-[#FEC204]/50 cursor-pointer group transition-all">
-                <div className="w-[38px] h-[38px] md:w-[48px] md:h-[48px] rounded-[10px] md:rounded-[14px] bg-gradient-to-br from-[#FEC204] to-amber-500 shadow-md flex items-center justify-center font-[800] text-[#000] text-[13px] md:text-[16px] group-hover:scale-105 transition-transform uppercase">{initials.substring(0, 2)}</div>
-                <div className="flex-1">
-                  <p className="text-white text-[13px] md:text-[15px] font-bold tracking-wide">{p.studentName}</p>
-                  <p className="text-white/40 text-[10px] md:text-[12px] uppercase font-bold tracking-wider mt-0.5">{p.paidAt ? new Date(p.paidAt).toLocaleDateString() : 'Yaqinda'}</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-white text-[18px] md:text-[22px] font-black tracking-[-0.5px]">{Number(p.amount).toLocaleString()}</p>
-                  <span className={`rounded-full mt-1 inline-block shadow-sm ${p.status === 'paid' ? 'badge-green' : 'badge-red'}`}>{p.status === 'paid' ? "To'landi" : "To'lanmagan"}</span>
-                </div>
-              </div>
-            )
-          })}
-        </div>
-      </div>
     </div>
   );
 }

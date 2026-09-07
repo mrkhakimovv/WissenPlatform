@@ -64,7 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setLoading(false);
           }
         }, (err) => {
-          console.error('Error fetching user:', err);
+          console.error('AuthContext user fetch error:', err);
           if (err.message && err.message.toLowerCase().includes('offline')) {
             console.warn('Client is offline. Keeping current auth state.');
             setLoading(false);

@@ -63,7 +63,7 @@ export default function StudentPayments() {
                 </div>
                 <div className="flex-1">
                   <p className="text-white text-[14px] font-bold">
-                    {new Date(2026, item.month - 1).toLocaleString('uz-UZ', { month: 'long' })} oyi uchun
+                    {item.year}-yil, {['Yanvar', 'Fevral', 'Mart', 'Aprel', 'May', 'Iyun', 'Iyul', 'Avgust', 'Sentyabr', 'Oktyabr', 'Noyabr', 'Dekabr'][item.month - 1]}
                   </p>
                 </div>
                 <div className="text-right flex flex-col items-end gap-1">

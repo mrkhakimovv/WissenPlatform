@@ -1,18 +1,35 @@
 const fs = require('fs');
 let code = fs.readFileSync('src/pages/student/StudentSAT.tsx', 'utf-8');
 
-// Add state
-const targetState = `  const [takingExam, setTakingExam] = useState<Exam | null>(null);`;
-const replacementState = `  const [takingExam, setTakingExam] = useState<Exam | null>(null);
-  const [activeTab, setActiveTab] = useState<'lessons' | 'exams'>('exams');`;
-code = code.replace(targetState, replacementState);
-
-// Add header & tabs
 const targetHeader = `      <div>
         <h1 className="text-[20px] font-black text-white tracking-[-0.5px]">SAT Imtihonlar</h1>
         <p className="text-[12px] text-white/40 font-medium">Sizning kelgusi imtihon va olimpiadalaringiz</p>
-      </div>
-      {upcomingExams.length > 0 && (
+      </div>`;
+
+const replacementHeader = `      <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
+        <div>
+          <h1 className="text-[20px] font-black text-white tracking-[-0.5px]">SAT Baza</h1>
+          <p className="text-[12px] text-white/40 font-medium">Sizning kelgusi imtihon va darslaringiz</p>
+        </div>
+        
+        <div className="flex items-center gap-2 bg-[#1a1a1a] p-1 rounded-xl border border-white/5">
+           <button 
+             onClick={() => setActiveTab('lessons')}
+             className={\`px-6 py-2.5 rounded-lg font-bold text-sm transition-all \${activeTab === 'lessons' ? 'bg-[#FEC204] text-black shadow-[0_0_10px_rgba(254,194,4,0.3)]' : 'text-white/60 hover:text-white hover:bg-white/5'}\`}
+           >
+             Darslar
+           </button>
+           <button 
+             onClick={() => setActiveTab('exams')}
+             className={\`px-6 py-2.5 rounded-lg font-bold text-sm transition-all \${activeTab === 'exams' ? 'bg-[#FEC204] text-black shadow-[0_0_10px_rgba(254,194,4,0.3)]' : 'text-white/60 hover:text-white hover:bg-white/5'}\`}
+           >
+             Imtihonlar
+           </button>
+        </div>
+      </div>`;
+code = code.replace(targetHeader, replacementHeader);
+
+const targetBody = `      {upcomingExams.length > 0 && (
         <div className="space-y-4">
           <h2 className="text-[13px] font-bold text-white/60 uppercase tracking-wider">Kelgusi SAT Imtihonlar</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -38,29 +55,7 @@ const targetHeader = `      <div>
         </div>
       )}`;
 
-const replacementHeader = `      <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
-        <div>
-          <h1 className="text-[20px] font-black text-white tracking-[-0.5px]">SAT Baza</h1>
-          <p className="text-[12px] text-white/40 font-medium">Sizning kelgusi imtihon va darslaringiz</p>
-        </div>
-        
-        <div className="flex items-center gap-2 bg-[#1a1a1a] p-1 rounded-xl border border-white/5">
-           <button 
-             onClick={() => setActiveTab('lessons')}
-             className={\`px-6 py-2.5 rounded-lg font-bold text-sm transition-all \${activeTab === 'lessons' ? 'bg-[#FEC204] text-black shadow-[0_0_10px_rgba(254,194,4,0.3)]' : 'text-white/60 hover:text-white hover:bg-white/5'}\`}
-           >
-             Darslar
-           </button>
-           <button 
-             onClick={() => setActiveTab('exams')}
-             className={\`px-6 py-2.5 rounded-lg font-bold text-sm transition-all \${activeTab === 'exams' ? 'bg-[#FEC204] text-black shadow-[0_0_10px_rgba(254,194,4,0.3)]' : 'text-white/60 hover:text-white hover:bg-white/5'}\`}
-           >
-             Imtihonlar
-           </button>
-        </div>
-      </div>
-
-      {activeTab === 'exams' ? (
+const replacementBody = `      {activeTab === 'exams' ? (
         <>
           {upcomingExams.length > 0 && (
             <div className="space-y-4">
@@ -97,6 +92,7 @@ const replacementHeader = `      <div className="flex flex-col md:flex-row justi
           <p className="text-[13px] text-white/40 text-center max-w-sm font-medium">Bu bo'limga hali SAT darsliklari yuklanmagan.</p>
         </div>
       )}`;
-code = code.replace(targetHeader, replacementHeader);
+
+code = code.replace(targetBody, replacementBody);
 
 fs.writeFileSync('src/pages/student/StudentSAT.tsx', code);

@@ -12,6 +12,7 @@ export default function StudentSAT() {
   const [exams, setExams] = useState<Exam[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
   const [takingExam, setTakingExam] = useState<Exam | null>(null);
+  const [activeTab, setActiveTab] = useState<'lessons' | 'exams'>('exams');
 
   useEffect(() => {
     // Load all groups to show names
@@ -102,9 +103,26 @@ export default function StudentSAT() {
       {takingExam && (
         <StudentTestTake exam={takingExam} onClose={() => setTakingExam(null)} />
       )}
-      <div>
-        <h1 className="text-[20px] font-black text-white tracking-[-0.5px]">SAT Imtihonlar</h1>
-        <p className="text-[12px] text-white/40 font-medium">Sizning kelgusi imtihon va olimpiadalaringiz</p>
+      <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
+        <div>
+          <h1 className="text-[20px] font-black text-white tracking-[-0.5px]">SAT Baza</h1>
+          <p className="text-[12px] text-white/40 font-medium">Sizning kelgusi imtihon va darslaringiz</p>
+        </div>
+        
+        <div className="flex items-center gap-2 bg-[#1a1a1a] p-1 rounded-xl border border-white/5">
+           <button 
+             onClick={() => setActiveTab('lessons')}
+             className={`px-6 py-2.5 rounded-lg font-bold text-sm transition-all ${activeTab === 'lessons' ? 'bg-[#FEC204] text-black shadow-[0_0_10px_rgba(254,194,4,0.3)]' : 'text-white/60 hover:text-white hover:bg-white/5'}`}
+           >
+             Darslar
+           </button>
+           <button 
+             onClick={() => setActiveTab('exams')}
+             className={`px-6 py-2.5 rounded-lg font-bold text-sm transition-all ${activeTab === 'exams' ? 'bg-[#FEC204] text-black shadow-[0_0_10px_rgba(254,194,4,0.3)]' : 'text-white/60 hover:text-white hover:bg-white/5'}`}
+           >
+             Imtihonlar
+           </button>
+        </div>
       </div>
 
       {upcomingExams.length > 0 && (
