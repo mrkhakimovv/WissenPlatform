@@ -175,7 +175,7 @@ export default function AdminDashboard() {
           <p className="text-xs font-bold text-white/40 mt-1.5">Aktiv guruhlar</p>
         </div>
 
-        <div onClick={() => navigate('/admin/payments', { replace: true })} className="glass-panel p-4 md:p-6 border-l-4 border-[#FEC204] hover:scale-[1.02] transition-transform cursor-pointer">
+        <div onClick={() => navigate('/admin/payments')} className="glass-panel p-4 md:p-6 border-l-4 border-[#FEC204] hover:scale-[1.02] transition-transform cursor-pointer">
           <p className="text-[9px] md:text-[11px] uppercase tracking-[2px] font-bold text-white/40 mb-1">To'lovlar</p>
           <p className="text-[26px] md:text-[32px] font-[900] tracking-[-1px] text-white">{stats.paidThisMonth}</p>
           <p className="text-xs font-bold text-white/40 mt-1.5">Shu oyda to'laganlar</p>
@@ -187,7 +187,7 @@ export default function AdminDashboard() {
       <div className="flex flex-col min-h-0">
         <div className="flex justify-between items-center mb-4 md:mb-6 px-1">
           <h2 className="text-[13px] md:text-[16px] text-white font-bold tracking-wide">So'nggi to'lovlar</h2>
-          <button onClick={() => navigate('/admin/payments', { replace: true })} className="text-[#FEC204] text-[13px] md:text-[14px] font-bold hover:underline transition-all">Barchasi &rarr;</button>
+          <button onClick={() => navigate('/admin/payments')} className="text-[#FEC204] text-[13px] md:text-[14px] font-bold hover:underline transition-all">Barchasi &rarr;</button>
         </div>
         
         <div className="space-y-3 md:space-y-0 md:grid md:grid-cols-2 md:gap-5">

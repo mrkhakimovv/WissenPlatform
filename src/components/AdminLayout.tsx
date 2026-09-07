@@ -19,7 +19,6 @@ export default function AdminLayout() {
   
   let navItems = [
     { to: ".", icon: <Home size={22} />, label: "Asosiy" },
-    { to: "payments", icon: <CreditCard size={22} />, label: "To'lov" },
     { to: "more", icon: <BookOpen size={22} />, label: "Boshqa" },
     { to: "milliy-sertifikat", icon: <Award size={22} />, label: "Milliy Sertifikat" },
     { to: "sat", icon: <Database size={22} />, label: "SAT BAZA" },
