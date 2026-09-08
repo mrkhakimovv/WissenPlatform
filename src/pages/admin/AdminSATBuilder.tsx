@@ -13,7 +13,7 @@ import { recalculateStandardExams } from '../../lib/recalculate';
 interface Props {
   initialData: TestData;
   onClose: () => void;
-  onSave: () => void;
+  onSave: (savedTest?: TestData) => void;
 }
 
 export default function AdminSATBuilder({ initialData, onClose, onSave }: Props) {
@@ -50,6 +50,7 @@ export default function AdminSATBuilder({ initialData, onClose, onSave }: Props)
   const handleSave = async () => {
     try {
       setIsSaving(true);
+      let finalData = { ...testData };
       if (testData.id) {
          await updateDoc(doc(db, 'tests', testData.id), {
             ...testData
@@ -59,14 +60,15 @@ export default function AdminSATBuilder({ initialData, onClose, onSave }: Props)
          toast.success("Test saqlandi va mos imtihon natijalari yangilandi!", { id: 'recalc' });
       } else {
          const newDocRef = doc(collection(db, 'tests'));
-         await setDoc(newDocRef, {
+         finalData = {
             ...testData,
             id: newDocRef.id,
             createdAt: new Date().toISOString()
-         });
+         };
+         await setDoc(newDocRef, finalData);
          toast.success("Test saqlandi!");
       }
-      onSave();
+      onSave(finalData);
       onClose();
     } catch (err) {
       console.error(err);

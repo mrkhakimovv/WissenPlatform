@@ -1,9 +1,11 @@
 const fs = require('fs');
-let code = fs.readFileSync('firestore.rules', 'utf-8');
+let rules = fs.readFileSync('firestore.rules', 'utf-8');
+const newRule = `    match /sat_lessons/{document=**} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
+    }
+    
+    // Default deny`;
 
-code = code.replace(
-  "allow get: if request.auth != null && (request.auth.uid == userId || isAdmin());",
-  "allow read: if request.auth != null && (request.auth.uid == userId || isAdmin());"
-);
-
-fs.writeFileSync('firestore.rules', code);
+rules = rules.replace('    // Default deny', newRule);
+fs.writeFileSync('firestore.rules', rules);

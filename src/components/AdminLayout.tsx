@@ -1,7 +1,7 @@
 import { useConfirm } from '../contexts/ConfirmContext';
 import React, { useState, useEffect } from 'react';
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { Home, Users, CreditCard, CalendarCheck, BookOpen, Layers, LogOut, FileText, Megaphone, QrCode, X, Copy, CheckCircle2, Database, Award , UserPlus } from 'lucide-react';
+import { Home, Users, CreditCard, CalendarCheck, BookOpen, Layers, LogOut, FileText, Megaphone, QrCode, X, Copy, CheckCircle2, Database, Award , UserPlus, Globe } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { db, collection, query, getDocs, orderBy, where } from '../lib/firebase';
 import { QRCodeSVG } from 'qrcode.react';
@@ -21,7 +21,7 @@ export default function AdminLayout() {
     { to: ".", icon: <Home size={22} />, label: "Asosiy" },
     { to: "more", icon: <BookOpen size={22} />, label: "Boshqa" },
     { to: "milliy-sertifikat", icon: <Award size={22} />, label: "Milliy Sertifikat" },
-    { to: "sat", icon: <Database size={22} />, label: "SAT BAZA" },
+    { to: "sat", icon: <Globe size={22} />, label: "SAT BAZA" },
     { to: "tests", icon: <Database size={22} />, label: "Testlar bazasi" },
     { to: "exams", icon: <FileText size={22} />, label: "Imtihonlar" },
     { to: "homeworks", icon: <FileText size={22} />, label: "Vazifalar" },

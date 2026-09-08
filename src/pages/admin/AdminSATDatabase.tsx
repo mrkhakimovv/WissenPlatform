@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { TestData, Group, Exam } from '../../types';
 import { Trash2, Edit2, Copy, FileText, X, Calendar } from 'lucide-react';
 import { collection, doc, deleteDoc, addDoc, updateDoc, onSnapshot, query, orderBy, getDocs } from 'firebase/firestore';
@@ -19,6 +19,21 @@ export default function AdminSATDatabase() {
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
   const [assigningTest, setAssigningTest] = useState<TestData | null>(null);
   const [assignForm, setAssignForm] = useState({ groupId: '', date: '', startTime: '', duration: '60' });
+
+  // SAT Lessons states
+  const [lessons, setLessons] = useState<any[]>([]);
+  const [isLessonModalOpen, setIsLessonModalOpen] = useState(false);
+  const [lessonForm, setLessonForm] = useState({ title: '', homeworkKeys: '', vocabulary: '' });
+  
+  const [isVocabModalOpen, setIsVocabModalOpen] = useState(false);
+  const [vocabForm, setVocabForm] = useState({ id: '', pairs: [{ eng: '', uz: '' }] });
+  const [isTemplateMode, setIsTemplateMode] = useState(false);
+  const [templateText, setTemplateText] = useState('');
+  const [editingLessonId, setEditingLessonId] = useState<string | null>(null);
+  const vocabContainerRef = useRef<HTMLDivElement>(null);
+  const [isLessonAssignModalOpen, setIsLessonAssignModalOpen] = useState(false);
+  const [assigningLesson, setAssigningLesson] = useState<any>(null);
+  const [lessonAssignGroupId, setLessonAssignGroupId] = useState('');
 
   // SAT Exam form states
   const [isExamModalOpen, setIsExamModalOpen] = useState(false);
@@ -57,8 +72,164 @@ export default function AdminSATDatabase() {
       setSatExams(allExams.filter(e => e.examType === 'sat'));
     });
 
-    return () => { unsubSubjects(); unsubExams(); };
+    const unsubLessons = onSnapshot(collection(db, 'sat_lessons'), snap => {
+      setLessons(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    });
+
+    return () => { unsubSubjects(); unsubExams(); unsubLessons(); };
   }, []);
+
+
+  const handleLessonSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!lessonForm.title) {
+      toast.error("Dars nomini kiriting");
+      return;
+    }
+    try {
+      await addDoc(collection(db, 'sat_lessons'), {
+        ...lessonForm,
+        createdAt: new Date().toISOString()
+      });
+      setIsLessonModalOpen(false);
+      setLessonForm({ title: '', homeworkKeys: '', vocabulary: '' });
+      toast.success("Dars qo'shildi");
+    } catch (error) {
+      console.error(error);
+      toast.error("Xatolik yuz berdi");
+    }
+  };
+
+
+  const handleVocabSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!vocabForm.id) return;
+    try {
+      const engs = vocabForm.pairs.map(p => p.eng.trim());
+      const uzs = vocabForm.pairs.map(p => p.uz.trim());
+      await updateDoc(doc(db, 'sat_lessons', vocabForm.id), { 
+        vocabularyEng: engs.join('\n'),
+        vocabularyUz: uzs.join('\n')
+      });
+      setIsVocabModalOpen(false);
+      toast.success("Lug'atlar saqlandi");
+    } catch(err) {
+      toast.error("Xatolik");
+    }
+  };
+  
+
+  const handleParseTemplate = () => {
+    const regex = /\[#(.*?);\+(.*?)\]/g;
+    let match;
+    const newPairs = [];
+    while ((match = regex.exec(templateText)) !== null) {
+      newPairs.push({
+        eng: match[1].trim(),
+        uz: match[2].trim()
+      });
+    }
+    
+    if (newPairs.length > 0) {
+      // Filter out empty existing pairs, then append new ones
+      const existing = vocabForm.pairs.filter(p => p.eng.trim() !== '' || p.uz.trim() !== '');
+      setVocabForm({ ...vocabForm, pairs: [...existing, ...newPairs] });
+      setTemplateText('');
+      setIsTemplateMode(false);
+      toast.success(newPairs.length + " ta so'z qo'shildi!");
+      setTimeout(() => {
+        if (vocabContainerRef.current) {
+          vocabContainerRef.current.scrollTop = vocabContainerRef.current.scrollHeight;
+        }
+      }, 50);
+    } else {
+      toast.error("Shablonga mos so'zlar topilmadi");
+    }
+  };
+
+  const handleAddVocabPair = () => {
+    setVocabForm({ ...vocabForm, pairs: [...vocabForm.pairs, { eng: '', uz: '' }] });
+    setTimeout(() => {
+      if (vocabContainerRef.current) {
+        vocabContainerRef.current.scrollTop = vocabContainerRef.current.scrollHeight;
+      }
+    }, 50);
+  };
+  
+  const handleUpdateVocabPair = (index: number, field: 'eng' | 'uz', value: string) => {
+    const newPairs = [...vocabForm.pairs];
+    newPairs[index][field] = value;
+    setVocabForm({ ...vocabForm, pairs: newPairs });
+  };
+  
+
+  const handleHomeworkClick = (lesson: any) => {
+    setEditingLessonId(lesson.id);
+    if (lesson.homeworkTestId) {
+      // Find the test
+      const test = tests.find(t => t.id === lesson.homeworkTestId);
+      if (test) {
+        setTestConfig(test);
+        setIsTestBuilderOpen(true);
+      } else {
+        toast.error("Test topilmadi, ehtimol o'chirilgan.");
+      }
+    } else {
+      setTestConfig({
+        title: lesson.title + ' - Uyga vazifa',
+        questionCount: 10,
+        variantCount: 4,
+        testType: 'sat',
+        satType: 'SAT Homework',
+        isFastMode: true,
+        questions: [],
+        createdAt: ''
+      });
+      setIsTestBuilderOpen(true);
+    }
+  };
+
+
+  const handleLessonAssignSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!assigningLesson || !lessonAssignGroupId) return;
+    try {
+      const assignedGroups = assigningLesson.assignedGroups || [];
+      if (!assignedGroups.includes(lessonAssignGroupId)) {
+        await updateDoc(doc(db, 'sat_lessons', assigningLesson.id), {
+          assignedGroups: [...assignedGroups, lessonAssignGroupId]
+        });
+      }
+      setIsLessonAssignModalOpen(false);
+      setAssigningLesson(null);
+      setLessonAssignGroupId('');
+      toast.success("Dars guruhga faollashtirildi");
+    } catch(err) {
+      toast.error("Xatolik yuz berdi");
+    }
+  };
+
+  const handleRemoveAssignedGroup = async (lesson: any, groupId: string) => {
+    try {
+      const assignedGroups = lesson.assignedGroups.filter((id: string) => id !== groupId);
+      await updateDoc(doc(db, 'sat_lessons', lesson.id), { assignedGroups });
+      toast.success("Guruh o'chirildi");
+    } catch (e) {
+      toast.error("Xatolik");
+    }
+  };
+
+  const handleLessonDelete = async (id: string) => {
+    if (await confirm("Haqiqatan ham bu darsni o'chirmoqchimisiz?")) {
+      try {
+        await deleteDoc(doc(db, 'sat_lessons', id));
+        toast.success("Dars o'chirildi");
+      } catch (error) {
+        console.error(error);
+        toast.error("Xatolik yuz berdi");
+      }
+    }
+  };
 
   const handleAssignClick = (t: TestData) => {
     setAssigningTest(t);
@@ -203,7 +374,7 @@ export default function AdminSATDatabase() {
   });
   const [isTestConfigOpen, setIsTestConfigOpen] = useState(false);
   const [existingTests, setExistingTests] = useState<string[]>([]);
-  const [activeTab, setActiveTab] = useState<'exams' | 'base'>('exams');
+  const [activeTab, setActiveTab] = useState<'exams' | 'base' | 'lessons'>('exams');
 
   useEffect(() => {
     const unsub = onSnapshot(collection(db, 'tests'), snap => {
@@ -256,9 +427,22 @@ export default function AdminSATDatabase() {
           >
             SAT BASE
           </button>
+          <button 
+            onClick={() => setActiveTab('lessons')}
+            className={`px-6 py-2.5 rounded-lg font-bold text-sm transition-all ${activeTab === 'lessons' ? 'bg-[#FEC204] text-black shadow-[0_0_10px_rgba(254,194,4,0.3)]' : 'text-white/60 hover:text-white hover:bg-white/5'}`}
+          >
+            DARSLAR
+          </button>
         </div>
         <div className="flex gap-2">
-          {activeTab === 'base' ? (
+          {activeTab === 'lessons' ? (
+             <button 
+                onClick={() => setIsLessonModalOpen(true)}
+                className="bg-[#FEC204] text-black px-6 py-2.5 rounded-[12px] font-bold hover:bg-[#FEC204]/90 transition-colors shadow-[0_0_15px_rgba(254,194,4,0.3)] flex items-center gap-2 text-[14px]"
+             >
+                <span className="text-xl leading-none">+</span> Dars qo'shish
+             </button>
+          ) : activeTab === 'base' ? (
              <button 
                 onClick={() => {
                   setTestConfig({
@@ -338,7 +522,7 @@ export default function AdminSATDatabase() {
         </div>
       )}
            </>
-        ) : (
+        ) : activeTab === 'base' ? ( 
            <>
               <div className="mb-4">
                  <p className="text-[12px] font-bold text-white/40 uppercase tracking-widest">Barcha yaratilgan testlar to'plami</p>
@@ -383,6 +567,96 @@ export default function AdminSATDatabase() {
           ))}
         </div>
       )}
+           </>
+        ) : (
+           <>
+              <div className="mb-4">
+                 <p className="text-[12px] font-bold text-white/40 uppercase tracking-widest">Markaz SAT darsliklari va videokurslari</p>
+              </div>
+              {lessons.length === 0 ? (
+              <div className="glass-panel p-6 flex flex-col items-center justify-center opacity-70 border-dashed border-2 px-12 py-16">
+                <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mb-4">
+                  <span className="text-[24px]">🎥</span>
+                </div>
+                <h3 className="text-[18px] font-bold text-white mb-2">Hali darslar qo'shilmagan</h3>
+                <p className="text-[13px] text-white/40 text-center max-w-sm font-medium">Bu yerda siz o'quvchilaringiz uchun onlayn SAT darslari, videolar, va qo'shimcha materiallar yuklashingiz mumkin bo'ladi.</p>
+              </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {lessons.map(lesson => (
+                    <div key={lesson.id} className="glass-panel p-5 relative group border border-white/5 hover:border-[#FEC204]/50 transition-colors">
+                      <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button onClick={() => handleLessonDelete(lesson.id)} className="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center text-red-500 hover:bg-red-500/20 transition-colors">
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                      <h3 className="text-[16px] font-bold text-[#FEC204] mb-4">{lesson.title}</h3>
+                      
+                      <div className="flex flex-col gap-2 mt-4">
+                        <button 
+                          onClick={() => handleHomeworkClick(lesson)}
+                          className="w-full py-2.5 rounded-lg border border-[#FEC204]/30 text-[#FEC204] font-bold text-sm hover:bg-[#FEC204]/10 transition-colors"
+                        >
+                          {lesson.homeworkTestId ? "Uyga vazifani tahrirlash" : "Uyga vazifa kiritish"}
+                        </button>
+                        <button 
+                          onClick={() => {
+                            {
+                              const engs = (lesson.vocabularyEng || '').split('\n').map(s => s.trim());
+                              const uzs = (lesson.vocabularyUz || '').split('\n').map(s => s.trim());
+                              const maxLen = Math.max(engs.length, uzs.length, 1);
+                              const pairs = [];
+                              for (let i = 0; i < maxLen; i++) {
+                                pairs.push({
+                                  eng: engs[i] || '',
+                                  uz: uzs[i] || ''
+                                });
+                              }
+                              setVocabForm({ id: lesson.id, pairs: pairs.filter(p => p.eng || p.uz).length ? pairs.filter(p => p.eng || p.uz) : [{ eng: '', uz: '' }] });
+                            }
+                            setIsVocabModalOpen(true);
+                          }}
+                          className="w-full py-2.5 rounded-lg border border-white/10 text-white/70 font-bold text-sm hover:bg-white/5 hover:text-white transition-colors"
+                        >
+                          Lug'atlarni {(lesson.vocabularyEng || lesson.vocabularyUz) ? 'tahrirlash' : 'kiritish'}
+                        </button>
+                        
+                        <button 
+                          onClick={() => {
+                            setAssigningLesson(lesson);
+                            setIsLessonAssignModalOpen(true);
+                          }}
+                          className="w-full py-2.5 rounded-lg bg-white/5 text-white/90 font-bold text-sm hover:bg-white/10 transition-colors mt-2"
+                        >
+                          Faollashtirish (Guruhga biriktirish)
+                        </button>
+                      </div>
+                      
+                      {/* Assigned Groups Tags */}
+                      {lesson.assignedGroups && lesson.assignedGroups.length > 0 && (
+                        <div className="mt-4 pt-4 border-t border-white/5">
+                          <p className="text-[10px] uppercase text-white/40 font-bold mb-2">Faollashtirilgan guruhlar</p>
+                          <div className="flex flex-wrap gap-2">
+                            {lesson.assignedGroups.map((gId: string) => {
+                              const group = groups.find(g => g.id === gId);
+                              if (!group) return null;
+                              return (
+                                <div key={gId} className="flex items-center gap-1 bg-white/5 border border-white/10 px-2 py-1 rounded-md text-xs text-white/80">
+                                  <span>{group.name}</span>
+                                  <button onClick={() => handleRemoveAssignedGroup(lesson, gId)} className="text-white/40 hover:text-red-400 ml-1">
+                                    <X size={12} />
+                                  </button>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+
+                    </div>
+                  ))}
+                </div>
+              )}
            </>
         )}
       </div>
@@ -491,6 +765,39 @@ export default function AdminSATDatabase() {
         </div>
       )}
 
+
+      {isLessonAssignModalOpen && assigningLesson && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4" onClick={() => setIsLessonAssignModalOpen(false)}>
+          <div className="bg-[#1a1a1a] rounded-[24px] w-full max-w-md border border-white/10 shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="p-6 border-b border-white/5 flex items-center justify-between">
+              <h2 className="text-[18px] font-black text-white">Darsni faollashtirish</h2>
+              <button type="button" onClick={() => setIsLessonAssignModalOpen(false)} className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 transition-colors">
+                <X size={16} />
+              </button>
+            </div>
+            <form onSubmit={handleLessonAssignSave} className="p-6 space-y-4">
+              <div>
+                <label className="block text-[12px] font-bold text-white/60 uppercase tracking-wider mb-2">Guruhni tanlang *</label>
+                <select
+                  required
+                  value={lessonAssignGroupId}
+                  onChange={e => setLessonAssignGroupId(e.target.value)}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-[14px] outline-none focus:border-[#FEC204] transition-colors appearance-none"
+                >
+                  <option value="" className="bg-[#1a1a1a]">Tanlang</option>
+                  {groups.filter(g => user?.role !== 'teacher' || g.teacherName === user?.fullName).map(g => (
+                    <option key={g.id} value={g.id} className="bg-[#1a1a1a]">{g.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button type="button" onClick={() => setIsLessonAssignModalOpen(false)} className="flex-1 py-3 bg-white/5 hover:bg-white/10 rounded-xl font-bold text-white/70 transition-colors">Bekor qilish</button>
+                <button type="submit" className="flex-1 py-3 bg-[#FEC204] hover:bg-[#e5ae03] text-black rounded-xl font-bold transition-colors shadow-[0_0_15px_rgba(254,194,4,0.3)]">Faollashtirish</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
       {isAssignModalOpen && assigningTest && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4" onClick={() => setIsAssignModalOpen(false)}>
           <div className="bg-[#1a1a1a] rounded-[24px] w-full max-w-md border border-white/10 shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
@@ -653,6 +960,119 @@ export default function AdminSATDatabase() {
              // Saved
           }} 
         />
+      )}
+      {isLessonModalOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex flex-col items-center justify-center animate-in fade-in duration-200">
+          <div className="w-full md:w-[500px] bg-[#0d0d0d] border border-white/10 rounded-[20px] p-6 shadow-2xl">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-[18px] font-black tracking-tight text-white">Yangi dars qo'shish</h2>
+              <button onClick={() => setIsLessonModalOpen(false)} className="p-2 bg-white/5 rounded-full text-white/40 hover:bg-white/10 hover:text-white transition-colors"><X size={16} /></button>
+            </div>
+            <form onSubmit={handleLessonSave} className="space-y-4">
+              <div>
+                <label className="text-[10px] uppercase font-bold text-white/40 ml-1 mb-1 block">Dars nomi *</label>
+                <input required placeholder="Masalan: Unit 1 - Reading strategies" value={lessonForm.title} onChange={e => setLessonForm({...lessonForm, title: e.target.value})} className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm text-white" />
+              </div>
+              <div className="pt-4 flex gap-3">
+                <button type="button" onClick={() => setIsLessonModalOpen(false)} className="flex-1 py-3 px-4 rounded-xl font-bold text-white/70 hover:text-white hover:bg-white/5 transition-colors">
+                  Bekor qilish
+                </button>
+                <button type="submit" className="flex-1 py-3 px-4 rounded-xl font-bold bg-[#FEC204] text-black hover:bg-[#e5ae03] transition-colors shadow-[0_0_20px_rgba(254,194,4,0.3)]">
+                  Saqlash
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {isVocabModalOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex flex-col items-center justify-center animate-in fade-in duration-200">
+          <div className="w-full md:w-[500px] bg-[#0d0d0d] border border-white/10 rounded-[20px] p-6 shadow-2xl">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-[18px] font-black tracking-tight text-white">Lug'atlarni kiritish</h2>
+              <button onClick={() => setIsVocabModalOpen(false)} className="p-2 bg-white/5 rounded-full text-white/40 hover:bg-white/10 hover:text-white transition-colors"><X size={16} /></button>
+            </div>
+            <form onSubmit={handleVocabSave} className="space-y-4">
+              <div className="flex justify-between items-center px-1">
+                <div className="flex items-center gap-4">
+                  <label className="text-[10px] uppercase font-bold text-[#FEC204]">Inglizcha</label>
+                </div>
+                <div className="flex items-center gap-4">
+                  <button 
+                    type="button" 
+                    onClick={() => setIsTemplateMode(!isTemplateMode)}
+                    className="text-[10px] uppercase font-bold text-[#FEC204] hover:text-white transition-colors underline"
+                  >
+                    {isTemplateMode ? 'Jadval orqali kiritish' : 'Shablon orqali kiritish'}
+                  </button>
+                  <label className="text-[10px] uppercase font-bold text-white/60">O'zbekcha</label>
+                </div>
+              </div>
+              
+              {isTemplateMode ? (
+                <div className="space-y-3">
+                  <textarea 
+                    rows={8} 
+                    placeholder="[#apple;+olma]
+[#book;+kitob]" 
+                    value={templateText} 
+                    onChange={e => setTemplateText(e.target.value)} 
+                    className="w-full glass-panel p-3 outline-none focus:border-[#FEC204]/50 text-sm text-white resize-none font-mono" 
+                  />
+                  <button
+                    type="button"
+                    onClick={handleParseTemplate}
+                    className="w-full py-2.5 rounded-lg font-bold bg-white/10 text-white hover:bg-white/20 transition-colors text-sm"
+                  >
+                    Tartiblash
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <div ref={vocabContainerRef} className="max-h-[300px] overflow-y-auto custom-scrollbar space-y-2 pr-1">
+                    {vocabForm.pairs.map((pair, idx) => (
+                      <div key={idx} className="flex gap-3 items-center">
+                        <div className="w-5 text-right text-xs font-bold text-white/40">
+                          {idx + 1}.
+                        </div>
+                        <div className="flex-1 grid grid-cols-2 gap-3">
+                          <input
+                            placeholder="Apple"
+                            value={pair.eng}
+                            onChange={(e) => handleUpdateVocabPair(idx, 'eng', e.target.value)}
+                            className="w-full glass-panel px-3 py-2 outline-none focus:border-[#FEC204]/50 text-sm text-white"
+                          />
+                          <input
+                            placeholder="Olma"
+                            value={pair.uz}
+                            onChange={(e) => handleUpdateVocabPair(idx, 'uz', e.target.value)}
+                            className="w-full glass-panel px-3 py-2 outline-none focus:border-[#FEC204]/50 text-sm text-white"
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleAddVocabPair}
+                    className="w-full py-2 rounded-lg border border-white/10 text-white/70 hover:bg-white/5 hover:text-white transition-colors text-sm font-bold flex items-center justify-center gap-2"
+                  >
+                    <span className="text-lg leading-none">+</span> Qator qo'shish
+                  </button>
+                </>
+              )}
+              
+              <div className="pt-4 flex gap-3">
+                <button type="button" onClick={() => setIsVocabModalOpen(false)} className="flex-1 py-3 px-4 rounded-xl font-bold text-white/70 hover:text-white hover:bg-white/5 transition-colors">
+                  Bekor qilish
+                </button>
+                <button type="submit" className="flex-1 py-3 px-4 rounded-xl font-bold bg-[#FEC204] text-black hover:bg-[#e5ae03] transition-colors shadow-[0_0_20px_rgba(254,194,4,0.3)]">
+                  Saqlash
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </div>
   );
