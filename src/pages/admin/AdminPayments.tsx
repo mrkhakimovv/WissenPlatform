@@ -14,6 +14,7 @@ export default function AdminPayments() {
   const [filterMonth, setFilterMonth] = useState<number>(new Date().getMonth() + 1);
   const [filterYear, setFilterYear] = useState<number>(new Date().getFullYear());
   const [searchTerm, setSearchTerm] = useState('');
+  const [filterGroup, setFilterGroup] = useState<string>('all');
   const [editingFeeId, setEditingFeeId] = useState<string | null>(null);
   const [newFee, setNewFee] = useState<string>('');
   const [historyModalStudent, setHistoryModalStudent] = useState<any>(null);
@@ -27,33 +28,60 @@ export default function AdminPayments() {
       return { expectedThisMonth: 0, currentMonthDebt: 0, otherMonthsDebt: 0, totalDebt: 0 };
     }
     
-    let monthsToPay = 1;
+    // O'quvchining ro'yxatdan o'tgan sanasi
+    let joinedYear = filterYear;
+    let joinedMonth = filterMonth;
+    
+    let jd;
     if (student.joinedDate) {
-      const jd = new Date(student.joinedDate);
-      const y = jd.getFullYear();
-      const m = jd.getMonth() + 1;
-      monthsToPay = (filterYear - y) * 12 + (filterMonth - m) + 1;
-      if (monthsToPay < 0) monthsToPay = 0;
+       jd = new Date(student.joinedDate);
+    } else if (student.createdAt) {
+       jd = new Date(student.createdAt);
+    } else {
+       jd = new Date("2026-09-01");
+    }
+    joinedYear = jd.getFullYear();
+    joinedMonth = jd.getMonth() + 1;
+
+    // 1. Agar tanlangan oyni (filter) o'quvchi hali kelmagan oy bo'lsa
+    const isBeforeJoined = filterYear < joinedYear || (filterYear === joinedYear && filterMonth < joinedMonth);
+    if (isBeforeJoined) {
+       return { expectedThisMonth: 0, currentMonthDebt: 0, otherMonthsDebt: 0, totalDebt: 0 };
     }
 
-    const expectedThisMonth = monthsToPay > 0 ? fee : 0;
-    const totalExpected = monthsToPay * fee;
-    
+    // 2. Kutilayotgan pul doim 1 oylik fee bo'ladi
+    const expectedThisMonth = fee;
+
+    // 3. O'quvchining barcha to'lovlari
     const allPayments = payments.filter(p => p.studentId === student.id);
-    const totalPaid = allPayments.reduce((acc, p) => acc + (Number(p.amount) || 0), 0);
     
-    const totalDebt = Math.max(0, totalExpected - totalPaid);
+    // Joriy oy (filter) bo'yicha to'langan summalar
+    const currentPayments = allPayments.filter(p => p.month === filterMonth && p.year === filterYear);
+    const paidThisMonth = currentPayments.reduce((acc, p) => acc + (Number(p.amount) || 0), 0);
     
-    let currentMonthDebt = 0;
+    let currentMonthDebt = expectedThisMonth - paidThisMonth;
+    if (currentMonthDebt < 0) currentMonthDebt = 0;
+
+    // 4. Boshqa oylar qarzini hisoblash
     let otherMonthsDebt = 0;
     
-    if (totalDebt > expectedThisMonth) {
-      currentMonthDebt = expectedThisMonth;
-      otherMonthsDebt = totalDebt - expectedThisMonth;
-    } else {
-      currentMonthDebt = totalDebt;
-      otherMonthsDebt = 0;
+    // Kelgan yilidan tortib toki hozirgi (filter) yilgacha tekshiramiz
+    for (let y = joinedYear; y <= filterYear; y++) {
+       const startM = (y === joinedYear) ? joinedMonth : 1;
+       const endM = (y === filterYear) ? (filterMonth - 1) : 12;
+
+       for (let m = startM; m <= endM; m++) {
+          const monthPayments = allPayments.filter(p => p.month === m && p.year === y);
+          const monthPaid = monthPayments.reduce((acc, p) => acc + (Number(p.amount) || 0), 0);
+          
+          const mDebt = fee - monthPaid;
+          if (mDebt > 0) {
+             otherMonthsDebt += mDebt;
+          }
+       }
     }
+
+    const totalDebt = currentMonthDebt + otherMonthsDebt;
     
     return {
       expectedThisMonth,
@@ -152,8 +180,14 @@ export default function AdminPayments() {
   const currentMonthPayments = payments.filter(p => p.month === filterMonth && p.year === filterYear);
   
   const activeStudents = students.filter(s => {
-    if (!s.joinedDate) return true;
-    const jd = new Date(s.joinedDate);
+    let jd;
+    if (s.joinedDate) {
+       jd = new Date(s.joinedDate);
+    } else if (s.createdAt) {
+       jd = new Date(s.createdAt);
+    } else {
+       jd = new Date("2026-09-01");
+    }
     const jy = jd.getFullYear();
     const jm = jd.getMonth() + 1;
     return jy < filterYear || (jy === filterYear && jm <= filterMonth);
@@ -208,6 +242,10 @@ export default function AdminPayments() {
                 </div>
                 <select value={filterMonth} onChange={e=>setFilterMonth(Number(e.target.value))} className="glass-panel py-2 px-3 outline-none text-sm text-[color:var(--theme-text-primary)] rounded-xl border border-white/10" style={{ colorScheme: "dark" }}>
                   {months.map((m, i) => <option key={m} value={i+1} className="bg-[#1a1a1a]">{m}</option>)}
+                </select>
+                <select value={filterGroup} onChange={e=>setFilterGroup(e.target.value)} className="glass-panel py-2 px-3 outline-none text-sm text-[color:var(--theme-text-primary)] rounded-xl border border-white/10" style={{ colorScheme: "dark" }}>
+                  <option value="all" className="bg-[#1a1a1a]">Barcha guruhlar</option>
+                  {groups.map(g => <option key={g.id} value={g.id} className="bg-[#1a1a1a]">{g.name}</option>)}
                 </select>
                 <select value={filterYear} onChange={e=>setFilterYear(Number(e.target.value))} className="glass-panel py-2 px-3 outline-none text-sm text-[color:var(--theme-text-primary)] rounded-xl border border-white/10" style={{ colorScheme: "dark" }}>
                   {years.map(y => <option key={y} value={y} className="bg-[#1a1a1a]">{y}</option>)}
@@ -290,7 +328,29 @@ export default function AdminPayments() {
       </div>
 
       <div className="space-y-4 md:space-y-0 md:grid md:grid-cols-2 lg:grid-cols-3 md:gap-4 pb-20">
-        {activeStudents.filter(s => searchTerm === '' || s.fullName?.toLowerCase().includes(searchTerm.toLowerCase())).map(student => {
+        {activeStudents
+        .filter(s => {
+           if (searchTerm !== '' && !s.fullName?.toLowerCase().includes(searchTerm.toLowerCase())) return false;
+           if (filterGroup !== 'all') {
+              if (s.groups && Array.isArray(s.groups)) {
+                 if (!s.groups.includes(filterGroup)) return false;
+              } else if (s.groupId) {
+                 if (s.groupId !== filterGroup) return false;
+              } else {
+                 return false;
+              }
+           }
+           return true;
+        })
+        .sort((a, b) => {
+           const debtA = getDebtInfo(a).totalDebt;
+           const debtB = getDebtInfo(b).totalDebt;
+           if ((debtA > 0 && debtB > 0) || (debtA === 0 && debtB === 0)) {
+              return (a.fullName || '').localeCompare(b.fullName || '');
+           }
+           return debtA > 0 ? -1 : 1;
+        })
+        .map(student => {
           const debtInfo = getDebtInfo(student);
           const isFullyPaid = debtInfo.totalDebt === 0;
           const initials = student.fullName?.substring(0,2).toUpperCase() || 'ST';
