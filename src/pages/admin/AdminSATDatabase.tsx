@@ -66,13 +66,14 @@ export default function AdminSATDatabase() {
         };
         
         sortedLessons.forEach(l => {
+          // Doim ustun bo'lishi uchun bo'sh joy bilan initsializatsiya qilamiz
+          row[l.title] = "";
+          
           if (l.homeworkTestId) {
             // Find result for this lesson and student
             const result = allResults.find(r => r.studentId === student.id && r.testId === l.homeworkTestId);
             if (result) {
               row[l.title] = `${result.score} / ${result.total}`;
-            } else {
-              row[l.title] = "Topshirmagan";
             }
           }
         });
@@ -87,7 +88,7 @@ export default function AdminSATDatabase() {
       const colWidths = [
         { wch: 30 }, // Ism Familiya
         { wch: 20 }, // Guruh nomi
-        ...sortedLessons.filter(l => l.homeworkTestId).map(() => ({ wch: 15 }))
+        ...sortedLessons.map(() => ({ wch: 15 }))
       ];
       worksheet['!cols'] = colWidths;
       
