@@ -956,8 +956,18 @@ export default function AdminSATDatabase() {
         <AdminSATBuilder 
           initialData={testConfig} 
           onClose={() => setIsTestBuilderOpen(false)} 
-          onSave={() => {
-             // Saved
+          onSave={async (savedTest) => { 
+            if (savedTest && savedTest.id && editingLessonId) {
+              try {
+                await updateDoc(doc(db, 'sat_lessons', editingLessonId), {
+                  homeworkTestId: savedTest.id
+                });
+                toast.success("Uyga vazifa darsga biriktirildi!");
+              } catch(e) {
+                console.error(e);
+                toast.error("Darsni yangilashda xatolik");
+              }
+            }
           }} 
         />
       )}

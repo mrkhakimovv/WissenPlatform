@@ -204,7 +204,7 @@ export default function StudentSAT() {
                       examType: 'sat',
                       subject: 'Homework',
                       date: new Date().toISOString(),
-                      duration: 'Cheklanmagan',
+                      duration: 0,
                       location: 'Online',
                       groupId: ''
                     } as Exam);

@@ -3,7 +3,7 @@ import { TestData, Exam } from '../../types';
 import { doc, getDoc, setDoc, addDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { useAuth } from '../../contexts/AuthContext';
-import { X, CheckCircle, CheckCircle2, XCircle, ChevronRight, ChevronLeft, Bookmark, AlertTriangle } from 'lucide-react';
+import { X, CheckCircle, Type, CheckCircle2, XCircle, ChevronRight, ChevronLeft, Bookmark, AlertTriangle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { motion } from 'motion/react';
 import { createPortal } from 'react-dom';
@@ -215,7 +215,7 @@ export default function StudentTestTake({ exam, onClose }: Props) {
   }, [exam.testId, onClose]);
 
   useEffect(() => {
-    if (loading || submitted || !hasStarted) return;
+    if (loading || submitted || !hasStarted || exam.duration === 0) return;
     const timer = setInterval(() => {
       setTimeLeft(prev => {
         if (prev <= 1) {
@@ -229,7 +229,7 @@ export default function StudentTestTake({ exam, onClose }: Props) {
       });
     }, 1000);
     return () => clearInterval(timer);
-  }, [loading, submitted, hasStarted]);
+  }, [loading, submitted, hasStarted, exam.duration]);
 
     const handleSubmit = async () => {
     if (!testData || submitted) return;
@@ -305,7 +305,7 @@ export default function StudentTestTake({ exam, onClose }: Props) {
         total: testData.questions.length,
         answers: cleanAnswers,
         wrongAnswers: wrongAnswersData,
-        timeSpent: (exam.duration * 60) - timeLeft,
+        timeSpent: exam.duration === 0 ? 0 : (exam.duration * 60) - timeLeft,
         attempts: attemptsCount + 1,
         submittedAt: new Date().toISOString()
       }));
@@ -435,9 +435,9 @@ export default function StudentTestTake({ exam, onClose }: Props) {
         </div>
         <div className="flex items-center gap-3 md:gap-6 shrink-0">
           <div className="flex flex-col items-end">
-            <span className="text-[10px] md:text-[11px] font-bold text-white/40 uppercase tracking-widest">Qolgan vaqt</span>
-            <span className={`text-[16px] md:text-[18px] font-black ${timeLeft < 300 ? 'text-red-400' : 'text-[#FEC204]'}`}>
-              {m.toString().padStart(2, '0')}:{s.toString().padStart(2, '0')}
+            <span className="text-[10px] md:text-[11px] font-bold text-white/40 uppercase tracking-widest">{exam.duration === 0 ? 'Vaqt' : 'Qolgan vaqt'}</span>
+            <span className={`text-[16px] md:text-[18px] font-black ${(exam.duration > 0 && timeLeft < 300) ? 'text-red-400' : 'text-[#FEC204]'}`}>
+              {exam.duration === 0 ? 'Cheklanmagan' : `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`}
             </span>
           </div>
           <button onClick={() => setShowExitConfirm(true)} className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-white/5 flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10">
@@ -469,23 +469,39 @@ export default function StudentTestTake({ exam, onClose }: Props) {
               </button>
             </div>
             
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+            <div className="flex flex-col gap-6 max-w-3xl mx-auto w-full">
               {testData.questions.map((q, idx) => (
-                <div key={idx} className="bg-white/5 rounded-xl p-4 flex flex-col items-center gap-3 border border-white/10">
-                  <span className="font-bold text-white/70">{idx + 1}-savol</span>
-                  <div className="flex flex-col gap-2 w-full">
+                <div key={idx} className="bg-[#1a1a1a] rounded-[20px] p-6 sm:p-8 flex flex-col gap-6 border border-white/5 relative">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-[#FEC204] text-xl">{idx + 1}.</span>
+                    <button
+                      onClick={() => setMarked(prev => ({ ...prev, [idx]: !prev[idx] }))}
+                      className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
+                        marked[idx] 
+                          ? 'bg-[rgba(254,194,4,0.1)] text-[#FEC204]' 
+                          : 'bg-white/5 text-white/40 hover:bg-white/10 hover:text-white'
+                      }`}
+                    >
+                      <Bookmark size={20} className={marked[idx] ? "fill-current" : ""} />
+                    </button>
+                  </div>
+                  <div className="flex gap-4 w-full">
                     {q.isOpenEnded ? (
-                      <MathAnswerField
-                        value={answers[idx] || ''}
-                        onChange={(latex) => setAnswers(prev => ({ ...prev, [idx]: latex }))}
-                        placeholder="Javobingiz"
-                      />
+                      <div className="w-full">
+                         <p className="text-white/70 text-sm mb-3">O'z javobingizni kiriting:</p>
+                         <MathAnswerField
+                           value={answers[idx] || ''}
+                           onChange={(latex) => setAnswers(prev => ({ ...prev, [idx]: latex }))}
+                           placeholder="Javobingizni shu yerga yozing..."
+                           className="w-full bg-[#2a2a2a] p-4 rounded-xl outline-none focus:border-[#FEC204] border border-white/10 text-white font-bold"
+                         />
+                      </div>
                     ) : (
                       Array.from({length: testData.variantCount}).map((_, optIdx) => (
                         <button 
                           key={optIdx}
                           onClick={() => setAnswers(prev => ({ ...prev, [idx]: optIdx }))}
-                          className={`w-full py-2 rounded-lg border-2 flex items-center justify-center font-bold text-sm transition-all duration-200 ${answers[idx] === optIdx ? 'border-[#FEC204] bg-[#FEC204] text-black' : 'border-white/10 text-white/40 hover:border-white/30 hover:text-white'}`}
+                          className={`w-14 h-14 rounded-full border-2 flex items-center justify-center font-bold text-lg transition-all duration-200 ${answers[idx] === optIdx ? 'border-[#FEC204] bg-[#FEC204] text-black shadow-[0_0_15px_rgba(254,194,4,0.4)] scale-110' : 'border-white/10 text-white/70 hover:border-white/30 hover:text-white bg-[#2a2a2a]'}`}
                         >
                           {String.fromCharCode(65 + optIdx)}
                         </button>
@@ -511,9 +527,9 @@ export default function StudentTestTake({ exam, onClose }: Props) {
                 className={`relative shrink-0 w-10 h-10 md:w-full md:h-auto md:aspect-square rounded-lg flex items-center justify-center text-[13px] md:text-[14px] font-bold transition-all ${
                   false 
                     ? 'bg-[#FEC204] text-black shadow-[0_0_15px_rgba(254,194,4,0.3)] md:scale-105' 
-                    : (answers[idx] !== undefined && answers[idx] !== "")
-                      ? 'bg-white/20 text-white border border-white/10'
-                      : 'bg-white/5 text-white/40 hover:bg-white/10 hover:text-white border border-transparent'
+                    : (answers[idx] !== undefined && answers[idx] !== "") 
+                     ? 'bg-white/20 text-white border border-white/10'
+                     : 'bg-white/5 text-white/40 hover:bg-white/10 hover:text-white border border-transparent'
                 }`}
               >
                 {idx + 1}
@@ -541,11 +557,12 @@ export default function StudentTestTake({ exam, onClose }: Props) {
         </div>
       </div>
 
+      {/* Main Content - Questions */}
       <div className="flex-1 overflow-y-auto p-4 sm:p-5 md:p-8 flex items-start justify-center relative">
         <div className="w-full max-w-3xl pt-2 md:pt-0 pb-10 space-y-8 md:space-y-12">
-          {testData.questions.map((q: any, qIndex: number) => (
+          {testData.questions.map((q, qIndex) => (
             <div 
-              key={q.id}
+              key={q.id || qIndex}
               id={`question-${qIndex}`}
               className="glass-panel p-5 sm:p-6 md:p-10 rounded-[20px] md:rounded-[24px] relative"
             >
@@ -559,6 +576,7 @@ export default function StudentTestTake({ exam, onClose }: Props) {
               >
                 <Bookmark size={18} className={`md:w-[20px] md:h-[20px] ${marked[qIndex] ? "fill-current" : ""}`} />
               </button>
+
               <h3 className="text-[15px] md:text-[20px] font-bold text-white mb-5 md:mb-6 leading-relaxed pr-10 md:pr-12 overflow-x-auto">
                 <span className="text-[#FEC204] mr-2">{qIndex + 1}.</span>
                 <Latex>{q.text}</Latex>
@@ -581,10 +599,10 @@ export default function StudentTestTake({ exam, onClose }: Props) {
                   </div>
                 ) : (
                   (() => {
-                    const hasOptionText = q.options.some((opt: string) => opt && opt.trim() !== '');
+                    const hasOptionText = q.options.some((opt) => opt && opt.trim() !== '');
                     return hasOptionText ? (
                       <div className="space-y-2 md:space-y-3">
-                        {q.options.map((opt: string, oIdx: number) => (
+                        {q.options.map((opt, oIdx) => (
                           <button
                             key={oIdx}
                             onClick={() => {
@@ -609,7 +627,7 @@ export default function StudentTestTake({ exam, onClose }: Props) {
                       </div>
                     ) : (
                       <div className="flex flex-wrap gap-4">
-                        {q.options.map((_: any, oIdx: number) => (
+                        {q.options.map((_, oIdx) => (
                           <button
                             key={oIdx}
                             onClick={() => {
@@ -632,11 +650,10 @@ export default function StudentTestTake({ exam, onClose }: Props) {
             </div>
           ))}
         </div>
-        </div>
-        </>
+      </div>
+      </>
       )}
       </div>
-
       {showExitConfirm && (
         <div className="fixed inset-0 bg-[#0d0d0d]/90 z-[999999] flex items-center justify-center p-4 backdrop-blur-sm">
           <motion.div 
