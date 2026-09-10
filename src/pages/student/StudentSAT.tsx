@@ -1,3 +1,4 @@
+import toast from 'react-hot-toast';
 import React, { useState, useEffect } from 'react';
 import { collection, onSnapshot, query, getDocs } from '../../lib/firebase';
 import { db } from '../../lib/firebase';
@@ -190,26 +191,28 @@ export default function StudentSAT() {
             >
               <h3 className="text-[18px] font-bold text-white mb-4">{lesson.title}</h3>
               <div className="mt-auto space-y-2">
-                {lesson.homeworkTestId && (
-                  <button 
-                    onClick={() => {
-                      setTakingExam({
-                        id: lesson.id + '_hw',
-                        title: lesson.title + ' - Uyga vazifa',
-                        testId: lesson.homeworkTestId,
-                        examType: 'sat',
-                        subject: 'Homework',
-                        date: new Date().toISOString(),
-                        duration: 'Cheklanmagan',
-                        location: 'Online',
-                        groupId: ''
-                      } as Exam);
-                    }}
-                    className="w-full py-3 rounded-xl font-bold bg-[rgba(254,194,4,0.15)] text-[#FEC204] hover:bg-[rgba(254,194,4,0.25)] transition-colors border border-[#FEC204]/20 flex items-center justify-center gap-2"
-                  >
-                    <PlayCircle size={18} /> Uyga vazifani ishlash
-                  </button>
-                )}
+                <button 
+                  onClick={() => {
+                    if (!lesson.homeworkTestId) {
+                      toast.error("Ushbu dars uchun uyga vazifa hali yuklanmagan!");
+                      return;
+                    }
+                    setTakingExam({
+                      id: lesson.id + '_hw',
+                      title: lesson.title + ' - Uyga vazifa',
+                      testId: lesson.homeworkTestId,
+                      examType: 'sat',
+                      subject: 'Homework',
+                      date: new Date().toISOString(),
+                      duration: 'Cheklanmagan',
+                      location: 'Online',
+                      groupId: ''
+                    } as Exam);
+                  }}
+                  className="w-full py-3 rounded-xl font-bold bg-[rgba(254,194,4,0.15)] text-[#FEC204] hover:bg-[rgba(254,194,4,0.25)] transition-colors border border-[#FEC204]/20 flex items-center justify-center gap-2"
+                >
+                  <PlayCircle size={18} /> Uyga vazifani yuborish
+                </button>
                 
                 {(lesson.vocabularyEng || lesson.vocabularyUz) && (
                   <button 
@@ -218,12 +221,6 @@ export default function StudentSAT() {
                   >
                     <Book size={18} /> Lug'atlarni yodlash
                   </button>
-                )}
-                
-                {!lesson.homeworkTestId && !lesson.vocabularyEng && !lesson.vocabularyUz && (
-                  <div className="text-center py-2 text-white/40 text-xs font-bold uppercase tracking-wider">
-                    Vazifalar kiritilmagan
-                  </div>
                 )}
               </div>
             </motion.div>
