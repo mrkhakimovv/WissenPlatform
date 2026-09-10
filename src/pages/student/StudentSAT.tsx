@@ -14,7 +14,7 @@ export default function StudentSAT() {
   const [exams, setExams] = useState<Exam[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
   const [takingExam, setTakingExam] = useState<Exam | null>(null);
-  const [activeTab, setActiveTab] = useState<'lessons' | 'exams'>('exams');
+  const [activeTab, setActiveTab] = useState<'lessons' | 'exams'>('lessons');
   const [lessons, setLessons] = useState<any[]>([]);
   const [practicingVocab, setPracticingVocab] = useState<any>(null);
 
