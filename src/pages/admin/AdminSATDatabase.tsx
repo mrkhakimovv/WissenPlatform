@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { TestData, Group, Exam } from '../../types';
 import { Trash2, Edit2, Copy, FileText, X, Calendar } from 'lucide-react';
-import { collection, doc, deleteDoc, addDoc, updateDoc, onSnapshot, query, orderBy, getDocs } from 'firebase/firestore';
+import { collection, doc, deleteDoc, addDoc, updateDoc, onSnapshot, query, orderBy, getDocs, where } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
+import * as XLSX from 'xlsx';
 import { sendAutoNotification } from '../../lib/notificationSender';
 import { useConfirm } from '../../contexts/ConfirmContext';
 import toast from 'react-hot-toast';
@@ -19,6 +20,89 @@ export default function AdminSATDatabase() {
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
   const [assigningTest, setAssigningTest] = useState<TestData | null>(null);
   const [assignForm, setAssignForm] = useState({ groupId: '', date: '', startTime: '', duration: '60' });
+
+  const handleDownloadResults = async (lesson: any) => {
+    if (!lesson.assignedGroups || lesson.assignedGroups.length === 0) {
+      toast.error("Ushbu darsga hech qanday guruh biriktirilmagan!");
+      return;
+    }
+    
+    const loadingToast = toast.loading("Natijalar yuklanmoqda...");
+    try {
+      // 1. Get all students in these groups
+      const usersSnap = await getDocs(query(collection(db, 'users')));
+      const students: any[] = [];
+      usersSnap.docs.forEach(d => {
+        const u = d.data();
+        const uGroups = u.groups || (u.groupId ? [u.groupId] : []);
+        if (lesson.assignedGroups.some((g: string) => uGroups.includes(g))) {
+          students.push({ id: d.id, ...u, uGroups });
+        }
+      });
+      
+      if (students.length === 0) {
+        toast.dismiss(loadingToast);
+        toast.error("Guruhlarda o'quvchilar topilmadi.");
+        return;
+      }
+      
+      // 2. Get all results for these students
+      const resultsSnap = await getDocs(collection(db, 'exam_results'));
+      const allResults = resultsSnap.docs.map(d => d.data());
+      
+      // 3. Prepare columns from all SAT lessons
+      // Sort lessons by createdAt or just use the current order in state (which is usually chronological or by order)
+      const sortedLessons = [...lessons].sort((a,b) => {
+        const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return timeA - timeB;
+      });
+      
+      // 4. Build data for Excel
+      const excelData = students.map(student => {
+        const row: any = {
+          "Ism Familiya": student.fullName || 'Noma\'lum',
+          "Guruh Nomi": student.uGroups.map((gId: string) => groups.find(g => g.id === gId)?.name || gId).join(', ')
+        };
+        
+        sortedLessons.forEach(l => {
+          if (l.homeworkTestId) {
+            // Find result for this lesson and student
+            const result = allResults.find(r => r.studentId === student.id && r.testId === l.homeworkTestId);
+            if (result) {
+              row[l.title] = `${result.score} / ${result.total}`;
+            } else {
+              row[l.title] = "Topshirmagan";
+            }
+          }
+        });
+        
+        return row;
+      });
+      
+      // 5. Generate Excel
+      const worksheet = XLSX.utils.json_to_sheet(excelData);
+      
+      // Calculate column widths
+      const colWidths = [
+        { wch: 30 }, // Ism Familiya
+        { wch: 20 }, // Guruh nomi
+        ...sortedLessons.filter(l => l.homeworkTestId).map(() => ({ wch: 15 }))
+      ];
+      worksheet['!cols'] = colWidths;
+      
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Natijalar");
+      XLSX.writeFile(workbook, `SAT_Natijalar_${new Date().toLocaleDateString('uz-UZ')}.xlsx`);
+      
+      toast.dismiss(loadingToast);
+      toast.success("Yuklab olindi!");
+    } catch (err) {
+      console.error("Export error:", err);
+      toast.dismiss(loadingToast);
+      toast.error("Xatolik yuz berdi");
+    }
+  };
 
   // SAT Lessons states
   const [lessons, setLessons] = useState<any[]>([]);
@@ -650,6 +734,13 @@ export default function AdminSATDatabase() {
                               );
                             })}
                           </div>
+                          
+                          <button
+                            onClick={() => handleDownloadResults(lesson)}
+                            className="mt-4 w-full py-2.5 rounded-lg bg-[rgba(254,194,4,0.1)] text-[#FEC204] border border-[#FEC204]/20 font-bold text-sm hover:bg-[rgba(254,194,4,0.2)] transition-colors flex items-center justify-center gap-2"
+                          >
+                            <FileText size={16} /> Natijalarni yuklab olish
+                          </button>
                         </div>
                       )}
 

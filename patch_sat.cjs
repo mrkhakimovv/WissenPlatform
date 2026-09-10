@@ -1,52 +1,78 @@
 const fs = require('fs');
+let code = fs.readFileSync('src/pages/student/StudentSAT.tsx', 'utf-8');
 
-let code = fs.readFileSync('src/pages/admin/AdminSATDatabase.tsx', 'utf-8');
+// 1. Fix the cleanup function for unsubResults
+const cleanupRegex = /return \(\) => \{\s*unsubLessons\(\);\s*unsubExams\(\);\s*\/\/[^\n]*\n\s*\};/;
+code = code.replace(cleanupRegex, `return () => {
+      unsubLessons();
+      unsubExams();
+      if (typeof unsubResults === 'function') unsubResults();
+    };`);
 
-code = code.replace(
-  "const [activeTab, setActiveTab] = useState<'exams' | 'base'>('exams');",
-  "const [activeTab, setActiveTab] = useState<'exams' | 'base' | 'lessons'>('exams');"
-);
+const unsubRegex = /if \(user\?\.uid\) \{\s*const unsubResults = onSnapshot/;
+code = code.replace(unsubRegex, `let unsubResults: any;
+    if (user?.uid) {
+      unsubResults = onSnapshot`);
 
-code = code.replace(
-  `          <button \n            onClick={() => setActiveTab('base')}\n            className={\`px-6 py-2.5 rounded-lg font-bold text-sm transition-all \${activeTab === 'base' ? 'bg-[#FEC204] text-black shadow-[0_0_10px_rgba(254,194,4,0.3)]' : 'text-white/60 hover:text-white hover:bg-white/5'}\`}\n          >\n            SAT BASE\n          </button>`,
-  `          <button \n            onClick={() => setActiveTab('base')}\n            className={\`px-6 py-2.5 rounded-lg font-bold text-sm transition-all \${activeTab === 'base' ? 'bg-[#FEC204] text-black shadow-[0_0_10px_rgba(254,194,4,0.3)]' : 'text-white/60 hover:text-white hover:bg-white/5'}\`}\n          >\n            SAT BASE\n          </button>\n          <button \n            onClick={() => setActiveTab('lessons')}\n            className={\`px-6 py-2.5 rounded-lg font-bold text-sm transition-all \${activeTab === 'lessons' ? 'bg-[#FEC204] text-black shadow-[0_0_10px_rgba(254,194,4,0.3)]' : 'text-white/60 hover:text-white hover:bg-white/5'}\`}\n          >\n            DARSLAR\n          </button>`
-);
 
-code = code.replace(
-  `          {activeTab === 'base' ? (`,
-  `          {activeTab === 'lessons' ? (\n             <button \n                onClick={() => {}}\n                className="bg-[#FEC204] text-black px-6 py-2.5 rounded-[12px] font-bold hover:bg-[#FEC204]/90 transition-colors shadow-[0_0_15px_rgba(254,194,4,0.3)] flex items-center gap-2 text-[14px]"\n             >\n                <span className="text-xl leading-none">+</span> Dars qo'shish\n             </button>\n          ) : activeTab === 'base' ? (`
-);
+// 2. Update the lesson card to show results and disable attempt
+const regexLessonCard = /<div className="mt-auto space-y-2">([\s\S]*?)<\/div>\s*<\/motion\.div>/;
+const match = code.match(regexLessonCard);
 
-const emptyState = `          </div>
-        ) : (
-          <div className="flex flex-col items-center justify-center py-20 bg-white/5 rounded-2xl border border-white/10 mt-6">
-            <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mb-4">
-               <FileText className="text-white/40" size={32} />
-            </div>
-            <p className="text-white font-bold text-lg mb-2">Hali SAT bazada testlar yo'q</p>
-            <p className="text-white/40 text-sm">Yangi test bazasini yaratish uchun tepadan qo'shish tugmasini bosing</p>
-          </div>
-        )}`;
+if (match) {
+  const newCardLogic = `<div className="mt-auto space-y-2">
+                {(() => {
+                  if (!lesson.homeworkTestId) return null;
+                  
+                  const result = results.find(r => r.testId === lesson.homeworkTestId);
+                  
+                  if (result) {
+                    return (
+                      <div className="w-full p-4 rounded-xl bg-white/5 border border-white/10 flex flex-col items-center justify-center gap-2">
+                        <span className="text-[12px] font-bold text-white/50 uppercase tracking-widest">Natija</span>
+                        <div className="flex items-end gap-1 text-[#FEC204]">
+                          <span className="text-2xl font-black">{result.score}</span>
+                          <span className="text-sm font-bold opacity-70 mb-1">/{result.totalQuestions}</span>
+                        </div>
+                        <p className="text-[11px] text-white/40 mt-1">Siz bu testni topshirgansiz</p>
+                      </div>
+                    );
+                  }
+                  
+                  return (
+                    <button 
+                      onClick={() => {
+                        setTakingExam({
+                          id: lesson.id + '_hw',
+                          title: lesson.title + ' - Uyga vazifa',
+                          testId: lesson.homeworkTestId,
+                          examType: 'sat',
+                          subject: 'Homework',
+                          date: new Date().toISOString(),
+                          duration: 0,
+                          location: 'Online',
+                          groupId: ''
+                        } as Exam);
+                      }}
+                      className="w-full py-3 rounded-xl font-bold bg-[rgba(254,194,4,0.15)] text-[#FEC204] hover:bg-[rgba(254,194,4,0.25)] transition-colors border border-[#FEC204]/20 flex items-center justify-center gap-2"
+                    >
+                      <PlayCircle size={18} /> Uyga vazifani yuborish
+                    </button>
+                  );
+                })()}
+                
+                {(lesson.vocabularyEng || lesson.vocabularyUz) && (
+                  <button 
+                    onClick={() => setPracticingVocab(lesson)}
+                    className="w-full py-3 rounded-xl font-bold bg-white/5 text-white/80 hover:bg-white/10 hover:text-white transition-colors border border-white/10 flex items-center justify-center gap-2"
+                  >
+                    <Book size={18} /> Lug'atlarni yodlash
+                  </button>
+                )}
+              </div>
+            </motion.div>`;
+            
+  code = code.replace(regexLessonCard, newCardLogic);
+}
 
-const withLessons = `          </div>
-        ) : activeTab === 'base' ? (
-          <div className="flex flex-col items-center justify-center py-20 bg-white/5 rounded-2xl border border-white/10 mt-6">
-            <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mb-4">
-               <FileText className="text-white/40" size={32} />
-            </div>
-            <p className="text-white font-bold text-lg mb-2">Hali SAT bazada testlar yo'q</p>
-            <p className="text-white/40 text-sm">Yangi test bazasini yaratish uchun tepadan qo'shish tugmasini bosing</p>
-          </div>
-        ) : (
-          <div className="flex flex-col items-center justify-center py-20 bg-white/5 rounded-2xl border border-white/10 mt-6">
-            <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mb-4">
-               <FileText className="text-white/40" size={32} />
-            </div>
-            <p className="text-white font-bold text-lg mb-2">Hali darslar yo'q</p>
-            <p className="text-white/40 text-sm">Darslar ro'yxati shu yerda ko'rsatiladi.</p>
-          </div>
-        )}`;
-
-code = code.replace(emptyState, withLessons);
-
-fs.writeFileSync('src/pages/admin/AdminSATDatabase.tsx', code);
+fs.writeFileSync('src/pages/student/StudentSAT.tsx', code);

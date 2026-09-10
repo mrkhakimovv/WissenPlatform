@@ -32,6 +32,7 @@ export default function StudentTestTake({ exam, onClose }: Props) {
   const [hasStarted, setHasStarted] = useState(false);
   const containerRef = React.useRef<HTMLDivElement>(null);
   const handleSubmitRef = React.useRef<any>(null);
+  const isBubbleMode = testData?.satType === "SAT Homework" || testData?.satType === "SAT practice";
 
   useEffect(() => {
     handleSubmitRef.current = handleSubmit;
@@ -76,7 +77,7 @@ export default function StudentTestTake({ exam, onClose }: Props) {
       }
     };
 
-    if (hasStarted && !submitted) {
+    if (hasStarted && !submitted && !isBubbleMode) {
       document.addEventListener('copy', preventCopy);
       document.addEventListener('keydown', handleKeys);
       document.addEventListener('contextmenu', preventContext);
@@ -97,13 +98,15 @@ export default function StudentTestTake({ exam, onClose }: Props) {
       document.removeEventListener('mozfullscreenchange', handleFullscreenChange);
       document.removeEventListener('MSFullscreenChange', handleFullscreenChange);
     };
-  }, [hasStarted, submitted]);
+  }, [hasStarted, submitted, isBubbleMode]);
 
   const handleStart = async () => {
-    try {
-      if (containerRef.current) await containerRef.current.requestFullscreen(); else await document.documentElement.requestFullscreen();
-    } catch (e) {
-      console.warn("Fullscreen request failed", e);
+    if (!isBubbleMode) {
+      try {
+        if (containerRef.current) await containerRef.current.requestFullscreen(); else await document.documentElement.requestFullscreen();
+      } catch (e) {
+        console.warn("Fullscreen request failed", e);
+      }
     }
     setHasStarted(true);
   };
@@ -335,7 +338,9 @@ export default function StudentTestTake({ exam, onClose }: Props) {
       <div className="fixed inset-0 bg-[#0d0d0d] z-[99999] flex items-center justify-center p-4">
         <div className="bg-[#1a1a1a] rounded-[24px] w-full max-w-lg p-6 md:p-8 flex flex-col items-center text-center border border-white/10">
           <h2 className="text-[20px] md:text-[24px] font-black text-white mb-4">Imtihonga tayyormisiz?</h2>
-          <p className="text-[14px] md:text-[16px] text-white/60 mb-6">Test davomida to'liq ekran rejimidan chiqish, nusxa olish yoki skrinshot qilish mumkin emas. Agar oyna yopilsa, test avtomatik yakunlanadi.</p>
+          {!isBubbleMode && (
+            <p className="text-[14px] md:text-[16px] text-white/60 mb-6">Test davomida to'liq ekran rejimidan chiqish, nusxa olish yoki skrinshot qilish mumkin emas. Agar oyna yopilsa, test avtomatik yakunlanadi.</p>
+          )}
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 w-full">
             <button onClick={onClose} className="flex-1 py-3 md:py-4 rounded-[12px] bg-white/10 text-white font-bold hover:bg-white/20 transition-colors">
               Bekor qilish
@@ -415,9 +420,6 @@ export default function StudentTestTake({ exam, onClose }: Props) {
       document.body
     )}</>;
   }
-
-  
-  const isBubbleMode = testData.satType === "SAT Homework" || testData.satType === "SAT practice";
 
   return <>{createPortal(
     <div ref={containerRef} className="fixed inset-0 bg-[#0d0d0d] z-[99999] flex flex-col select-none">
