@@ -219,21 +219,57 @@ const unsubLessons = onSnapshot(query(collection(db, 'sat_lessons'), orderBy('cr
                 {(() => {
                   const isUnlocked = lesson.activeGroups && lesson.activeGroups.some((gId: string) => userGroups.includes(gId));
                   if (!isUnlocked) {
+                    const testInfo = lesson.homeworkTestId ? testsData[lesson.homeworkTestId] : null;
                     return (
-                      <div className="mt-auto py-8 flex flex-col items-center justify-center opacity-70 bg-black/20 rounded-xl border border-white/5">
-                        <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center mb-3">
-                          <Lock size={20} className="text-white/60" />
+                      <div className="flex-1 flex flex-col">
+                        <div className="space-y-3 flex flex-col h-full">
+                          <div className="flex-1 flex flex-col items-center justify-center opacity-70 bg-black/20 rounded-xl border border-white/5 p-4 min-h-[160px]">
+                            <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center mb-3">
+                              <Lock size={20} className="text-white/60" />
+                            </div>
+                            <p className="text-[13px] text-white/60 font-bold uppercase tracking-wider text-center">Dars qulflangan</p>
+                            <p className="text-[11px] text-white/40 mt-1 text-center px-4">O'qituvchi darsni boshlamaguncha bu bo'lim yopiq</p>
+                          </div>
+                          
+                          <div className="bg-black/20 rounded-xl p-4 border border-white/5 space-y-2.5">
+                            <div className="flex justify-between items-center text-[13px]">
+                              <span className="text-white/50 flex items-center gap-2">
+                                <span className="text-[16px]">📝</span> Savollar soni
+                              </span>
+                              <span className="font-bold text-white">{testInfo?.questions?.length || '#'} ta</span>
+                            </div>
+                            <div className="flex justify-between items-center text-[13px]">
+                              <span className="text-white/50 flex items-center gap-2">
+                                <span className="text-[16px]">⏱️</span> Ajratilgan vaqt
+                              </span>
+                              <span className="font-bold text-white">{testInfo?.duration ? testInfo.duration + " daqiqa" : "Cheklanmagan"}</span>
+                            </div>
+                          </div>
+                          
+                          <div className="mt-auto">
+                            <button 
+                              disabled
+                              className="w-full py-3.5 rounded-xl font-bold bg-[#FEC204]/30 text-black/50 cursor-not-allowed flex items-center justify-center gap-2"
+                            >
+                              <PlayCircle size={18} className="opacity-50" /> Uyga vazifani boshlash
+                            </button>
+                          </div>
                         </div>
-                        <p className="text-[13px] text-white/60 font-bold uppercase tracking-wider">Dars qulflangan</p>
-                        <p className="text-[11px] text-white/40 mt-1 text-center px-4">O'qituvchi darsni boshlamaguncha bu bo'lim yopiq</p>
+                        
+                        <button 
+                          disabled
+                          className="w-full py-3 rounded-xl font-bold bg-white/5 text-white/30 border border-white/5 cursor-not-allowed flex items-center justify-center gap-2 mt-2"
+                        >
+                          <Book size={18} /> Lug'atlarni yodlash
+                        </button>
                       </div>
                     );
                   }
 
                   return (
-                    <>
+                    <div className="flex-1 flex flex-col">
                       {(() => {
-                        if (!lesson.homeworkTestId) return null;
+                        if (!lesson.homeworkTestId) return <div className="flex-1"></div>;
                         
                         const lessonResults = results.filter(r => r.testId === lesson.homeworkTestId).sort((a,b) => new Date(b.submittedAt || 0).getTime() - new Date(a.submittedAt || 0).getTime());
                         const result = lessonResults[0];
@@ -257,7 +293,7 @@ const unsubLessons = onSnapshot(query(collection(db, 'sat_lessons'), orderBy('cr
                                   <span className="text-white/50 flex items-center gap-2">
                                     <span className="text-[16px]">📝</span> Savollar soni
                                   </span>
-                                  <span className="font-bold text-white">{testInfo.questions?.length || 0} ta</span>
+                                  <span className="font-bold text-white">{testInfo.questions?.length || '#'} ta</span>
                                 </div>
                                 <div className="flex justify-between items-center text-[13px]">
                                   <span className="text-white/50 flex items-center gap-2">
@@ -298,7 +334,7 @@ const unsubLessons = onSnapshot(query(collection(db, 'sat_lessons'), orderBy('cr
                       >
                         <Book size={18} /> Lug'atlarni yodlash
                       </button>
-                    </>
+                    </div>
                   );
                 })()}
               </div>
