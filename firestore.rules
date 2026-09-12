@@ -5,18 +5,16 @@ service cloud.firestore {
     function isAdmin() {
       return request.auth != null && 
              exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-             (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
-              get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'teacher');
+             (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('role', '') == 'admin' ||
+              get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('role', '') == 'teacher');
     }
 
     match /users/{userId} {
-      allow read: if request.auth != null && (request.auth.uid == userId || isAdmin());
-      allow list: if true; // allow checking usernames
-      allow write: if isAdmin() || (request.auth != null && request.auth.uid == userId);
+      allow read, write: if request.auth != null; // Everyone authenticated can read/write users for now
     }
 
     match /groups/{document=**} {
-      allow read: if true;
+      allow read: if request.auth != null;
       allow write: if isAdmin();
     }
 
@@ -26,12 +24,12 @@ service cloud.firestore {
     }
 
     match /payments/{paymentId} {
-      allow read: if request.auth != null && (isAdmin() || resource.data.studentId == request.auth.uid);
+      allow read: if request.auth != null;
       allow write: if isAdmin();
     }
 
     match /attendance/{attendanceId} {
-      allow read: if request.auth != null && (isAdmin() || resource.data.studentId == request.auth.uid);
+      allow read: if request.auth != null;
       allow write: if isAdmin();
     }
 
@@ -58,7 +56,7 @@ service cloud.firestore {
     }
 
     match /submissions/{document=**} {
-      allow read: if request.auth != null && (isAdmin() || resource.data.studentId == request.auth.uid);
+      allow read: if request.auth != null;
       allow write: if request.auth != null;
     }
 
@@ -66,12 +64,12 @@ service cloud.firestore {
       allow read: if request.auth != null;
       allow write: if isAdmin();
     }
-
     
     match /tests/{document=**} {
       allow read: if request.auth != null;
       allow write: if isAdmin();
     }
+
     match /testCategories/{document=**} {
       allow read: if request.auth != null;
       allow write: if isAdmin();

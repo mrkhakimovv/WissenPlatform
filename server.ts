@@ -385,7 +385,7 @@ app.get("/api/notification-debug", async (_req, res) => {
       const todayStr = today.toISOString().split('T')[0];
 
       for (const userDoc of usersSnap.docs) {
-        const student = { id: userDoc.id, ...userDoc.data() };
+        const student = { id: userDoc.id, ...userDoc.data() } as any;
         if (!student.joinedDate) continue;
         
         const fee = Number(student.monthlyFee) || 0;

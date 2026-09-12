@@ -1,11 +1,5 @@
 const fs = require('fs');
-let rules = fs.readFileSync('firestore.rules', 'utf-8');
-const newRule = `    match /sat_lessons/{document=**} {
-      allow read: if request.auth != null;
-      allow write: if isAdmin();
-    }
-    
-    // Default deny`;
-
-rules = rules.replace('    // Default deny', newRule);
+let rules = fs.readFileSync('firestore.rules', 'utf8');
+rules = rules.replace(/data\.role == 'admin'/g, "data.get('role', '') == 'admin'");
+rules = rules.replace(/data\.role == 'teacher'/g, "data.get('role', '') == 'teacher'");
 fs.writeFileSync('firestore.rules', rules);

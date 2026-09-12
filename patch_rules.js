@@ -1,12 +1,5 @@
-import fs from 'fs';
+const fs = require('fs');
 let rules = fs.readFileSync('firestore.rules', 'utf8');
-
-const testsRule = `
-    match /tests/{document=**} {
-      allow read: if request.auth != null;
-      allow write: if isAdmin();
-    }
-`;
-
-rules = rules.replace('// Default deny', testsRule + '\n    // Default deny');
+rules = rules.replace(/data\.role == 'admin'/g, "data.get('role', '') == 'admin'");
+rules = rules.replace(/data\.role == 'teacher'/g, "data.get('role', '') == 'teacher'");
 fs.writeFileSync('firestore.rules', rules);

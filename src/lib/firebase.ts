@@ -41,7 +41,7 @@ export const firebaseConfig = {
 };
 const firestoreDatabaseId =
   import.meta.env.VITE_FIREBASE_DATABASE_ID ||
-  configAny.firestoreDatabaseId ||
+  configAny.databaseId ||
   undefined;
 
 // Tarmoq uzilishi ogohlantirishlarini yashirish

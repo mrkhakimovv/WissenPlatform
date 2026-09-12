@@ -10,7 +10,7 @@ export default defineConfig(({mode}) => {
     plugins: [
       react(), 
       tailwindcss(),
-      VitePWA({
+      VitePWA({ disable: true,
         registerType: 'autoUpdate',
         includeAssets: ['logo-192.png', 'logo-512.png', 'logo-512-maskable.png'],
         manifest: {

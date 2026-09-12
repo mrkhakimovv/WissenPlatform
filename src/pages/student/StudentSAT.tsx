@@ -47,7 +47,7 @@ export default function StudentSAT() {
     }
 
 const unsubLessons = onSnapshot(collection(db, 'sat_lessons'), snap => {
-      let fetchedLessons = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      let fetchedLessons = snap.docs.map(d => ({ id: d.id, ...d.data() } as any));
       const userGroups = user?.groups?.length ? user.groups : (user?.groupId ? [user.groupId] : []);
       
       // Filter so it only shows if assignedGroups includes one of the user's groups
@@ -210,30 +210,29 @@ const unsubLessons = onSnapshot(collection(db, 'sat_lessons'), snap => {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               key={lesson.id} 
-              className="glass-panel p-5 flex flex-col"
+              className="glass-panel p-5 flex flex-col h-full"
             >
               <h3 className="text-[18px] font-bold text-white mb-4">{lesson.title}</h3>
-              <div className="mt-auto space-y-2">
+              <div className="mt-auto space-y-3 flex flex-col justify-end">
                 {(() => {
                   if (!lesson.homeworkTestId) return null;
                   
-                  const result = results.find(r => r.testId === lesson.homeworkTestId);
+                  const lessonResults = results.filter(r => r.testId === lesson.homeworkTestId).sort((a,b) => new Date(b.submittedAt || 0).getTime() - new Date(a.submittedAt || 0).getTime());
+                  const result = lessonResults[0];
                   const testInfo = testsData[lesson.homeworkTestId];
                   
-                  if (result) {
-                    return (
-                      <div className="w-full p-4 rounded-xl bg-[rgba(254,194,4,0.05)] border border-[#FEC204]/20 flex flex-col items-center justify-center gap-2">
-                        <span className="text-[12px] font-bold text-[#FEC204] uppercase tracking-widest">Sizning Natijangiz</span>
-                        <div className="flex items-end gap-1 text-white">
-                          <span className="text-3xl font-black">{result.score}</span>
-                          <span className="text-sm font-bold opacity-50 mb-1.5">/{result.total}</span>
-                        </div>
-                      </div>
-                    );
-                  }
-                  
                   return (
-                    <div className="space-y-3">
+                    <div className="space-y-3 flex flex-col h-full">
+                      {result && (
+                        <div className="w-full p-4 rounded-xl bg-[rgba(254,194,4,0.05)] border border-[#FEC204]/20 flex flex-col items-center justify-center gap-2">
+                          <span className="text-[12px] font-bold text-[#FEC204] uppercase tracking-widest">Oxirgi Natijangiz</span>
+                          <div className="flex items-end gap-1 text-white">
+                            <span className="text-3xl font-black">{result.score}</span>
+                            <span className="text-sm font-bold opacity-50 mb-1.5">/{result.total}</span>
+                          </div>
+                        </div>
+                      )}
+
                       {testInfo && (
                         <div className="bg-black/20 rounded-xl p-4 border border-white/5 space-y-2.5 mt-2">
                           <div className="flex justify-between items-center text-[13px]">
@@ -250,34 +249,37 @@ const unsubLessons = onSnapshot(collection(db, 'sat_lessons'), snap => {
                           </div>
                         </div>
                       )}
-                      <button 
-                        onClick={() => {
-                          setTakingExam({
-                            id: lesson.id + '_hw',
-                            title: lesson.title + ' - Uyga vazifa',
-                            testId: lesson.homeworkTestId,
-                            examType: 'sat',
-                            subject: 'Homework',
-                            date: new Date().toISOString(),
-                            duration: testInfo?.duration || 0,
-                            location: 'Online',
-                            groupId: ''
-                          } as Exam);
-                        }}
-                        className="w-full py-3.5 rounded-xl font-bold bg-[#FEC204] text-black hover:bg-[#e5ae03] transition-colors shadow-[0_4px_14px_rgba(254,194,4,0.2)] flex items-center justify-center gap-2"
-                      >
-                        <PlayCircle size={18} /> Uyga vazifani boshlash
-                      </button>
+                      
+                      <div className="mt-auto">
+                        <button 
+                          onClick={() => {
+                            setTakingExam({
+                              id: lesson.id + '_hw_' + Date.now(),
+                              title: lesson.title + ' - Uyga vazifa',
+                              testId: lesson.homeworkTestId,
+                              examType: 'sat',
+                              subject: 'Homework',
+                              date: new Date().toISOString(),
+                              duration: testInfo?.duration || 0,
+                              location: 'Online',
+                              groupId: ''
+                            } as Exam);
+                          }}
+                          className="w-full py-3.5 rounded-xl font-bold bg-[#FEC204] text-black hover:bg-[#e5ae03] transition-colors shadow-[0_4px_14px_rgba(254,194,4,0.2)] flex items-center justify-center gap-2"
+                        >
+                          <PlayCircle size={18} /> {result ? 'Qayta ishlash' : 'Uyga vazifani boshlash'}
+                        </button>
+                      </div>
                     </div>
                   );
                 })()}
                 
-                                  <button 
-                    onClick={() => setPracticingVocab(lesson)}
-                    className="w-full py-3 rounded-xl font-bold bg-white/5 text-white/80 hover:bg-white/10 hover:text-white transition-colors border border-white/10 flex items-center justify-center gap-2"
-                  >
-                    <Book size={18} /> Lug'atlarni yodlash
-                  </button>
+                <button 
+                  onClick={() => setPracticingVocab(lesson)}
+                  className="w-full py-3 rounded-xl font-bold bg-white/5 text-white/80 hover:bg-white/10 hover:text-white transition-colors border border-white/10 flex items-center justify-center gap-2 mt-2"
+                >
+                  <Book size={18} /> Lug'atlarni yodlash
+                </button>
               </div>
             </motion.div>
           ))}

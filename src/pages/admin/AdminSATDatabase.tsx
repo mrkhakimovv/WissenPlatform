@@ -305,7 +305,7 @@ export default function AdminSATDatabase() {
   };
 
   const handleLessonDelete = async (id: string) => {
-    if (await confirm("Haqiqatan ham bu darsni o'chirmoqchimisiz?")) {
+    if (await confirm({title: "O'chirish", message: "Haqiqatan ham bu darsni o'chirmoqchimisiz?"})) {
       try {
         await deleteDoc(doc(db, 'sat_lessons', id));
         toast.success("Dars o'chirildi");
