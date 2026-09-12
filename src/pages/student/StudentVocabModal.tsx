@@ -51,13 +51,14 @@ export default function StudentVocabModal({ lesson, onClose }: { lesson: any, on
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [options, setOptions] = useState<string[]>([]);
   const [isAnswerRevealed, setIsAnswerRevealed] = useState(false);
+  const [quizPairs, setQuizPairs] = useState<{eng: string, uz: string}[]>([]);
 
   const QUIZ_CHUNK_SIZE = 10;
   
   // Generate Options for Quiz
   useEffect(() => {
     if ((mode === 'eng-uzb' || mode === 'uzb-eng') && !quizFinished) {
-      const currentChunk = pairs.slice(chunkIndex * QUIZ_CHUNK_SIZE, (chunkIndex + 1) * QUIZ_CHUNK_SIZE);
+      const currentChunk = quizPairs.slice(chunkIndex * QUIZ_CHUNK_SIZE, (chunkIndex + 1) * QUIZ_CHUNK_SIZE);
       const currentPair = currentChunk[questionIndex];
       
       if (!currentPair) {
@@ -66,7 +67,7 @@ export default function StudentVocabModal({ lesson, onClose }: { lesson: any, on
       }
       
       const correctAns = mode === 'eng-uzb' ? currentPair.uz : currentPair.eng;
-      const allAnswers = mode === 'eng-uzb' ? pairs.map(p => p.uz) : pairs.map(p => p.eng);
+      const allAnswers = mode === 'eng-uzb' ? quizPairs.map(p => p.uz) : quizPairs.map(p => p.eng);
       
       let wrongAnswers = allAnswers.filter(a => a !== correctAns);
       wrongAnswers = shuffleArray(wrongAnswers).slice(0, 3);
@@ -80,14 +81,14 @@ export default function StudentVocabModal({ lesson, onClose }: { lesson: any, on
       setSelectedAnswer(null);
       setIsAnswerRevealed(false);
     }
-  }, [mode, chunkIndex, questionIndex, pairs, quizFinished]);
+  }, [mode, chunkIndex, questionIndex, quizPairs, quizFinished]);
 
   const handleQuizAnswer = (ans: string) => {
     if (isAnswerRevealed) return;
     setSelectedAnswer(ans);
     setIsAnswerRevealed(true);
     
-    const currentChunk = pairs.slice(chunkIndex * QUIZ_CHUNK_SIZE, (chunkIndex + 1) * QUIZ_CHUNK_SIZE);
+    const currentChunk = quizPairs.slice(chunkIndex * QUIZ_CHUNK_SIZE, (chunkIndex + 1) * QUIZ_CHUNK_SIZE);
     const currentPair = currentChunk[questionIndex];
     const correctAns = mode === 'eng-uzb' ? currentPair.uz : currentPair.eng;
     
@@ -107,7 +108,7 @@ export default function StudentVocabModal({ lesson, onClose }: { lesson: any, on
   };
   
   const handleQuizContinue = () => {
-    if ((chunkIndex + 1) * QUIZ_CHUNK_SIZE < pairs.length) {
+    if ((chunkIndex + 1) * QUIZ_CHUNK_SIZE < quizPairs.length) {
       setChunkIndex(prev => prev + 1);
       setQuestionIndex(0);
       setCorrectCount(0);
@@ -123,6 +124,7 @@ export default function StudentVocabModal({ lesson, onClose }: { lesson: any, on
       alert("Test ishlash uchun kamida 4 ta so'z bo'lishi kerak!");
       return;
     }
+    setQuizPairs(shuffleArray([...pairs]));
     setMode(m);
     setChunkIndex(0);
     setQuestionIndex(0);
