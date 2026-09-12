@@ -1,6 +1,6 @@
 import toast from 'react-hot-toast';
 import React, { useState, useEffect } from 'react';
-import { collection, onSnapshot, query, getDocs, where } from '../../lib/firebase';
+import { collection, onSnapshot, query, getDocs, where, orderBy } from '../../lib/firebase';
 import { db } from '../../lib/firebase';
 import { useAuth } from '../../contexts/AuthContext';
 import { Exam, Group } from '../../types';
@@ -46,7 +46,7 @@ export default function StudentSAT() {
       });
     }
 
-const unsubLessons = onSnapshot(collection(db, 'sat_lessons'), snap => {
+const unsubLessons = onSnapshot(query(collection(db, 'sat_lessons'), orderBy('createdAt', 'asc')), snap => {
       let fetchedLessons = snap.docs.map(d => ({ id: d.id, ...d.data() } as any));
       const userGroups = user?.groups?.length ? user.groups : (user?.groupId ? [user.groupId] : []);
       

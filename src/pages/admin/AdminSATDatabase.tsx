@@ -209,7 +209,7 @@ export default function AdminSATDatabase() {
       setSatExams(allExams.filter(e => e.examType === 'sat'));
     });
 
-    const unsubLessons = onSnapshot(collection(db, 'sat_lessons'), snap => {
+    const unsubLessons = onSnapshot(query(collection(db, 'sat_lessons'), orderBy('createdAt', 'asc')), snap => {
       setLessons(snap.docs.map(d => ({ id: d.id, ...d.data() })));
     });
 
