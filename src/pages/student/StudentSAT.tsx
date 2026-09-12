@@ -7,7 +7,7 @@ import { Exam, Group } from '../../types';
 import { Calendar, Clock, MapPin } from 'lucide-react';
 import { motion } from 'motion/react';
 import StudentTestTake from './StudentTestTake';
-import { Book, PlayCircle } from 'lucide-react';
+import { Book, PlayCircle, Lock } from 'lucide-react';
 import StudentVocabModal from './StudentVocabModal';
 
 export default function StudentSAT() {
@@ -94,6 +94,8 @@ const unsubLessons = onSnapshot(collection(db, 'sat_lessons'), snap => {
   // We can separate upcoming vs past exams
   const upcomingExams = exams.filter(e => new Date(e.date) >= new Date(now.getFullYear(), now.getMonth(), now.getDate()));
   const pastExams = exams.filter(e => new Date(e.date) < new Date(now.getFullYear(), now.getMonth(), now.getDate())).reverse();
+
+  const userGroups = user?.groups?.length ? user.groups : (user?.groupId ? [user.groupId] : []);
 
   const renderExamCard = (exam: Exam, isPast: boolean) => (
     <motion.div 
@@ -215,71 +217,90 @@ const unsubLessons = onSnapshot(collection(db, 'sat_lessons'), snap => {
               <h3 className="text-[18px] font-bold text-white mb-4">{lesson.title}</h3>
               <div className="mt-auto space-y-3 flex flex-col justify-end">
                 {(() => {
-                  if (!lesson.homeworkTestId) return null;
-                  
-                  const lessonResults = results.filter(r => r.testId === lesson.homeworkTestId).sort((a,b) => new Date(b.submittedAt || 0).getTime() - new Date(a.submittedAt || 0).getTime());
-                  const result = lessonResults[0];
-                  const testInfo = testsData[lesson.homeworkTestId];
-                  
-                  return (
-                    <div className="space-y-3 flex flex-col h-full">
-                      {result && (
-                        <div className="w-full p-4 rounded-xl bg-[rgba(254,194,4,0.05)] border border-[#FEC204]/20 flex flex-col items-center justify-center gap-2">
-                          <span className="text-[12px] font-bold text-[#FEC204] uppercase tracking-widest">Oxirgi Natijangiz</span>
-                          <div className="flex items-end gap-1 text-white">
-                            <span className="text-3xl font-black">{result.score}</span>
-                            <span className="text-sm font-bold opacity-50 mb-1.5">/{result.total}</span>
-                          </div>
+                  const isUnlocked = lesson.activeGroups && lesson.activeGroups.some((gId: string) => userGroups.includes(gId));
+                  if (!isUnlocked) {
+                    return (
+                      <div className="mt-auto py-8 flex flex-col items-center justify-center opacity-70 bg-black/20 rounded-xl border border-white/5">
+                        <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center mb-3">
+                          <Lock size={20} className="text-white/60" />
                         </div>
-                      )}
-
-                      {testInfo && (
-                        <div className="bg-black/20 rounded-xl p-4 border border-white/5 space-y-2.5 mt-2">
-                          <div className="flex justify-between items-center text-[13px]">
-                            <span className="text-white/50 flex items-center gap-2">
-                              <span className="text-[16px]">📝</span> Savollar soni
-                            </span>
-                            <span className="font-bold text-white">{testInfo.questions?.length || 0} ta</span>
-                          </div>
-                          <div className="flex justify-between items-center text-[13px]">
-                            <span className="text-white/50 flex items-center gap-2">
-                              <span className="text-[16px]">⏱️</span> Ajratilgan vaqt
-                            </span>
-                            <span className="font-bold text-white">{testInfo.duration ? testInfo.duration + " daqiqa" : "Cheklanmagan"}</span>
-                          </div>
-                        </div>
-                      )}
-                      
-                      <div className="mt-auto">
-                        <button 
-                          onClick={() => {
-                            setTakingExam({
-                              id: lesson.id + '_hw_' + Date.now(),
-                              title: lesson.title + ' - Uyga vazifa',
-                              testId: lesson.homeworkTestId,
-                              examType: 'sat',
-                              subject: 'Homework',
-                              date: new Date().toISOString(),
-                              duration: testInfo?.duration || 0,
-                              location: 'Online',
-                              groupId: ''
-                            } as Exam);
-                          }}
-                          className="w-full py-3.5 rounded-xl font-bold bg-[#FEC204] text-black hover:bg-[#e5ae03] transition-colors shadow-[0_4px_14px_rgba(254,194,4,0.2)] flex items-center justify-center gap-2"
-                        >
-                          <PlayCircle size={18} /> {result ? 'Qayta ishlash' : 'Uyga vazifani boshlash'}
-                        </button>
+                        <p className="text-[13px] text-white/60 font-bold uppercase tracking-wider">Dars qulflangan</p>
+                        <p className="text-[11px] text-white/40 mt-1 text-center px-4">O'qituvchi darsni boshlamaguncha bu bo'lim yopiq</p>
                       </div>
-                    </div>
+                    );
+                  }
+
+                  return (
+                    <>
+                      {(() => {
+                        if (!lesson.homeworkTestId) return null;
+                        
+                        const lessonResults = results.filter(r => r.testId === lesson.homeworkTestId).sort((a,b) => new Date(b.submittedAt || 0).getTime() - new Date(a.submittedAt || 0).getTime());
+                        const result = lessonResults[0];
+                        const testInfo = testsData[lesson.homeworkTestId];
+                        
+                        return (
+                          <div className="space-y-3 flex flex-col h-full">
+                            {result && (
+                              <div className="w-full p-4 rounded-xl bg-[rgba(254,194,4,0.05)] border border-[#FEC204]/20 flex flex-col items-center justify-center gap-2">
+                                <span className="text-[12px] font-bold text-[#FEC204] uppercase tracking-widest">Oxirgi Natijangiz</span>
+                                <div className="flex items-end gap-1 text-white">
+                                  <span className="text-3xl font-black">{result.score}</span>
+                                  <span className="text-sm font-bold opacity-50 mb-1.5">/{result.total}</span>
+                                </div>
+                              </div>
+                            )}
+
+                            {testInfo && (
+                              <div className="bg-black/20 rounded-xl p-4 border border-white/5 space-y-2.5 mt-2">
+                                <div className="flex justify-between items-center text-[13px]">
+                                  <span className="text-white/50 flex items-center gap-2">
+                                    <span className="text-[16px]">📝</span> Savollar soni
+                                  </span>
+                                  <span className="font-bold text-white">{testInfo.questions?.length || 0} ta</span>
+                                </div>
+                                <div className="flex justify-between items-center text-[13px]">
+                                  <span className="text-white/50 flex items-center gap-2">
+                                    <span className="text-[16px]">⏱️</span> Ajratilgan vaqt
+                                  </span>
+                                  <span className="font-bold text-white">{testInfo.duration ? testInfo.duration + " daqiqa" : "Cheklanmagan"}</span>
+                                </div>
+                              </div>
+                            )}
+                            
+                            <div className="mt-auto">
+                              <button 
+                                onClick={() => {
+                                  setTakingExam({
+                                    id: lesson.id + '_hw_' + Date.now(),
+                                    title: lesson.title + ' - Uyga vazifa',
+                                    testId: lesson.homeworkTestId,
+                                    examType: 'sat',
+                                    subject: 'Homework',
+                                    date: new Date().toISOString(),
+                                    duration: testInfo?.duration || 0,
+                                    location: 'Online',
+                                    groupId: ''
+                                  } as Exam);
+                                }}
+                                className="w-full py-3.5 rounded-xl font-bold bg-[#FEC204] text-black hover:bg-[#e5ae03] transition-colors shadow-[0_4px_14px_rgba(254,194,4,0.2)] flex items-center justify-center gap-2"
+                              >
+                                <PlayCircle size={18} /> {result ? 'Qayta ishlash' : 'Uyga vazifani boshlash'}
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })()}
+                      
+                      <button 
+                        onClick={() => setPracticingVocab(lesson)}
+                        className="w-full py-3 rounded-xl font-bold bg-white/5 text-white/80 hover:bg-white/10 hover:text-white transition-colors border border-white/10 flex items-center justify-center gap-2 mt-2"
+                      >
+                        <Book size={18} /> Lug'atlarni yodlash
+                      </button>
+                    </>
                   );
                 })()}
-                
-                <button 
-                  onClick={() => setPracticingVocab(lesson)}
-                  className="w-full py-3 rounded-xl font-bold bg-white/5 text-white/80 hover:bg-white/10 hover:text-white transition-colors border border-white/10 flex items-center justify-center gap-2 mt-2"
-                >
-                  <Book size={18} /> Lug'atlarni yodlash
-                </button>
               </div>
             </motion.div>
           ))}

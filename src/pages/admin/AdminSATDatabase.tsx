@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { TestData, Group, Exam } from '../../types';
-import { Trash2, Edit2, Copy, FileText, X, Calendar } from 'lucide-react';
+import { Trash2, Edit2, Copy, FileText, X, Calendar, Users, Check, Eye } from 'lucide-react';
 import { collection, doc, deleteDoc, addDoc, updateDoc, onSnapshot, query, orderBy, getDocs, where } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import * as XLSX from 'xlsx';
@@ -20,6 +20,53 @@ export default function AdminSATDatabase() {
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
   const [assigningTest, setAssigningTest] = useState<TestData | null>(null);
   const [assignForm, setAssignForm] = useState({ groupId: '', date: '', startTime: '', duration: '60' });
+
+  const handleViewResults = async (lesson: any) => {
+    if (!lesson.assignedGroups || lesson.assignedGroups.length === 0) {
+      toast.error("Ushbu darsga hech qanday guruh biriktirilmagan!");
+      return;
+    }
+    if (!lesson.homeworkTestId) {
+      toast.error("Ushbu darsda uyga vazifa yo'q!");
+      return;
+    }
+    
+    setViewingLessonResults(lesson);
+    setIsLoadingResults(true);
+    
+    try {
+      const usersSnap = await getDocs(query(collection(db, 'users')));
+      const students: any[] = [];
+      usersSnap.docs.forEach(d => {
+        const u = d.data();
+        const uGroups = u.groups || (u.groupId ? [u.groupId] : []);
+        if (lesson.assignedGroups.some((g: string) => uGroups.includes(g))) {
+          students.push({ id: d.id, ...u, uGroups });
+        }
+      });
+      
+      const resultsSnap = await getDocs(query(collection(db, 'exam_results'), where('testId', '==', lesson.homeworkTestId)));
+      const allResults = resultsSnap.docs.map(d => ({id: d.id, ...d.data()}));
+      
+      const data = students.map(student => {
+        const studentResults = allResults
+          .filter(r => r.studentId === student.id)
+          .sort((a, b) => new Date(b.submittedAt || 0).getTime() - new Date(a.submittedAt || 0).getTime());
+          
+        return {
+          student,
+          results: studentResults
+        };
+      });
+      
+      setLessonResultsData(data);
+    } catch (err) {
+      console.error(err);
+      toast.error("Xatolik yuz berdi");
+    } finally {
+      setIsLoadingResults(false);
+    }
+  };
 
   const handleDownloadResults = async (lesson: any) => {
     if (!lesson.assignedGroups || lesson.assignedGroups.length === 0) {
@@ -118,7 +165,12 @@ export default function AdminSATDatabase() {
   const vocabContainerRef = useRef<HTMLDivElement>(null);
   const [isLessonAssignModalOpen, setIsLessonAssignModalOpen] = useState(false);
   const [assigningLesson, setAssigningLesson] = useState<any>(null);
-  const [lessonAssignGroupId, setLessonAssignGroupId] = useState('');
+  const [lessonAssignGroupIds, setLessonAssignGroupIds] = useState<string[]>([]);
+  const [isBulkLessonAssignModalOpen, setIsBulkLessonAssignModalOpen] = useState(false);
+  const [bulkAssignGroupIds, setBulkAssignGroupIds] = useState<string[]>([]);
+  const [viewingLessonResults, setViewingLessonResults] = useState<any>(null);
+  const [lessonResultsData, setLessonResultsData] = useState<any[]>([]);
+  const [isLoadingResults, setIsLoadingResults] = useState(false);
 
   // SAT Exam form states
   const [isExamModalOpen, setIsExamModalOpen] = useState(false);
@@ -172,8 +224,21 @@ export default function AdminSATDatabase() {
       return;
     }
     try {
+      const defaultGroupsStr = localStorage.getItem('satDefaultAssignedGroups');
+      const defaultGroups = defaultGroupsStr ? JSON.parse(defaultGroupsStr) : [];
+      
+      const allExistingGroups = new Set<string>(defaultGroups);
+      lessons.forEach(l => {
+        if (l.assignedGroups) {
+          l.assignedGroups.forEach((gId: string) => allExistingGroups.add(gId));
+        }
+      });
+      const combinedGroups = Array.from(allExistingGroups);
+      
       await addDoc(collection(db, 'sat_lessons'), {
         ...lessonForm,
+        assignedGroups: combinedGroups,
+        activeGroups: [],
         createdAt: new Date().toISOString()
       });
       setIsLessonModalOpen(false);
@@ -275,21 +340,47 @@ export default function AdminSATDatabase() {
   };
 
 
-  const handleLessonAssignSave = async (e: React.FormEvent) => {
+  const handleLessonStartSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!assigningLesson || !lessonAssignGroupId) return;
+    if (!assigningLesson) return;
     try {
-      const assignedGroups = assigningLesson.assignedGroups || [];
-      if (!assignedGroups.includes(lessonAssignGroupId)) {
-        await updateDoc(doc(db, 'sat_lessons', assigningLesson.id), {
-          assignedGroups: [...assignedGroups, lessonAssignGroupId]
-        });
-      }
+      await updateDoc(doc(db, 'sat_lessons', assigningLesson.id), {
+        activeGroups: lessonAssignGroupIds
+      });
       setIsLessonAssignModalOpen(false);
       setAssigningLesson(null);
-      setLessonAssignGroupId('');
-      toast.success("Dars guruhga faollashtirildi");
+      setLessonAssignGroupIds([]);
+      toast.success("Dars guruhlar uchun boshlandi");
     } catch(err) {
+      toast.error("Xatolik yuz berdi");
+    }
+  };
+
+  const handleBulkAssignSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (bulkAssignGroupIds.length === 0) return;
+    const loadingToast = toast.loading("Barcha darslar guruhlarga biriktirilmoqda...");
+    try {
+      for (const lesson of lessons) {
+        const currentAssigned = lesson.assignedGroups || [];
+        const newAssigned = [...new Set([...currentAssigned, ...bulkAssignGroupIds])];
+        if (newAssigned.length !== currentAssigned.length) {
+          await updateDoc(doc(db, 'sat_lessons', lesson.id), {
+            assignedGroups: newAssigned
+          });
+        }
+      }
+      
+      localStorage.setItem('satDefaultAssignedGroups', JSON.stringify(bulkAssignGroupIds));
+      
+      toast.dismiss(loadingToast);
+      toast.success("Barcha darslar muvaffaqiyatli biriktirildi va sozlamalar saqlandi");
+      setIsBulkLessonAssignModalOpen(false);
+      // We don't reset bulkAssignGroupIds so it stays for next open, 
+      // but let's just keep it as is, we will initialize it properly when opening.
+    } catch(err) {
+      console.error(err);
+      toast.dismiss(loadingToast);
       toast.error("Xatolik yuz berdi");
     }
   };
@@ -521,12 +612,26 @@ export default function AdminSATDatabase() {
         </div>
         <div className="flex gap-2">
           {activeTab === 'lessons' ? (
-             <button 
-                onClick={() => setIsLessonModalOpen(true)}
-                className="bg-[#FEC204] text-black px-6 py-2.5 rounded-[12px] font-bold hover:bg-[#FEC204]/90 transition-colors shadow-[0_0_15px_rgba(254,194,4,0.3)] flex items-center gap-2 text-[14px]"
-             >
-                <span className="text-xl leading-none">+</span> Dars qo'shish
-             </button>
+             <div className="flex items-center gap-2">
+               <button 
+                  onClick={() => {
+                    const saved = localStorage.getItem('satDefaultAssignedGroups');
+                    if (saved) {
+                      setBulkAssignGroupIds(JSON.parse(saved));
+                    }
+                    setIsBulkLessonAssignModalOpen(true);
+                  }}
+                  className="bg-white/5 border border-white/10 text-white px-6 py-2.5 rounded-[12px] font-bold hover:bg-white/10 transition-colors flex items-center gap-2 text-[14px]"
+               >
+                  <Users size={18} /> Guruhlarga biriktirish
+               </button>
+               <button 
+                  onClick={() => setIsLessonModalOpen(true)}
+                  className="bg-[#FEC204] text-black px-6 py-2.5 rounded-[12px] font-bold hover:bg-[#FEC204]/90 transition-colors shadow-[0_0_15px_rgba(254,194,4,0.3)] flex items-center gap-2 text-[14px]"
+               >
+                  <span className="text-xl leading-none">+</span> Dars qo'shish
+               </button>
+             </div>
           ) : activeTab === 'base' ? (
              <button 
                 onClick={() => {
@@ -709,41 +814,23 @@ export default function AdminSATDatabase() {
                         <button 
                           onClick={() => {
                             setAssigningLesson(lesson);
+                            setLessonAssignGroupIds(lesson.activeGroups || []);
                             setIsLessonAssignModalOpen(true);
                           }}
                           className="w-full py-2.5 rounded-lg bg-white/5 text-white/90 font-bold text-sm hover:bg-white/10 transition-colors mt-2"
                         >
-                          Faollashtirish (Guruhga biriktirish)
+                          Darsni boshlash
                         </button>
                       </div>
                       
-                      {/* Assigned Groups Tags */}
-                      {lesson.assignedGroups && lesson.assignedGroups.length > 0 && (
-                        <div className="mt-4 pt-4 border-t border-white/5">
-                          <p className="text-[10px] uppercase text-white/40 font-bold mb-2">Faollashtirilgan guruhlar</p>
-                          <div className="flex flex-wrap gap-2">
-                            {lesson.assignedGroups.map((gId: string) => {
-                              const group = groups.find(g => g.id === gId);
-                              if (!group) return null;
-                              return (
-                                <div key={gId} className="flex items-center gap-1 bg-white/5 border border-white/10 px-2 py-1 rounded-md text-xs text-white/80">
-                                  <span>{group.name}</span>
-                                  <button onClick={() => handleRemoveAssignedGroup(lesson, gId)} className="text-white/40 hover:text-red-400 ml-1">
-                                    <X size={12} />
-                                  </button>
-                                </div>
-                              );
-                            })}
-                          </div>
-                          
-                          <button
-                            onClick={() => handleDownloadResults(lesson)}
-                            className="mt-4 w-full py-2.5 rounded-lg bg-[rgba(254,194,4,0.1)] text-[#FEC204] border border-[#FEC204]/20 font-bold text-sm hover:bg-[rgba(254,194,4,0.2)] transition-colors flex items-center justify-center gap-2"
-                          >
-                            <FileText size={16} /> Natijalarni yuklab olish
-                          </button>
-                        </div>
-                      )}
+                      <div className="mt-4 pt-4 border-t border-white/5">
+                        <button
+                          onClick={() => handleViewResults(lesson)}
+                          className="w-full py-2.5 rounded-lg bg-[rgba(254,194,4,0.1)] text-[#FEC204] border border-[#FEC204]/20 font-bold text-sm hover:bg-[rgba(254,194,4,0.2)] transition-colors flex items-center justify-center gap-2"
+                        >
+                          <Eye size={16} /> Natijalarni ko'rish
+                        </button>
+                      </div>
 
                     </div>
                   ))}
@@ -862,29 +949,91 @@ export default function AdminSATDatabase() {
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4" onClick={() => setIsLessonAssignModalOpen(false)}>
           <div className="bg-[#1a1a1a] rounded-[24px] w-full max-w-md border border-white/10 shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
             <div className="p-6 border-b border-white/5 flex items-center justify-between">
-              <h2 className="text-[18px] font-black text-white">Darsni faollashtirish</h2>
+              <h2 className="text-[18px] font-black text-white">Darsni boshlash</h2>
               <button type="button" onClick={() => setIsLessonAssignModalOpen(false)} className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 transition-colors">
                 <X size={16} />
               </button>
             </div>
-            <form onSubmit={handleLessonAssignSave} className="p-6 space-y-4">
+            <form onSubmit={handleLessonStartSave} className="p-6 space-y-4">
               <div>
-                <label className="block text-[12px] font-bold text-white/60 uppercase tracking-wider mb-2">Guruhni tanlang *</label>
-                <select
-                  required
-                  value={lessonAssignGroupId}
-                  onChange={e => setLessonAssignGroupId(e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-[14px] outline-none focus:border-[#FEC204] transition-colors appearance-none"
-                >
-                  <option value="" className="bg-[#1a1a1a]">Tanlang</option>
-                  {groups.filter(g => user?.role !== 'teacher' || g.teacherName === user?.fullName).map(g => (
-                    <option key={g.id} value={g.id} className="bg-[#1a1a1a]">{g.name}</option>
+                <label className="block text-[12px] font-bold text-white/60 uppercase tracking-wider mb-2">Guruhlarni tanlang *</label>
+                <div className="max-h-[200px] overflow-y-auto custom-scrollbar space-y-2 bg-white/5 border border-white/10 rounded-xl p-3">
+                  {groups.filter(g => (user?.role !== 'teacher' || g.teacherName === user?.fullName) && assigningLesson.assignedGroups?.includes(g.id)).map(g => (
+                    <label key={g.id} className="flex items-center gap-3 cursor-pointer group p-2 hover:bg-white/5 rounded-lg transition-colors">
+                      <div className={`w-5 h-5 rounded flex items-center justify-center border transition-colors ${lessonAssignGroupIds.includes(g.id) ? 'bg-[#FEC204] border-[#FEC204] text-black' : 'border-white/20 text-transparent group-hover:border-[#FEC204]'}`}>
+                        <Check size={14} />
+                      </div>
+                      <span className="text-white/80 group-hover:text-white transition-colors">{g.name}</span>
+                      <input 
+                        type="checkbox"
+                        className="hidden"
+                        checked={lessonAssignGroupIds.includes(g.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setLessonAssignGroupIds(prev => [...prev, g.id]);
+                          } else {
+                            setLessonAssignGroupIds(prev => prev.filter(id => id !== g.id));
+                          }
+                        }}
+                      />
+                    </label>
                   ))}
-                </select>
+                  {groups.filter(g => (user?.role !== 'teacher' || g.teacherName === user?.fullName) && assigningLesson.assignedGroups?.includes(g.id)).length === 0 && (
+                    <p className="text-white/40 text-sm text-center py-4">Guruhlar biriktirilmagan</p>
+                  )}
+                </div>
               </div>
               <div className="flex gap-3 pt-2">
                 <button type="button" onClick={() => setIsLessonAssignModalOpen(false)} className="flex-1 py-3 bg-white/5 hover:bg-white/10 rounded-xl font-bold text-white/70 transition-colors">Bekor qilish</button>
-                <button type="submit" className="flex-1 py-3 bg-[#FEC204] hover:bg-[#e5ae03] text-black rounded-xl font-bold transition-colors shadow-[0_0_15px_rgba(254,194,4,0.3)]">Faollashtirish</button>
+                <button type="submit" className="flex-1 py-3 bg-[#FEC204] hover:bg-[#e5ae03] text-black rounded-xl font-bold transition-colors shadow-[0_0_15px_rgba(254,194,4,0.3)]">Boshlash</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {isBulkLessonAssignModalOpen && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4" onClick={() => setIsBulkLessonAssignModalOpen(false)}>
+          <div className="bg-[#1a1a1a] rounded-[24px] w-full max-w-md border border-white/10 shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="p-6 border-b border-white/5 flex items-center justify-between">
+              <h2 className="text-[18px] font-black text-white">Barcha darslarni biriktirish</h2>
+              <button type="button" onClick={() => setIsBulkLessonAssignModalOpen(false)} className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 transition-colors">
+                <X size={16} />
+              </button>
+            </div>
+            <form onSubmit={handleBulkAssignSave} className="p-6 space-y-4">
+              <p className="text-white/60 text-[14px]">Ushbu bo'limdagi barcha darslar va vazifalar tanlangan guruhlarga bir vaqtda biriktiriladi.</p>
+              <div>
+                <label className="block text-[12px] font-bold text-white/60 uppercase tracking-wider mb-2">Guruhlarni tanlang *</label>
+                <div className="max-h-[200px] overflow-y-auto custom-scrollbar space-y-2 bg-white/5 border border-white/10 rounded-xl p-3">
+                  {groups.filter(g => user?.role !== 'teacher' || g.teacherName === user?.fullName).map(g => (
+                    <label key={g.id} className="flex items-center gap-3 cursor-pointer group p-2 hover:bg-white/5 rounded-lg transition-colors">
+                      <div className={`w-5 h-5 rounded flex items-center justify-center border transition-colors ${bulkAssignGroupIds.includes(g.id) ? 'bg-[#FEC204] border-[#FEC204] text-black' : 'border-white/20 text-transparent group-hover:border-[#FEC204]'}`}>
+                        <Check size={14} />
+                      </div>
+                      <span className="text-white/80 group-hover:text-white transition-colors">{g.name}</span>
+                      <input 
+                        type="checkbox"
+                        className="hidden"
+                        checked={bulkAssignGroupIds.includes(g.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setBulkAssignGroupIds(prev => [...prev, g.id]);
+                          } else {
+                            setBulkAssignGroupIds(prev => prev.filter(id => id !== g.id));
+                          }
+                        }}
+                      />
+                    </label>
+                  ))}
+                  {groups.filter(g => user?.role !== 'teacher' || g.teacherName === user?.fullName).length === 0 && (
+                    <p className="text-white/40 text-sm text-center py-4">Guruhlar topilmadi</p>
+                  )}
+                </div>
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button type="button" onClick={() => setIsBulkLessonAssignModalOpen(false)} className="flex-1 py-3 bg-white/5 hover:bg-white/10 rounded-xl font-bold text-white/70 transition-colors">Bekor qilish</button>
+                <button type="submit" disabled={bulkAssignGroupIds.length === 0} className="flex-1 py-3 bg-[#FEC204] hover:bg-[#e5ae03] text-black rounded-xl font-bold transition-colors shadow-[0_0_15px_rgba(254,194,4,0.3)] disabled:opacity-50 disabled:shadow-none">Biriktirish</button>
               </div>
             </form>
           </div>
@@ -1173,6 +1322,92 @@ export default function AdminSATDatabase() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {viewingLessonResults && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => setViewingLessonResults(null)}>
+          <div className="bg-[#1a1a1a] rounded-[24px] w-full max-w-4xl max-h-[90vh] flex flex-col border border-white/10 shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="p-6 border-b border-white/5 flex items-center justify-between shrink-0">
+              <div>
+                <h2 className="text-[20px] font-black text-white">{viewingLessonResults.title} natijalari</h2>
+                <p className="text-[13px] text-white/50 mt-1">Guruhlar: {viewingLessonResults.assignedGroups.map((gId: string) => groups.find(g => g.id === gId)?.name || gId).join(', ')}</p>
+              </div>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => handleDownloadResults(viewingLessonResults)}
+                  className="px-4 py-2 rounded-xl bg-[rgba(254,194,4,0.1)] text-[#FEC204] border border-[#FEC204]/20 font-bold text-sm hover:bg-[rgba(254,194,4,0.2)] transition-colors flex items-center gap-2"
+                >
+                  <FileText size={16} /> Excelga yuklash
+                </button>
+                <button type="button" onClick={() => setViewingLessonResults(null)} className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 transition-colors">
+                  <X size={18} />
+                </button>
+              </div>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+              {isLoadingResults ? (
+                <div className="flex flex-col items-center justify-center h-40">
+                  <div className="w-8 h-8 border-4 border-[#FEC204] border-t-transparent rounded-full animate-spin"></div>
+                  <p className="text-white/50 mt-4 text-sm">Natijalar yuklanmoqda...</p>
+                </div>
+              ) : lessonResultsData.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-40 text-white/40">
+                  Bu darsga biriktirilgan guruhlarda o'quvchilar yo'q.
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {lessonResultsData.map((item, idx) => {
+                    const student = item.student;
+                    const results = item.results;
+                    const hasSubmitted = results.length > 0;
+                    const bestResult = hasSubmitted ? results.reduce((prev: any, current: any) => (prev.score > current.score) ? prev : current) : null;
+                    
+                    return (
+                      <div key={student.id} className={`p-4 rounded-xl border ${hasSubmitted ? 'bg-white/5 border-white/10' : 'bg-red-500/5 border-red-500/20'}`}>
+                        <div className="flex justify-between items-start mb-3">
+                          <div>
+                            <div className="flex items-center gap-3">
+                              <span className="font-bold text-white text-[16px]">{student.fullName || 'Nomsiz o\'quvchi'}</span>
+                              {!hasSubmitted && (
+                                <span className="bg-red-500/20 text-red-400 text-[10px] uppercase font-bold px-2 py-1 rounded">Topshirmagan</span>
+                              )}
+                            </div>
+                            <div className="text-[12px] text-white/40 mt-1">
+                              Guruh: {student.uGroups.map((gId: string) => groups.find(g => g.id === gId)?.name || gId).join(', ')}
+                            </div>
+                          </div>
+                          {hasSubmitted && (
+                            <div className="text-right">
+                              <div className="text-[12px] text-white/40 uppercase font-bold tracking-wider mb-1">Eng yuqori natija</div>
+                              <div className="text-2xl font-black text-[#FEC204]">{bestResult.score} <span className="text-sm opacity-50 text-white font-bold">/ {bestResult.total}</span></div>
+                            </div>
+                          )}
+                        </div>
+                        
+                        {hasSubmitted && (
+                          <div className="mt-4">
+                            <p className="text-[11px] uppercase tracking-wider font-bold text-white/30 mb-2">Barcha urinishlar ({results.length} marta):</p>
+                            <div className="space-y-2">
+                              {results.map((r: any, rIdx: number) => (
+                                <div key={r.id || rIdx} className="flex justify-between items-center bg-black/40 px-3 py-2 rounded-lg text-sm">
+                                  <span className="text-white/60 font-medium">
+                                    {r.submittedAt ? new Date(r.submittedAt).toLocaleString('uz-UZ', {day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'}) : 'Sana yo\'q'}
+                                  </span>
+                                  <span className="font-bold text-white">{r.score} / {r.total}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
