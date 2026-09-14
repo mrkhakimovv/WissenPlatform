@@ -1358,7 +1358,7 @@ export default function AdminSATDatabase() {
                   Bu darsga biriktirilgan guruhlarda o'quvchilar yo'q.
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {lessonResultsData.map((item, idx) => {
                     const student = item.student;
                     const results = item.results;
@@ -1366,8 +1366,8 @@ export default function AdminSATDatabase() {
                     const bestResult = hasSubmitted ? results.reduce((prev: any, current: any) => (prev.score > current.score) ? prev : current) : null;
                     
                     return (
-                      <div key={student.id} className={`p-4 rounded-xl border ${hasSubmitted ? 'bg-white/5 border-white/10' : 'bg-red-500/5 border-red-500/20'}`}>
-                        <div className="flex justify-between items-start mb-3">
+                      <div key={student.id} className={`p-5 rounded-2xl border flex flex-col h-full ${hasSubmitted ? 'bg-white/5 border-white/10 hover:bg-white/10 transition-colors' : 'bg-red-500/5 border-red-500/20'}`}>
+                        <div className="flex justify-between items-start mb-4">
                           <div>
                             <div className="flex items-center gap-3">
                               <span className="font-bold text-white text-[16px]">{student.fullName || 'Nomsiz o\'quvchi'}</span>
@@ -1375,28 +1375,28 @@ export default function AdminSATDatabase() {
                                 <span className="bg-red-500/20 text-red-400 text-[10px] uppercase font-bold px-2 py-1 rounded">Topshirmagan</span>
                               )}
                             </div>
-                            <div className="text-[12px] text-white/40 mt-1">
+                            <div className="text-[12px] text-white/40 mt-1.5">
                               Guruh: {student.uGroups.map((gId: string) => groups.find(g => g.id === gId)?.name || gId).join(', ')}
                             </div>
                           </div>
                           {hasSubmitted && (
-                            <div className="text-right">
-                              <div className="text-[12px] text-white/40 uppercase font-bold tracking-wider mb-1">Eng yuqori natija</div>
-                              <div className="text-2xl font-black text-[#FEC204]">{bestResult.score} <span className="text-sm opacity-50 text-white font-bold">/ {bestResult.total}</span></div>
+                            <div className="text-right shrink-0 ml-2">
+                              <div className="text-[10px] text-white/40 uppercase font-bold tracking-wider mb-1">Eng yuqori natija</div>
+                              <div className="text-2xl font-black text-[#FEC204] leading-none">{bestResult.score} <span className="text-sm opacity-50 text-white font-bold">/ {bestResult.total}</span></div>
                             </div>
                           )}
                         </div>
                         
                         {hasSubmitted && (
-                          <div className="mt-4">
-                            <p className="text-[11px] uppercase tracking-wider font-bold text-white/30 mb-2">Barcha urinishlar ({results.length} marta):</p>
-                            <div className="space-y-2">
+                          <div className="mt-auto pt-4 border-t border-white/5">
+                            <p className="text-[10px] uppercase tracking-wider font-bold text-white/30 mb-2.5">Barcha urinishlar ({results.length} marta):</p>
+                            <div className="space-y-2 max-h-[140px] overflow-y-auto custom-scrollbar pr-1">
                               {results.map((r: any, rIdx: number) => (
-                                <div key={r.id || rIdx} className="flex justify-between items-center bg-black/40 px-3 py-2 rounded-lg text-sm">
-                                  <span className="text-white/60 font-medium">
+                                <div key={r.id || rIdx} className="flex justify-between items-center bg-black/40 px-3 py-2.5 rounded-xl text-sm border border-white/5">
+                                  <span className="text-white/60 font-medium text-[13px]">
                                     {r.submittedAt ? new Date(r.submittedAt).toLocaleString('uz-UZ', {day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'}) : 'Sana yo\'q'}
                                   </span>
-                                  <span className="font-bold text-white">{r.score} / {r.total}</span>
+                                  <span className="font-bold text-white text-[13px]">{r.score} / {r.total}</span>
                                 </div>
                               ))}
                             </div>
