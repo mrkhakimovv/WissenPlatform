@@ -46,7 +46,7 @@ export default function AdminSATDatabase() {
       });
       
       const resultsSnap = await getDocs(query(collection(db, 'exam_results'), where('testId', '==', lesson.homeworkTestId)));
-      const allResults = resultsSnap.docs.map(d => ({id: d.id, ...d.data()}));
+      const allResults = resultsSnap.docs.map(d => ({id: d.id, ...d.data()} as any));
       
       const data = students.map(student => {
         const studentResults = allResults

@@ -269,15 +269,13 @@ const unsubLessons = onSnapshot(query(collection(db, 'sat_lessons'), orderBy('cr
                   return (
                     <div className="flex-1 flex flex-col">
                       {(() => {
-                        if (!lesson.homeworkTestId) return <div className="flex-1"></div>;
-                        
-                        const lessonResults = results.filter(r => r.testId === lesson.homeworkTestId).sort((a,b) => new Date(b.submittedAt || 0).getTime() - new Date(a.submittedAt || 0).getTime());
+                        const lessonResults = lesson.homeworkTestId ? results.filter(r => r.testId === lesson.homeworkTestId).sort((a,b) => new Date(b.submittedAt || 0).getTime() - new Date(a.submittedAt || 0).getTime()) : [];
                         const result = lessonResults[0];
-                        const testInfo = testsData[lesson.homeworkTestId];
+                        const testInfo = lesson.homeworkTestId ? testsData[lesson.homeworkTestId] : null;
                         
                         return (
                           <div className="space-y-3 flex flex-col h-full">
-                            {result && (
+                            {result ? (
                               <div className="w-full p-4 rounded-xl bg-[rgba(254,194,4,0.05)] border border-[#FEC204]/20 flex flex-col items-center justify-center gap-2">
                                 <span className="text-[12px] font-bold text-[#FEC204] uppercase tracking-widest">Oxirgi Natijangiz</span>
                                 <div className="flex items-end gap-1 text-white">
@@ -285,28 +283,30 @@ const unsubLessons = onSnapshot(query(collection(db, 'sat_lessons'), orderBy('cr
                                   <span className="text-sm font-bold opacity-50 mb-1.5">/{result.total}</span>
                                 </div>
                               </div>
-                            )}
+                            ) : <div className="flex-1"></div>}
 
-                            {testInfo && (
-                              <div className="bg-black/20 rounded-xl p-4 border border-white/5 space-y-2.5 mt-2">
-                                <div className="flex justify-between items-center text-[13px]">
-                                  <span className="text-white/50 flex items-center gap-2">
-                                    <span className="text-[16px]">📝</span> Savollar soni
-                                  </span>
-                                  <span className="font-bold text-white">{testInfo.questions?.length || '#'} ta</span>
-                                </div>
-                                <div className="flex justify-between items-center text-[13px]">
-                                  <span className="text-white/50 flex items-center gap-2">
-                                    <span className="text-[16px]">⏱️</span> Ajratilgan vaqt
-                                  </span>
-                                  <span className="font-bold text-white">{testInfo.duration ? testInfo.duration + " daqiqa" : "Cheklanmagan"}</span>
-                                </div>
+                            <div className="bg-black/20 rounded-xl p-4 border border-white/5 space-y-2.5 mt-2">
+                              <div className="flex justify-between items-center text-[13px]">
+                                <span className="text-white/50 flex items-center gap-2">
+                                  <span className="text-[16px]">📝</span> Savollar soni
+                                </span>
+                                <span className="font-bold text-white">{testInfo?.questions?.length || '#'} ta</span>
                               </div>
-                            )}
+                              <div className="flex justify-between items-center text-[13px]">
+                                <span className="text-white/50 flex items-center gap-2">
+                                  <span className="text-[16px]">⏱️</span> Ajratilgan vaqt
+                                </span>
+                                <span className="font-bold text-white">{testInfo?.duration ? testInfo.duration + " daqiqa" : "Cheklanmagan"}</span>
+                              </div>
+                            </div>
                             
                             <div className="mt-auto">
                               <button 
                                 onClick={() => {
+                                  if (!lesson.homeworkTestId) {
+                                    toast.error("Ushbu dars uchun uyga vazifa biriktirilmagan");
+                                    return;
+                                  }
                                   setTakingExam({
                                     id: lesson.id + '_hw_' + Date.now(),
                                     title: lesson.title + ' - Uyga vazifa',
@@ -319,7 +319,7 @@ const unsubLessons = onSnapshot(query(collection(db, 'sat_lessons'), orderBy('cr
                                     groupId: ''
                                   } as Exam);
                                 }}
-                                className="w-full py-3.5 rounded-xl font-bold bg-[#FEC204] text-black hover:bg-[#e5ae03] transition-colors shadow-[0_4px_14px_rgba(254,194,4,0.2)] flex items-center justify-center gap-2"
+                                className={`w-full py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 transition-colors ${lesson.homeworkTestId ? 'bg-[#FEC204] text-black hover:bg-[#e5ae03] shadow-[0_4px_14px_rgba(254,194,4,0.2)]' : 'bg-white/5 text-white/50 cursor-not-allowed'}`}
                               >
                                 <PlayCircle size={18} /> {result ? 'Qayta ishlash' : 'Uyga vazifani boshlash'}
                               </button>
