@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { X, CheckCircle2, XCircle } from 'lucide-react';
 import { db } from '../lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
@@ -33,8 +34,8 @@ export default function StudentResultHistoryModal({ result, onClose }: Props) {
     fetchTestData();
   }, [result]);
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm sm:absolute">
+  return createPortal(
+    <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
       <div className="glass-panel w-full max-w-2xl p-6 bg-[#1a1a1a]/95 flex flex-col max-h-[90vh]">
         <div className="flex justify-between items-center mb-6">
           <div>
@@ -134,6 +135,7 @@ export default function StudentResultHistoryModal({ result, onClose }: Props) {
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
