@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { MathfieldElement } from 'mathlive';
-import { initMathLive } from '../services/MathLiveConfig';
+import { initMathLive, showVirtualKeyboard, hideVirtualKeyboard } from '../services/MathLiveConfig';
 
 // MUHIM: fontlar va tovushlarni birinchi maydon yaratilishidan OLDIN sozlaymiz.
 initMathLive();
@@ -34,16 +34,42 @@ export default function MathAnswerField({
     const mf = mfRef.current;
     if (!mf) return;
 
+    if (!readOnly) {
+       mf.mathVirtualKeyboardPolicy = 'manual';
+    }
+
     const handleInput = () => {
       onChange(mf.value);
     };
+    
+    const handleFocus = () => {
+      if (!readOnly) {
+         showVirtualKeyboard();
+      }
+    };
+
+    const handleFocusOut = (e: FocusEvent) => {
+      if (!readOnly) {
+         const related = (e.relatedTarget || (e as any).explicitOriginalTarget) as HTMLElement;
+         if (related && related.tagName && related.tagName.toUpperCase().includes('MATH-VIRTUAL-KEYBOARD')) {
+            return;
+         }
+         hideVirtualKeyboard();
+      }
+    };
 
     mf.addEventListener('input', handleInput);
+    mf.addEventListener('focusin', handleFocus);
+    mf.addEventListener('click', handleFocus);
+    mf.addEventListener('focusout', handleFocusOut);
     
     return () => {
       mf.removeEventListener('input', handleInput);
+      mf.removeEventListener('focusin', handleFocus);
+      mf.removeEventListener('click', handleFocus);
+      mf.removeEventListener('focusout', handleFocusOut);
     };
-  }, [onChange]);
+  }, [onChange, readOnly]);
 
   return (
     <div className={`w-full glass-panel rounded-xl overflow-hidden focus-within:border-[#FEC204] border border-white/10 ${className}`}>
