@@ -240,7 +240,11 @@ app.get("/api/notification-debug", async (_req, res) => {
       if (fullName !== undefined) updateDbPayload.fullName = fullName;
       if (username !== undefined) updateDbPayload.username = username;
       if (password !== undefined) updateDbPayload.password = password;
-      if (groupId !== undefined) updateDbPayload.groupId = groupId;
+      if (groupId !== undefined) {
+        updateDbPayload.groupId = groupId;
+        updateDbPayload.uGroups = groupId ? [groupId] : [];
+        updateDbPayload.groups = groupId ? [groupId] : [];
+      }
       if (monthlyFee !== undefined) updateDbPayload.monthlyFee = Number(monthlyFee);
       if (joinedDate !== undefined) updateDbPayload.joinedDate = joinedDate;
 

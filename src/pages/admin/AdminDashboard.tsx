@@ -34,7 +34,8 @@ export default function AdminDashboard() {
       let unassigned = false;
       snap.docs.forEach(d => {
         const data = d.data();
-        if ((!data.groups || data.groups.length === 0) && !data.groupId) {
+        const studentGroups = data.uGroups || data.groups || (data.groupId ? [data.groupId] : []);
+        if (studentGroups.length === 0 && data.status !== 'archived') {
            unassigned = true;
         }
       });

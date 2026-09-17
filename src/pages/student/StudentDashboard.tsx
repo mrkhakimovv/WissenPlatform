@@ -148,24 +148,24 @@ export default function StudentDashboard() {
         <p className="text-[12px] text-white/40 font-bold mt-1">Bugungi kun uchun rejalaringiz bilan tanishing.</p>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5">
+      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-2 gap-4 md:gap-5 w-full md:max-w-xl">
         {/* Attendance Card */}
-        <Link to="attendance" className="glass-panel p-4 md:p-5 !border-l-[3px] !border-l-[#FEC204] hover:scale-[1.02] transition-transform flex flex-col justify-between cursor-pointer">
-          <div>
+        <Link to="attendance" className="glass-panel p-4 md:p-5 !border-l-[3px] !border-l-[#FEC204] hover:scale-[1.02] transition-transform flex flex-col justify-between cursor-pointer min-h-[120px]">
+          <div> 
              <p className="text-[9px] md:text-[11px] uppercase tracking-[2px] font-bold text-white/40 mb-1">Davomat %</p>
              <p className="text-[26px] md:text-[32px] font-[900] tracking-[-1px] text-white leading-none">{attendance.length === 0 ? 0 : attendanceRate}%</p>
           </div>
           <div className="w-full h-1.5 bg-[#f0f0f0]/20 rounded-full mt-3 overflow-hidden">
             <motion.div 
-               initial={{ width: 0 }}
-               animate={{ width: `${attendance.length === 0 ? 0 : attendanceRate}%` }}
+               initial={{ width: 0 }} 
+               animate={{ width: `${attendance.length === 0 ? 0 : attendanceRate}%` }} 
                className="bg-[#22c55e] h-full" 
-            />
+             />
           </div>
         </Link>
 
         {/* Payment Card */}
-        <Link to="payments" className="glass-panel p-4 md:p-5 !border-l-[3px] !border-l-[#22c55e] flex flex-col justify-between hover:scale-[1.02] transition-transform cursor-pointer">
+        <Link to="payments" className="glass-panel p-4 md:p-5 !border-l-[3px] !border-l-[#22c55e] flex flex-col justify-between hover:scale-[1.02] transition-transform cursor-pointer min-h-[120px]">
           <p className="text-[9px] md:text-[11px] uppercase tracking-[2px] font-bold text-white/40 mb-1">To'lov holati</p>
           <div className="flex items-center gap-2 mt-2 mb-1">
             {hasPaid ? (
@@ -179,56 +179,56 @@ export default function StudentDashboard() {
           </div>
           <p className="text-[10px] md:text-[12px] font-bold text-white/40 mt-auto">{['Yanvar', 'Fevral', 'Mart', 'Aprel', 'May', 'Iyun', 'Iyul', 'Avgust', 'Sentyabr', 'Oktyabr', 'Noyabr', 'Dekabr'][new Date().getMonth()]} oyi uchun</p>
         </Link>
-
-        {/* News Carousel */}
-        {news.length > 0 && currentNews && (
-          <div className="col-span-2 glass-panel p-0 overflow-hidden relative flex flex-col group min-h-[140px]">
-             <AnimatePresence mode="wait">
-               <motion.div
-                 key={currentNewsIndex}
-                 initial={{ opacity: 0, x: 20 }}
-                 animate={{ opacity: 1, x: 0 }}
-                 exit={{ opacity: 0, x: -20 }}
-                 transition={{ duration: 0.3 }}
-                 className="p-4 md:p-5 flex flex-col h-full absolute inset-0"
-               >
-                  <div className="flex items-center justify-between mb-2">
-                     <div className="flex items-center gap-2">
-                        <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: currentNews.color || '#FEC204' }}></span>
-                        <span className="text-[10px] uppercase tracking-[1.5px] font-bold text-white/60">{currentNews.tag || "Yangilik"}</span>
-                     </div>
-                     <span className="text-[10px] font-bold text-white/40">{new Date(currentNews.publishedAt).toLocaleDateString('uz-UZ')}</span>
-                  </div>
-                  <h3 className="text-[15px] md:text-[17px] font-black text-white leading-snug line-clamp-1">{currentNews.title}</h3>
-                  <p className="text-[12px] text-white/60 font-medium mt-1.5 leading-relaxed line-clamp-2 md:line-clamp-none pr-8">
-                    {currentNews.description}
-                  </p>
-               </motion.div>
-             </AnimatePresence>
-
-             {/* Controls */}
-             <div className="absolute right-3 bottom-4 flex gap-1 bg-[#1a1a1a]/80 backdrop-blur-sm p-1 rounded-full border border-white/10 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
-                <button onClick={prevNews} className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors">
-                   <ChevronLeft size={14} className="text-white" />
-                </button>
-                <button onClick={nextNews} className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors">
-                   <ChevronRight size={14} className="text-white" />
-                </button>
-             </div>
-             
-             {/* Dots */}
-             <div className="absolute left-4 md:left-5 bottom-4 flex gap-1.5 z-10">
-               {news.map((_, idx) => (
-                  <div 
-                    key={idx} 
-                    onClick={() => handleManualNav(idx)}
-                    className={`w-1.5 h-1.5 rounded-full cursor-pointer transition-all duration-300 ${idx === currentNewsIndex ? 'bg-white w-4' : 'bg-white/20'}`} 
-                  />
-               ))}
-             </div>
-          </div>
-        )}
       </div>
+
+      {/* News Carousel */}
+      {news.length > 0 && currentNews && (
+        <div className="glass-panel p-0 overflow-hidden relative flex flex-col group mt-4">
+           <AnimatePresence mode="wait">
+             <motion.div
+               key={currentNewsIndex}
+               initial={{ opacity: 0, x: 20 }}
+               animate={{ opacity: 1, x: 0 }}
+               exit={{ opacity: 0, x: -20 }}
+               transition={{ duration: 0.3 }}
+               className="p-5 md:p-6 pb-12 md:pb-12 flex flex-col"
+             >
+                <div className="flex items-center justify-between mb-3">
+                   <div className="flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: currentNews.color || '#FEC204' }}></span>
+                      <span className="text-[10px] uppercase tracking-[1.5px] font-bold text-white/60">{currentNews.tag || "Yangilik"}</span>
+                   </div>
+                   <span className="text-[10px] font-bold text-white/40">{new Date(currentNews.publishedAt).toLocaleDateString('uz-UZ')}</span>
+                </div>
+                <h3 className="text-[16px] md:text-[20px] font-black text-white leading-snug">{currentNews.title}</h3>
+                <p className="text-[13px] md:text-[14px] text-white/60 font-medium mt-2 leading-relaxed pr-2 md:pr-16">
+                  {currentNews.description}
+                </p>
+             </motion.div>
+           </AnimatePresence>
+
+           {/* Controls */}
+           <div className="absolute right-4 bottom-4 flex gap-1.5 bg-[#1a1a1a]/80 backdrop-blur-sm p-1 rounded-full border border-white/10 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity z-10">
+              <button onClick={prevNews} className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors">
+                 <ChevronLeft size={16} className="text-white" />
+              </button>
+              <button onClick={nextNews} className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors">
+                 <ChevronRight size={16} className="text-white" />
+              </button>
+           </div>
+           
+           {/* Dots */}
+           <div className="absolute left-5 md:left-6 bottom-5 flex gap-1.5 z-10 items-center">
+             {news.map((_, idx) => (
+                <div 
+                  key={idx} 
+                  onClick={() => handleManualNav(idx)}
+                  className={`h-1.5 rounded-full cursor-pointer transition-all duration-300 ${idx === currentNewsIndex ? 'bg-white w-5' : 'bg-white/20 w-1.5 hover:bg-white/40'}`} 
+                />
+             ))}
+           </div>
+        </div>
+      )}
 
 
 

@@ -85,6 +85,7 @@ export default function AdminStudents() {
 
       await setDoc(doc(db, 'users', userCred.user.uid), {
         ...formData,
+        uGroups: formData.groupId ? [formData.groupId] : [],
         role: 'student',
         monthlyFee: finalFee,
         createdAt: new Date().toISOString()
@@ -163,7 +164,7 @@ export default function AdminStudents() {
   const openGroupAssign = (e: React.MouseEvent, student: any) => {
     e.stopPropagation();
     setGroupAssignStudent(student);
-    const currentGroups = student.groups || (student.groupId ? [student.groupId] : []);
+    const currentGroups = student.uGroups || student.groups || (student.groupId ? [student.groupId] : []);
     setSelectedGroupIds(currentGroups);
     setIsGroupAssignModalOpen(true);
   };
@@ -174,6 +175,7 @@ export default function AdminStudents() {
     try {
       await updateDoc(doc(db, 'users', groupAssignStudent.id), {
         groups: selectedGroupIds,
+        uGroups: selectedGroupIds,
         groupId: selectedGroupIds.length > 0 ? selectedGroupIds[0] : ''
       });
       toast.success("Guruhlar muvaffaqiyatli biriktirildi!");
@@ -225,7 +227,7 @@ export default function AdminStudents() {
     if (activeTab === 'active' && isArchived) return false;
     if (activeTab === 'archived' && !isArchived) return false;
     if (user?.role === 'teacher') {
-      const sGroupsIds = s.groups || (s.groupId ? [s.groupId] : []);
+      const sGroupsIds = s.uGroups || s.groups || (s.groupId ? [s.groupId] : []);
       const belongsToTeacher = groups.some(g => sGroupsIds.includes(g.id) && g.teacherName === user.fullName);
       if (!belongsToTeacher) return false;
     }
@@ -270,7 +272,7 @@ export default function AdminStudents() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.2, delay: i*0.05 }}
               key={student.id} 
-              className={`glass-panel p-5 flex flex-col relative group hover:border-[#FEC204]/30 transition-colors ${(!student.groups?.length && !student.groupId) ? 'ring-2 ring-[#FEC204] shadow-[0_0_20px_rgba(254,194,4,0.1)]' : ''}`}
+              className={`glass-panel p-5 flex flex-col relative group hover:border-[#FEC204]/30 transition-colors ${(!(student.uGroups?.length || student.groups?.length || student.groupId)) ? 'ring-2 ring-[#FEC204] shadow-[0_0_20px_rgba(254,194,4,0.1)]' : ''}`}
             >
               {/* Header: Avatar & Actions */}
               <div className="flex justify-between items-start mb-3">
@@ -314,12 +316,12 @@ export default function AdminStudents() {
                   <span className="text-[13px] text-white/50">Guruh:</span>
                   <span className="text-[13px] text-white/90 font-medium truncate max-w-[120px] text-right" title={
                     (() => {
-                      const sGroups = groups.filter(g => student.groups?.includes(g.id) || g.id === student.groupId);
+                      const sGroups = groups.filter(g => student.uGroups?.includes(g.id) || student.groups?.includes(g.id) || g.id === student.groupId);
                       return sGroups.length > 0 ? sGroups.map(g => g.name).join(', ') : 'Yo\'q';
                     })()
                   }>
                     {(() => {
-                      const sGroups = groups.filter(g => student.groups?.includes(g.id) || g.id === student.groupId);
+                      const sGroups = groups.filter(g => student.uGroups?.includes(g.id) || student.groups?.includes(g.id) || g.id === student.groupId);
                       if (sGroups.length === 0) return 'Yo\'q';
                       if (sGroups.length > 1) return `${sGroups.length} ta guruh`;
                       return sGroups[0].name || 'Nomsiz guruh';
@@ -474,7 +476,7 @@ export default function AdminStudents() {
                   <p className="text-[13px] text-white/40">@{selectedStudent.username}</p>
                   <p className="text-[12px] font-medium text-[#FEC204] mt-1">
                     Guruh: {(() => {
-                      const sGroups = groups.filter(g => selectedStudent.groups?.includes(g.id) || g.id === selectedStudent.groupId);
+                      const sGroups = groups.filter(g => selectedStudent.uGroups?.includes(g.id) || selectedStudent.groups?.includes(g.id) || g.id === selectedStudent.groupId);
                       return sGroups.length > 0 ? sGroups.map(g => g.name).join(', ') : 'Noma\'lum';
                     })()}
                   </p>
