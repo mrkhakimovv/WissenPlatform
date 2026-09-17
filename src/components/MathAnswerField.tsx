@@ -1,7 +1,3 @@
-// src/components/MathAnswerField.tsx
-// MathLive asosidagi matematik javob maydoni.
-// To'g'ridan-to'g'ri maydon ko'rsatiladi (popup o'chirildi), bu mobil qurilmalarda klaviatura bilan bog'liq muammolarni oldini oladi.
-
 import React, { useEffect, useRef } from 'react';
 import { MathfieldElement } from 'mathlive';
 import { initMathLive } from '../services/MathLiveConfig';
@@ -74,11 +70,8 @@ export default function MathAnswerField({
   );
 }
 
-/**
- * Javoblarni analitik va sonli qilib solishtirish.
- * LaTeX (\frac{1}{2}) va oddiy (0.5), shuningdek
- * x+x va 2x kabi algebraik tengliklarni ham tan oladi.
- */
+let ce: any = null;
+
 export async function answersEqual(a: string, b: string): Promise<boolean> {
   if (!a || !b) return false;
   
@@ -87,6 +80,31 @@ export async function answersEqual(a: string, b: string): Promise<boolean> {
 
   if (strA === strB) return true;
   
-  // Bypassing ComputeEngine temporarily to prevent thread blocking
+  try {
+    if (!ce) {
+      const { ComputeEngine } = await import('@cortex-js/compute-engine');
+      ce = new ComputeEngine();
+    }
+
+    const exprA = ce.parse(strA);
+    const exprB = ce.parse(strB);
+
+    // 1. Numerik qiymat orqali solishtirish (faqat sonlar bo'lsa)
+    const numA = exprA.N().valueOf();
+    const numB = exprB.N().valueOf();
+    
+    if (typeof numA === 'number' && typeof numB === 'number' && !isNaN(numA) && !isNaN(numB)) {
+      if (Math.abs(numA - numB) < 1e-10) return true;
+    }
+
+    // 2. Algebraik soddalashtirish orqali solishtirish
+    const simA = exprA.simplify();
+    const simB = exprB.simplify();
+    if (simA.isSame(simB)) return true;
+
+  } catch(e) {
+    console.error("Math parsing error:", e);
+  }
+
   return false;
 }
