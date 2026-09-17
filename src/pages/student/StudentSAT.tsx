@@ -9,6 +9,7 @@ import { motion } from 'motion/react';
 import StudentTestTake from './StudentTestTake';
 import { Book, PlayCircle, Lock } from 'lucide-react';
 import StudentVocabModal from './StudentVocabModal';
+import StudentResultHistoryModal from '../../components/StudentResultHistoryModal';
 
 export default function StudentSAT() {
   const { user } = useAuth();
@@ -20,6 +21,7 @@ export default function StudentSAT() {
   const [practicingVocab, setPracticingVocab] = useState<any>(null);
   const [results, setResults] = useState<any[]>([]);
   const [testsData, setTestsData] = useState<Record<string, any>>({});
+  const [selectedResult, setSelectedResult] = useState<any>(null);
 
   useEffect(() => {
     // Load all groups to show names
@@ -276,7 +278,10 @@ const unsubLessons = onSnapshot(query(collection(db, 'sat_lessons'), orderBy('cr
                         return (
                           <div className="space-y-3 flex flex-col h-full">
                             {result ? (
-                              <div className="w-full p-4 rounded-xl bg-[rgba(254,194,4,0.05)] border border-[#FEC204]/20 flex flex-col items-center justify-center gap-2">
+                              <div 
+                                onClick={() => setSelectedResult(result)}
+                                className="w-full p-4 rounded-xl bg-[rgba(254,194,4,0.05)] border border-[#FEC204]/20 flex flex-col items-center justify-center gap-2 cursor-pointer hover:bg-[rgba(254,194,4,0.1)] transition-colors"
+                              >
                                 <span className="text-[12px] font-bold text-[#FEC204] uppercase tracking-widest">Oxirgi Natijangiz</span>
                                 <div className="flex items-end gap-1 text-white">
                                   <span className="text-3xl font-black">{result.score}</span>
@@ -350,6 +355,13 @@ const unsubLessons = onSnapshot(query(collection(db, 'sat_lessons'), orderBy('cr
             </div>
           )}
         </div>
+      )}
+
+      {selectedResult && (
+        <StudentResultHistoryModal
+          result={selectedResult}
+          onClose={() => setSelectedResult(null)}
+        />
       )}
     </div>
   );
