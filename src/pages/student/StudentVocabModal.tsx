@@ -69,14 +69,11 @@ export default function StudentVocabModal({ lesson, onClose }: { lesson: any, on
       const correctAns = mode === 'eng-uzb' ? currentPair.uz : currentPair.eng;
       const allAnswers = mode === 'eng-uzb' ? quizPairs.map(p => p.uz) : quizPairs.map(p => p.eng);
       
-      let wrongAnswers = allAnswers.filter(a => a !== correctAns);
+      // Get unique wrong answers
+      let wrongAnswers = Array.from(new Set(allAnswers.filter(a => a !== correctAns)));
       wrongAnswers = shuffleArray(wrongAnswers).slice(0, 3);
       
-      // If we don't have enough wrong answers (e.g. very short list), just duplicate or show less, but ideally we have at least 4 pairs total
-      while (wrongAnswers.length < 3) {
-        wrongAnswers.push(wrongAnswers[0] || correctAns);
-      }
-
+      // If we don't have enough unique wrong answers (e.g. very short list), fill with whatever we have, or leave empty
       setOptions(shuffleArray([correctAns, ...wrongAnswers]));
       setSelectedAnswer(null);
       setIsAnswerRevealed(false);
