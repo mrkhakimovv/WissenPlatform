@@ -29,7 +29,7 @@ export default function AdminCertificateBuilder({ initialData, onClose, onSave }
           id: `q${i + 1}`,
           text: '',
           options: [],
-          correctOptionIndex: 0
+          correctOptionIndex: -1
         };
         
         if (i < 32) {

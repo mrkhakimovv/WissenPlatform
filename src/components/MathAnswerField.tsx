@@ -1,16 +1,13 @@
 // src/components/MathAnswerField.tsx
-// MathLive asosidagi matematik javob maydoni (to'g'ri sozlangan).
-// Bosilganda popup ochiladi: MathLive maydoni + virtual klaviatura + Saqlash/Yopish.
-import React, { useEffect, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
+// MathLive asosidagi matematik javob maydoni.
+// To'g'ridan-to'g'ri maydon ko'rsatiladi (popup o'chirildi), bu mobil qurilmalarda klaviatura bilan bog'liq muammolarni oldini oladi.
+
+import React, { useEffect, useRef } from 'react';
 import { MathfieldElement } from 'mathlive';
-import { initMathLive, showVirtualKeyboard, hideVirtualKeyboard } from '../services/MathLiveConfig';
+import { initMathLive } from '../services/MathLiveConfig';
 
 // MUHIM: fontlar va tovushlarni birinchi maydon yaratilishidan OLDIN sozlaymiz.
 initMathLive();
-
-
-
 
 interface Props {
   value: string; // LaTeX
@@ -25,171 +22,55 @@ export default function MathAnswerField({
   onChange,
   placeholder = 'Javob',
   readOnly = false,
+  className = ''
 }: Props) {
-  const [open, setOpen] = useState(false);
-  const [draft, setDraft] = useState('');
-  const editRef = useRef<MathfieldElement>(null);
-  const displayRef = useRef<MathfieldElement>(null);
+  const mfRef = useRef<MathfieldElement>(null);
 
-  // Chipdagi ko'rinishни sinxronlash
+  // Sync value from props to MathLive
   useEffect(() => {
-    const mf = displayRef.current;
-    if (mf && mf.value !== value) mf.value = value;
-  }, [value, open]);
+    const mf = mfRef.current;
+    if (mf && mf.value !== value) {
+      mf.value = value;
+    }
+  }, [value]);
 
-  const openModal = () => {
-    if (readOnly) return;
-    setDraft(value || '');
-    setOpen(true);
-  };
-
-  // Modal ochilganда maydon + klaviaturани tayyorlash
   useEffect(() => {
-    if (!open) return;
-    const mf = editRef.current;
+    const mf = mfRef.current;
     if (!mf) return;
 
-    mf.value = draft;
-    mf.mathVirtualKeyboardPolicy = 'manual'; // Majburiy o'zimiz boshqaramiz
-
-    const handleInput = () => setDraft(mf.value);
-    
-    // Foydalanuvchi maydonni bossa ham, klaviatura yo'qolib qolmasligi uchun
-    const showKb = () => {
-       showVirtualKeyboard();
+    const handleInput = () => {
+      onChange(mf.value);
     };
 
     mf.addEventListener('input', handleInput);
-    mf.addEventListener('focusin', showKb);
-    mf.addEventListener('click', showKb);
-
-    // Fokus + klaviaturani majburan ko'rsatish (desktop uchun ham)
-    const t = setTimeout(() => {
-      mf.focus();
-      showKb();
-    }, 150);
-
+    
     return () => {
-      clearTimeout(t);
       mf.removeEventListener('input', handleInput);
-      mf.removeEventListener('focusin', showKb);
-      mf.removeEventListener('click', showKb);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
-
-  const save = () => {
-    onChange(draft);
-    hideVirtualKeyboard();
-    setOpen(false);
-  };
-
-  const close = () => {
-    hideVirtualKeyboard();
-    setOpen(false);
-  };
+  }, [onChange]);
 
   return (
-    <>
-      {/* CHIP */}
-      <button
-        type="button"
-        onClick={openModal}
-        className="w-full glass-panel p-2 min-h-10 flex items-center justify-between gap-2 text-left hover:border-[#FEC204]/50"
+    <div className={`w-full glass-panel rounded-xl overflow-hidden focus-within:border-[#FEC204] border border-white/10 ${className}`}>
+      <math-field
+        ref={mfRef as any}
+        // @ts-ignore
+        read-only={readOnly ? "true" : undefined}
+        style={{
+          width: '100%',
+          minHeight: '44px',
+          padding: '8px 12px',
+          background: 'transparent',
+          color: '#fafafa',
+          fontSize: '18px',
+          border: 'none',
+          outline: 'none',
+          '--caret-color': '#FEC204',
+          '--selection-background-color': 'rgba(254,194,4,0.25)',
+        } as React.CSSProperties}
       >
-        {value ? (
-          <math-field
-            ref={displayRef as any}
-            // @ts-ignore
-            read-only="true"
-            style={{
-              pointerEvents: 'none',
-              background: 'transparent',
-              color: '#fafafa',
-              fontSize: '16px',
-              border: 'none',
-            }}
-          >
-            {value}
-          </math-field>
-        ) : (
-          <span className="text-white/30 text-sm">{placeholder}</span>
-        )}
-        <span
-          className="shrink-0 w-8 h-8 rounded-md bg-[#FEC204] text-black flex items-center justify-center text-lg"
-          aria-hidden
-        >
-          ⌨
-        </span>
-      </button>
-
-      {/* POPUP */}
-      {open &&
-        createPortal(
-          <div
-            className="fixed inset-0 z-[99999] bg-black/70 flex items-start justify-center pt-20 px-4"
-            onClick={close}
-          >
-            <div
-              className="w-full max-w-md bg-[#1a1a1a] rounded-2xl p-4 border border-white/10"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <math-field
-                ref={editRef as any}
-                style={
-                  {
-                    width: '100%',
-                    minHeight: '60px',
-                    padding: '12px 14px',
-                    borderRadius: '12px',
-                    border: '2px solid #FEC204',
-                    background: '#0d0d0d',
-                    color: '#fafafa',
-                    fontSize: '24px',
-                    '--caret-color': '#FEC204',
-                    '--selection-background-color': 'rgba(254,194,4,0.25)',
-                  } as React.CSSProperties
-                }
-              >
-                {draft}
-              </math-field>
-
-              <div className="flex items-center justify-center gap-3 mt-4">
-                <button
-                  type="button"
-                  onMouseDown={(e) => {
-                    e.preventDefault(); // Maydondan fokus yo'qolmasligi uchun
-                    if (editRef.current) editRef.current.focus();
-                  }}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    showVirtualKeyboard();
-                  }}
-                  className="px-4 py-3 rounded-lg bg-blue-500/20 text-blue-400 font-bold"
-                  title="Klaviaturani ochish"
-                >
-                  ⌨ Klaviatura
-                </button>
-                <button
-                  type="button"
-                  onClick={save}
-                  className="flex-1 py-3 rounded-lg bg-[#FEC204] text-black font-bold"
-                >
-                  Saqlash
-                </button>
-                <button
-                  type="button"
-                  onClick={close}
-                  className="flex-1 py-3 rounded-lg bg-white/10 text-white font-bold"
-                >
-                  Yopish
-                </button>
-              </div>
-            </div>
-          </div>,
-          document.body
-        )}
-    </>
+        {value}
+      </math-field>
+    </div>
   );
 }
 
@@ -203,36 +84,9 @@ export async function answersEqual(a: string, b: string): Promise<boolean> {
   
   const strA = String(a).replace(/\s/g, '').toLowerCase();
   const strB = String(b).replace(/\s/g, '').toLowerCase();
+
   if (strA === strB) return true;
   
   // Bypassing ComputeEngine temporarily to prevent thread blocking
   return false;
-  /*
-
-  try {
-    const { ComputeEngine } = await import('@cortex-js/compute-engine');
-    const ce = new ComputeEngine();
-    
-    // LaTeX yoki matnni o'qib olish (parse)
-    const exprA = ce.parse(String(a));
-    const exprB = ce.parse(String(b));
-
-    // 1. Algebraik (simvolik) soddalashtirish orqali tenglikni tekshirish
-    const simA = exprA.simplify();
-    const simB = exprB.simplify();
-    if (simA.isEqual(simB) || simA.isSame(simB)) return true;
-
-    // 2. Raqamli qiymat (Numeric) bo'yicha solishtirish (masalan, 1/2 == 0.5)
-    const valA = exprA.N().valueOf();
-    const valB = exprB.N().valueOf();
-    if (typeof valA === 'number' && typeof valB === 'number' && isFinite(valA) && isFinite(valB)) {
-      if (Math.abs(valA - valB) < 1e-9) return true;
-    }
-  } catch (e) {
-    console.error("Compute engine comparison failed:", e);
-  }
-
-  return false;
-}
-*/
 }

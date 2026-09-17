@@ -23,7 +23,7 @@ export default function AdminSATBuilder({ initialData, onClose, onSave }: Props)
         id: Math.random().toString(),
         text: '',
         options: Array(initialData.variantCount).fill(''),
-        correctOptionIndex: 0
+        correctOptionIndex: -1
       }));
       return { ...initialData, questions: initialQuestions };
     }
@@ -46,7 +46,7 @@ export default function AdminSATBuilder({ initialData, onClose, onSave }: Props)
             id: Math.random().toString(),
             text: '',
             options: Array(testData.variantCount).fill(''),
-            correctOptionIndex: 0
+            correctOptionIndex: -1
           });
         }
       } else if (value < newQuestions.length) {
@@ -69,7 +69,7 @@ export default function AdminSATBuilder({ initialData, onClose, onSave }: Props)
           ...q,
           options: newOptions,
           // Ensure correctOptionIndex doesn't exceed the new variant length
-          correctOptionIndex: q.correctOptionIndex >= value ? 0 : q.correctOptionIndex
+          correctOptionIndex: q.correctOptionIndex >= value ? -1 : q.correctOptionIndex
         };
       });
       setTestData({ ...testData, variantCount: value, questions: newQuestions });
