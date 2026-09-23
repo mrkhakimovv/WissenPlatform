@@ -119,10 +119,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, pass: string) => {
     try {
-      // In case they enter username without domain, append it
-      const loginEmail = email.includes('@') ? email : `${email}@wissen.internal`;
+      let userCredential;
       
-      const userCredential = await signInWithEmailAndPassword(auth, loginEmail, pass);
+      try {
+        // In case they enter username without domain, append it
+        const loginEmail = email.includes('@') ? email : `${email}@wissen.internal`;
+        userCredential = await signInWithEmailAndPassword(auth, loginEmail, pass);
+      } catch (primaryErr: any) {
+        // If they included '@' in their username (e.g. they provided an email address as username)
+        // Admin creates all student/teacher accounts with @wissen.internal.
+        // So their auth email might actually be user@email.com@wissen.internal
+        if (email.includes('@') && (primaryErr.code === 'auth/user-not-found' || primaryErr.code === 'auth/invalid-credential' || primaryErr.code === 'auth/wrong-password')) {
+          try {
+            userCredential = await signInWithEmailAndPassword(auth, `${email}@wissen.internal`, pass);
+          } catch (secondaryErr) {
+            throw primaryErr; // throw the original error if fallback also fails
+          }
+        } else {
+          throw primaryErr;
+        }
+      }
+
       const firebaseUser = userCredential.user;
 
       const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
