@@ -6,6 +6,8 @@ import { createServer as createViteServer } from "vite";
 import rateLimit from "express-rate-limit";
 import { analyzeTeacherExamples, evaluateHomework } from "./src/server/evaluator";
 import { adminAuth, adminDb, adminMessaging, FieldValue } from "./src/server/notifications";
+import { computeRaschWithReference } from "./src/lib/rasch";
+import { itemDifficultiesFromMatrix, generateSyntheticMatrix, seedFromString } from "./src/lib/synthetic";
 
 async function startServer() {
   const app = express();
@@ -261,6 +263,64 @@ async function startServer() {
     } catch (err: any) {
       console.error("Special test result delete error:", err);
       res.status(500).json({ error: "O'chirishda xatolik" });
+    }
+  });
+
+  app.post("/api/recalculate-special-test/:testId", async (req, res) => {
+    try {
+      if (!adminDb) return res.status(500).json({ error: "Database not available" });
+      const { testId } = req.params;
+      const snap = await adminDb.collection("special_test_results")
+        .where("testId", "==", testId)
+        .get();
+
+      const docs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const totalItems = docs.length > 0 && Array.isArray((docs[0] as any).items) ? (docs[0] as any).items.length : 55;
+
+      const matrix = docs
+        .filter((d: any) => Array.isArray(d.items) && d.items.length === totalItems)
+        .map((d: any) => ({
+          studentId: d.id,
+          studentName: d.studentName || "O'quvchi",
+          items: d.items
+        }));
+
+      if (matrix.length > 0) {
+        const difficulties = itemDifficultiesFromMatrix(matrix);
+        const synthetic = generateSyntheticMatrix(difficulties, {
+          count: 10000,
+          seed: seedFromString(testId)
+        });
+
+        const report = computeRaschWithReference(matrix, synthetic);
+        const batch = adminDb.batch();
+        for (const r of report.results) {
+          const ref = adminDb.collection("special_test_results").doc(r.studentId);
+          batch.update(ref, {
+            ball: r.ball,
+            grade: r.grade,
+            theta: r.theta,
+            score: r.correct,
+            rank: r.rank || 0,
+            percentile: r.percentile || 0
+          });
+        }
+        await batch.commit();
+      }
+
+      // Return updated results
+      const updatedSnap = await adminDb.collection("special_test_results")
+        .where("testId", "==", testId)
+        .get();
+      const results: any[] = [];
+      updatedSnap.forEach(doc => {
+        results.push({ id: doc.id, ...doc.data() });
+      });
+      results.sort((a, b) => (b.ball ?? 0) - (a.ball ?? 0));
+      res.json({ success: true, results });
+    } catch (err: any) {
+      console.error("Special test recalculate error:", err);
+      res.status(500).json({ error: "Rasch hisoblashda xatolik: " + err.message });
     }
   });
 

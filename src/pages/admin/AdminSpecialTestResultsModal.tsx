@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../../lib/firebase';
-import { collection, query, where, getDocs, deleteDoc, doc, orderBy } from 'firebase/firestore';
-import { X, Search, Trash2, Award, Copy, Check, ExternalLink, RefreshCw, Sparkles, FileSpreadsheet } from 'lucide-react';
+import { collection, query, where, getDocs, deleteDoc, doc, updateDoc, writeBatch } from 'firebase/firestore';
+import { X, Search, Trash2, Award, Copy, Check, ExternalLink, RefreshCw, Sparkles, FileSpreadsheet, CheckCircle2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useConfirm } from '../../contexts/ConfirmContext';
 import * as XLSX from 'xlsx-js-style';
+import { computeRaschWithReference } from '../../lib/rasch';
+import { itemDifficultiesFromMatrix, generateSyntheticMatrix, seedFromString } from '../../lib/synthetic';
 
 interface Props {
   testId: string;
@@ -16,6 +18,7 @@ export default function AdminSpecialTestResultsModal({ testId, testTitle, onClos
   const { confirm } = useConfirm();
   const [results, setResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isRecalculating, setIsRecalculating] = useState(false);
   const [search, setSearch] = useState('');
   const [copiedLink, setCopiedLink] = useState(false);
 
@@ -56,6 +59,93 @@ export default function AdminSpecialTestResultsModal({ testId, testTitle, onClos
   useEffect(() => {
     fetchResults();
   }, [testId]);
+
+  // Recalculate Rasch model for all participants
+  const handleRecalculateRasch = async () => {
+    if (results.length === 0) {
+      toast.error("Hisoblash uchun topshirilgan natijalar yo'q");
+      return;
+    }
+
+    setIsRecalculating(true);
+    const toastId = toast.loading("Rasch modeli bo'yicha barcha natijalar tekshirilmoqda...");
+
+    try {
+      // 1. Try server API recalculate
+      const res = await fetch(`/api/recalculate-special-test/${testId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.results) {
+          setResults(data.results);
+          toast.success("Rasch modeli bo'yicha ballar va darajalar muvaffaqiyatli shakllantirildi!", { id: toastId });
+          return;
+        }
+      }
+
+      // 2. Fallback client-side calculation
+      const totalItems = results[0]?.items?.length || 55;
+      const matrix = results
+        .filter((d: any) => Array.isArray(d.items) && d.items.length === totalItems)
+        .map((d: any) => ({
+          studentId: d.id,
+          studentName: d.studentName || "O'quvchi",
+          items: d.items
+        }));
+
+      if (matrix.length > 0) {
+        const difficulties = itemDifficultiesFromMatrix(matrix);
+        const synthetic = generateSyntheticMatrix(difficulties, {
+          count: 10000,
+          seed: seedFromString(testId)
+        });
+
+        const report = computeRaschWithReference(matrix, synthetic);
+        const batch = writeBatch(db);
+
+        for (const r of report.results) {
+          const docRef = doc(db, 'special_test_results', r.studentId);
+          batch.update(docRef, {
+            ball: r.ball,
+            grade: r.grade,
+            theta: r.theta,
+            score: r.correct,
+            rank: r.rank || 0,
+            percentile: r.percentile || 0
+          });
+        }
+        await batch.commit();
+
+        // Update local state
+        const updatedList = results.map(item => {
+          const rep = report.results.find(r => r.studentId === item.id);
+          if (rep) {
+            return {
+              ...item,
+              ball: rep.ball,
+              grade: rep.grade,
+              theta: rep.theta,
+              score: rep.correct,
+              rank: rep.rank,
+              percentile: rep.percentile
+            };
+          }
+          return item;
+        });
+        updatedList.sort((a, b) => (b.ball ?? 0) - (a.ball ?? 0));
+        setResults(updatedList);
+        toast.success("Rasch modeli bo'yicha ballar va darajalar muvaffaqiyatli shakllantirildi!", { id: toastId });
+      }
+    } catch (err: any) {
+      console.error("Recalculate error:", err);
+      toast.error("Rasch hisoblashda xatolik: " + (err.message || String(err)), { id: toastId });
+    } finally {
+      setIsRecalculating(false);
+    }
+  };
 
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
@@ -353,12 +443,36 @@ export default function AdminSpecialTestResultsModal({ testId, testTitle, onClos
   );
 
   const avgBall = results.length > 0
-    ? (results.reduce((acc, r) => acc + (r.ball || 0), 0) / results.length).toFixed(1)
+    ? (results.reduce((acc, r) => acc + (parseFloat(r.ball) || 0), 0) / results.length).toFixed(1)
     : '0';
 
   const maxBall = results.length > 0
-    ? Math.max(...results.map(r => r.ball || 0)).toFixed(1)
+    ? Math.max(...results.map(r => parseFloat(r.ball) || 0)).toFixed(1)
     : '0';
+
+  const certifiedCount = results.filter(r => r.grade && r.grade !== 'NC').length;
+  const certifiedPct = results.length > 0
+    ? Math.round((certifiedCount / results.length) * 100)
+    : 0;
+
+  const getGradeBadge = (grade: string) => {
+    switch (grade) {
+      case 'A+':
+        return 'bg-emerald-500/25 text-emerald-300 border-emerald-500/50 shadow-sm shadow-emerald-500/20';
+      case 'A':
+        return 'bg-green-500/25 text-green-300 border-green-500/50 shadow-sm shadow-green-500/20';
+      case 'B+':
+        return 'bg-blue-500/25 text-blue-300 border-blue-500/50 shadow-sm shadow-blue-500/20';
+      case 'B':
+        return 'bg-cyan-500/25 text-cyan-300 border-cyan-500/50 shadow-sm shadow-cyan-500/20';
+      case 'C+':
+        return 'bg-amber-500/25 text-amber-300 border-amber-500/50 shadow-sm shadow-amber-500/20';
+      case 'C':
+        return 'bg-orange-500/25 text-orange-300 border-orange-500/50 shadow-sm shadow-orange-500/20';
+      default:
+        return 'bg-white/10 text-white/50 border-white/15';
+    }
+  };
 
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[99999] flex items-center justify-center p-3 sm:p-6 animate-in fade-in duration-200">
@@ -376,6 +490,16 @@ export default function AdminSpecialTestResultsModal({ testId, testTitle, onClos
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
+            <button
+              onClick={handleRecalculateRasch}
+              disabled={isRecalculating || results.length === 0}
+              className="px-3.5 py-2 bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-600 hover:to-yellow-500 text-black text-xs font-black rounded-xl transition-all flex items-center gap-1.5 shadow-md shadow-amber-500/20 active:scale-95 disabled:opacity-50"
+              title="Barcha o'quvchilar javoblar matritsasi (1-55 birlik) asosida Rasch ballari va darajalarni qayta hisoblash"
+            >
+              <RefreshCw size={14} className={isRecalculating ? "animate-spin" : ""} />
+              <span>{isRecalculating ? "Hisoblanmoqda..." : "Rasch bo'yicha hisoblash"}</span>
+            </button>
+
             <button
               onClick={handleExportExcel}
               className="px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 shadow-md shadow-emerald-600/20 active:scale-95"
@@ -421,18 +545,41 @@ export default function AdminSpecialTestResultsModal({ testId, testTitle, onClos
         </div>
 
         {/* Stats Row */}
-        <div className="grid grid-cols-3 gap-3 p-4 sm:p-6 bg-white/[0.02] border-b border-white/5 shrink-0">
-          <div className="p-3.5 rounded-2xl bg-white/5 border border-white/5 text-center">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-4 sm:p-5 bg-white/[0.02] border-b border-white/5 shrink-0">
+          <div className="p-3 rounded-2xl bg-white/5 border border-white/5 text-center">
             <span className="text-xs text-white/50 block mb-0.5">Topshirganlar</span>
-            <span className="text-xl sm:text-2xl font-black text-white">{results.length} ta</span>
+            <span className="text-lg sm:text-2xl font-black text-white">{results.length} ta</span>
           </div>
-          <div className="p-3.5 rounded-2xl bg-white/5 border border-white/5 text-center">
+          <div className="p-3 rounded-2xl bg-white/5 border border-white/5 text-center">
             <span className="text-xs text-white/50 block mb-0.5">O'rtacha Rasch ball</span>
-            <span className="text-xl sm:text-2xl font-black text-[#FEC204]">{avgBall}</span>
+            <span className="text-lg sm:text-2xl font-black text-[#FEC204]">{avgBall}</span>
           </div>
-          <div className="p-3.5 rounded-2xl bg-white/5 border border-white/5 text-center">
+          <div className="p-3 rounded-2xl bg-white/5 border border-white/5 text-center">
             <span className="text-xs text-white/50 block mb-0.5">Eng yuqori ball</span>
-            <span className="text-xl sm:text-2xl font-black text-emerald-400">{maxBall}</span>
+            <span className="text-lg sm:text-2xl font-black text-emerald-400">{maxBall}</span>
+          </div>
+          <div className="p-3 rounded-2xl bg-white/5 border border-white/5 text-center">
+            <span className="text-xs text-white/50 block mb-0.5">Sertifikat olganlar</span>
+            <span className="text-lg sm:text-2xl font-black text-cyan-400">
+              {certifiedCount} ta <span className="text-xs text-white/50 font-normal">({certifiedPct}%)</span>
+            </span>
+          </div>
+        </div>
+
+        {/* Rasch Model Criteria Info Bar */}
+        <div className="px-4 py-2.5 bg-[#FEC204]/5 border-b border-white/10 flex flex-wrap items-center justify-between text-xs text-white/80 gap-2 shrink-0">
+          <div className="flex items-center gap-1.5 font-bold text-[#FEC204]">
+            <Award size={15} />
+            <span>Rasch modeli darajalari:</span>
+          </div>
+          <div className="flex flex-wrap items-center gap-1.5 text-[11px] font-mono">
+            <span className="px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30">A+ ≥70</span>
+            <span className="px-2 py-0.5 rounded-md bg-green-500/20 text-green-300 font-bold border border-green-500/30">A ≥65</span>
+            <span className="px-2 py-0.5 rounded-md bg-blue-500/20 text-blue-300 font-bold border border-blue-500/30">B+ ≥60</span>
+            <span className="px-2 py-0.5 rounded-md bg-cyan-500/20 text-cyan-300 font-bold border border-cyan-500/30">B ≥55</span>
+            <span className="px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300 font-bold border border-amber-500/30">C+ ≥50</span>
+            <span className="px-2 py-0.5 rounded-md bg-orange-500/20 text-orange-300 font-bold border border-orange-500/30">C ≥46</span>
+            <span className="px-2 py-0.5 rounded-md bg-zinc-700/40 text-zinc-400 font-bold border border-zinc-600/30">NC &lt;46</span>
           </div>
         </div>
 
@@ -474,7 +621,7 @@ export default function AdminSpecialTestResultsModal({ testId, testTitle, onClos
                         {item.studentName}
                       </h4>
                       <p className="text-xs text-white/40">
-                        {item.submittedAt ? new Date(item.submittedAt).toLocaleString() : ''}
+                        {item.submittedAt ? new Date(item.submittedAt).toLocaleString('uz-UZ') : ''}
                       </p>
                     </div>
                   </div>
@@ -490,12 +637,12 @@ export default function AdminSpecialTestResultsModal({ testId, testTitle, onClos
                     <div className="text-right">
                       <span className="text-xs text-white/40 block">Rasch balli</span>
                       <span className="text-base sm:text-lg font-black text-[#FEC204]">
-                        {item.ball}
+                        {typeof item.ball === 'number' ? item.ball.toFixed(1) : item.ball}
                       </span>
                     </div>
 
-                    <div className="w-12 text-center">
-                      <span className="px-2.5 py-1 rounded-lg bg-white/10 text-white font-bold text-xs">
+                    <div className="w-14 text-center">
+                      <span className={`inline-block px-2.5 py-1 rounded-xl text-xs font-black border uppercase tracking-wider ${getGradeBadge(item.grade || 'NC')}`}>
                         {item.grade || 'NC'}
                       </span>
                     </div>

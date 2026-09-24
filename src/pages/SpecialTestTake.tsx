@@ -310,6 +310,8 @@ export default function SpecialTestTake() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(submissionPayload)
         });
+        // Trigger cohort recalculation so all students stay calibrated
+        fetch(`/api/recalculate-special-test/${testData.id}`, { method: 'POST' }).catch(() => {});
       } catch (err) {
         console.warn("API save error:", err);
       }
