@@ -319,7 +319,7 @@ export default function SpecialTestTake() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0d0d0d] flex items-center justify-center p-4">
+      <div className="fixed inset-0 z-30 bg-[#0d0d0d] flex items-center justify-center p-4">
         <div className="flex flex-col items-center gap-3">
           <div className="w-12 h-12 border-4 border-[#FEC204] border-t-transparent rounded-full animate-spin"></div>
           <p className="text-white/60 font-medium">Test yuklanmoqda...</p>
@@ -330,7 +330,7 @@ export default function SpecialTestTake() {
 
   if (!testData) {
     return (
-      <div className="min-h-screen bg-[#0d0d0d] flex items-center justify-center p-4">
+      <div className="fixed inset-0 z-30 bg-[#0d0d0d] flex items-center justify-center p-4">
         <div className="glass-panel p-8 max-w-md w-full text-center space-y-4 rounded-2xl border border-white/10">
           <div className="w-16 h-16 bg-red-500/10 text-red-500 rounded-full flex items-center justify-center mx-auto">
             <XCircle size={36} />
@@ -353,7 +353,7 @@ export default function SpecialTestTake() {
   // STAGE 1: ENTER NAME & SURNAME
   if (stage === 'name_input') {
     return (
-      <div className="min-h-screen bg-[#0d0d0d] flex items-center justify-center p-4">
+      <div className="fixed inset-0 z-30 overflow-y-auto overscroll-contain bg-[#0d0d0d] flex items-center justify-center p-4 py-8">
         <div className="max-w-lg w-full space-y-6">
           {/* Header Branding */}
           <div className="text-center space-y-2">
@@ -418,8 +418,8 @@ export default function SpecialTestTake() {
   // STAGE 3: RESULT SCREEN (RASCH EVALUATION COMPLETED)
   if (stage === 'result' && myResult) {
     return (
-      <div className="min-h-screen bg-[#0a0a0a] text-white p-4 sm:p-6 md:p-10 flex flex-col items-center">
-        <div className="max-w-2xl w-full space-y-6 animate-in fade-in zoom-in-95 duration-300">
+      <div className="fixed inset-0 z-30 overflow-y-auto overscroll-contain bg-[#0a0a0a] text-white p-4 sm:p-6 md:p-10 flex flex-col items-center">
+        <div className="max-w-2xl w-full space-y-6 animate-in fade-in zoom-in-95 duration-300 pb-16">
           {/* Main Certificate Card */}
           <div className="glass-panel p-6 sm:p-10 rounded-3xl border border-white/10 bg-[#161616]/95 text-center relative overflow-hidden shadow-2xl">
             {/* Top decorative glow */}
@@ -606,7 +606,7 @@ export default function SpecialTestTake() {
   const totalQuestions = testData.questions?.length || 45;
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white flex flex-col">
+    <div className="fixed inset-0 z-30 overflow-y-auto overscroll-contain bg-[#0a0a0a] text-white flex flex-col">
       {/* Sticky Top Header */}
       <header className="sticky top-0 z-40 bg-[#141414]/95 backdrop-blur-md border-b border-white/10 px-4 py-3 sm:px-6">
         <div className="max-w-6xl mx-auto flex items-center justify-between gap-4">
