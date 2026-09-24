@@ -124,6 +124,10 @@ export interface TestData {
   satType?: string;
   isFastMode?: boolean;
   isSpecialMode?: boolean;
+  isEnded?: boolean;
+  isClosed?: boolean;
+  status?: 'active' | 'completed';
+  endedAt?: string;
   maxAttempts?: number;
   questions: TestQuestion[];
   createdAt: string;

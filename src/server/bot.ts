@@ -58,6 +58,22 @@ if (bot) bot.start(async (ctx) => {
           const count = testData.questions?.length || 45;
           const subject = testData.subject || "Matematika";
           const webAppUrl = `${DOMAIN}/maxsus-test/${testId}`;
+          const isEnded = Boolean(testData.isEnded || testData.isClosed || testData.status === 'completed');
+
+          if (isEnded) {
+            return ctx.reply(
+              `🔒 <b>Ushbu test yakunlangan!</b>\n\n` +
+              `🎯 Test: <b>${title}</b>\n` +
+              `📚 Fan: <b>${subject}</b>\n\n` +
+              `❌ Test qabuli o'qituvchi / admin tomonidan yakunlangan. Yangi javoblar qabul qilinmaydi.`,
+              {
+                parse_mode: 'HTML',
+                ...Markup.inlineKeyboard([
+                  [Markup.button.webApp('ℹ️ Holatni ko\'rish', webAppUrl)]
+                ])
+              }
+            );
+          }
 
           return ctx.reply(
             `🎯 <b>${title}</b>\n\n` +
@@ -155,6 +171,22 @@ if (bot) bot.on('text', async (ctx) => {
         const title = testData.title || "Maxsus Test";
         const count = testData.questions?.length || 45;
         const webAppUrl = `${DOMAIN}/maxsus-test/${extractedId}`;
+        const isEnded = Boolean(testData.isEnded || testData.isClosed || testData.status === 'completed');
+
+        if (isEnded) {
+          return ctx.reply(
+            `🔒 <b>Ushbu test yakunlangan!</b>\n\n` +
+            `🎯 Test: <b>${title}</b>\n\n` +
+            `❌ Test qabuli o'qituvchi / admin tomonidan yakunlangan. Yangi javoblar qabul qilinmaydi.`,
+            {
+              parse_mode: 'HTML',
+              ...Markup.inlineKeyboard([
+                [Markup.button.webApp('ℹ️ Holatni ko\'rish', webAppUrl)]
+              ])
+            }
+          );
+        }
+
         return ctx.reply(
           `🎯 <b>${title}</b>\n\n` +
           `📋 Savollar: <b>${count} ta (55 birlik)</b>\n` +

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { TestData, Group, Exam } from '../../types';
-import { Trash2, Edit2, Copy, FileText, X, Award, BarChart2, Search, Link2, Sparkles, ExternalLink } from 'lucide-react';
+import { Trash2, Edit2, Copy, FileText, X, Award, BarChart2, Search, Link2, Sparkles, ExternalLink, Lock, CheckCircle2, PlayCircle } from 'lucide-react';
 import { collection, doc, deleteDoc, addDoc, updateDoc, onSnapshot, query, orderBy, getDocs, where } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { useConfirm } from '../../contexts/ConfirmContext';
@@ -46,6 +46,52 @@ export default function AdminMilliySertifikat() {
       title: t.title,
       questionsCount: t.questions?.length || 45
     });
+  };
+
+  const handleToggleEndTest = async (t: TestData & { id?: string; isEnded?: boolean; isClosed?: boolean; status?: string }) => {
+    if (!t.id) return;
+    const isCurrentlyEnded = Boolean(t.isEnded || t.isClosed || t.status === 'completed');
+
+    const confirmed = await confirm({
+      title: isCurrentlyEnded ? "Testni qayta ochish" : "Testni yakunlash",
+      message: isCurrentlyEnded
+        ? `"${t.title}" testini qayta ochmoqchimisiz? O'quvchilar havolalar orqali yana test topshira oladilar.`
+        : `Haqiqatan ham "${t.title}" testini yakunlamoqchimisiz? Test yakunlangach havolalar orqali kirgan o'quvchilarga "Ushbu test yakunlangan" deb chiqadi va javoblar qabul qilinmaydi.`
+    });
+
+    if (!confirmed) return;
+
+    const newEnded = !isCurrentlyEnded;
+    const updateData = {
+      isEnded: newEnded,
+      isClosed: newEnded,
+      status: (newEnded ? 'completed' : 'active') as 'completed' | 'active',
+      endedAt: newEnded ? new Date().toISOString() : null
+    };
+
+    try {
+      // 1. Direct Firestore update
+      await updateDoc(doc(db, 'tests', t.id), updateData);
+
+      // 2. Server API sync
+      fetch(`/api/special-test-toggle-status/${t.id}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isEnded: newEnded })
+      }).catch(() => {});
+
+      // 3. Update local state
+      setTests(prev => prev.map(item => item.id === t.id ? { ...item, ...updateData } : item));
+
+      toast.success(
+        newEnded
+          ? `"${t.title}" muvaffaqiyatli yakunlandi! Havolalar orqali qabul to'xtatildi.`
+          : `"${t.title}" qayta ochildi va faollashtirildi!`
+      );
+    } catch (err: any) {
+      console.error("Test status toggle error:", err);
+      toast.error("Holatni o'zgartirishda xatolik yuz berdi");
+    }
   };
 
   const [isEditExamModalOpen, setIsEditExamModalOpen] = useState(false);
@@ -391,9 +437,40 @@ export default function AdminMilliySertifikat() {
                       </span>
                     )}
                   </div>
-                  <div className="flex flex-col gap-1 text-sm text-white/60 mb-4">
-                    <span>45 ta savol (55 birlik)</span>
-                    <span>Yaratildi: {new Date(test.createdAt).toLocaleDateString()}</span>
+                  <div className="flex items-center justify-between gap-2 mb-4">
+                    <div className="flex flex-col gap-1 text-sm text-white/60">
+                      <span>45 ta savol (55 birlik)</span>
+                      <span>Yaratildi: {new Date(test.createdAt).toLocaleDateString()}</span>
+                    </div>
+
+                    {/* Testni yakunlash / Yakunlangan status tugmasi */}
+                    <div className="shrink-0">
+                      {(test.isEnded || test.isClosed || test.status === 'completed') ? (
+                        <div className="flex flex-col items-end gap-1">
+                          <span className="px-2.5 py-1 bg-rose-500/15 text-rose-400 border border-rose-500/30 text-xs font-bold rounded-lg flex items-center gap-1.5 shadow-sm shadow-rose-500/10">
+                            <Lock size={12} /> Yakunlangan
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleToggleEndTest(test)}
+                            className="text-[11px] text-white/40 hover:text-emerald-400 hover:underline transition-colors flex items-center gap-1 font-medium cursor-pointer"
+                            title="Testni qayta ochish (qabulni davom ettirish)"
+                          >
+                            <PlayCircle size={11} /> Qayta ochish
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => handleToggleEndTest(test)}
+                          className="px-3 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 hover:text-rose-300 border border-rose-500/30 hover:border-rose-500/50 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 shadow-sm active:scale-95 group cursor-pointer"
+                          title="Testni yakunlash (havolalar orqali javob qabul qilishni to'xtatish)"
+                        >
+                          <CheckCircle2 size={13} className="text-rose-400 group-hover:scale-110 transition-transform" />
+                          <span>Testni yakunlash</span>
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
                 <div className="flex gap-2 mt-4 pt-4 border-t border-white/5">

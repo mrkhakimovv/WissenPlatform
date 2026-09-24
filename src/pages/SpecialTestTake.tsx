@@ -14,7 +14,8 @@ import {
   Share2,
   Check,
   Smartphone,
-  ExternalLink
+  ExternalLink,
+  Lock
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import MathAnswerField, { answersEqual } from '../components/MathAnswerField';
@@ -180,6 +181,10 @@ export default function SpecialTestTake() {
 
   const handleSubmit = async () => {
     if (!testData || !testData.questions) return;
+    if (testData.isEnded || testData.isClosed || testData.status === 'completed') {
+      toast.error("Kechirasiz, ushbu test allaqachon yakunlangan!");
+      return;
+    }
     setIsSubmitting(true);
 
     try {
@@ -272,6 +277,37 @@ export default function SpecialTestTake() {
         rank: 1
       } as RaschResult;
 
+      const ua = navigator.userAgent || '';
+      let detectedBrowser = 'Brauzer';
+      if (/chrome|crios/i.test(ua) && !/edge|edg|opr|opera/i.test(ua)) detectedBrowser = 'Google Chrome';
+      else if (/safari/i.test(ua) && !/chrome|crios/i.test(ua)) detectedBrowser = 'Apple Safari';
+      else if (/firefox|fxios/i.test(ua)) detectedBrowser = 'Mozilla Firefox';
+      else if (/edg|edge/i.test(ua)) detectedBrowser = 'Microsoft Edge';
+      else if (/opr|opera/i.test(ua)) detectedBrowser = 'Opera';
+      else if (/samsungbrowser/i.test(ua)) detectedBrowser = 'Samsung Internet';
+
+      let detectedOS = 'Aniqlanmagan OS';
+      if (/android/i.test(ua)) detectedOS = 'Android';
+      else if (/iphone|ipad|ipod/i.test(ua)) detectedOS = 'iOS (Apple)';
+      else if (/windows/i.test(ua)) detectedOS = 'Windows';
+      else if (/mac os x/i.test(ua)) detectedOS = 'MacOS';
+      else if (/linux/i.test(ua)) detectedOS = 'Linux';
+
+      const isMobile = /mobile|android|iphone|ipad|phone/i.test(ua);
+      const isTg = Boolean(isTgMiniApp || tgUser);
+      const tgFullName = tgUser ? [tgUser.first_name, tgUser.last_name].filter(Boolean).join(' ') : null;
+
+      const browserInfo = {
+        browser: detectedBrowser,
+        os: detectedOS,
+        deviceType: isMobile ? 'Mobil telefon' : 'Kompyuter / Noutbuk',
+        userAgent: ua,
+        language: navigator.language || 'uz-UZ',
+        screen: `${window.screen?.width || window.innerWidth}x${window.screen?.height || window.innerHeight}`,
+        viewport: `${window.innerWidth}x${window.innerHeight}`,
+        referrer: document.referrer || "To'g'ridan-to'g'ri havola"
+      };
+
       const submissionPayload = {
         testId: testData.id,
         testTitle: testData.title,
@@ -285,8 +321,20 @@ export default function SpecialTestTake() {
         rank: computedUser.rank ?? 1,
         items: raschItems,
         answers: userAnswers,
-        telegramUserId: tgUser?.id || null,
-        tgChatId: tgUser?.id || null,
+        platform: isTg ? 'tg_bot' : 'web',
+        telegramUserId: tgUser?.id ? String(tgUser.id) : null,
+        tgChatId: tgUser?.id ? String(tgUser.id) : null,
+        tgAccountName: tgFullName || (tgUser?.username ? `@${tgUser.username}` : null),
+        tgUsername: tgUser?.username ? `@${tgUser.username}` : null,
+        tgUser: tgUser ? {
+          id: tgUser.id,
+          first_name: tgUser.first_name || '',
+          last_name: tgUser.last_name || '',
+          username: tgUser.username || '',
+          language_code: tgUser.language_code || ''
+        } : null,
+        browserInfo: !isTg ? browserInfo : null,
+        deviceInfo: !isTg ? browserInfo : null,
         submittedAt: new Date().toISOString()
       };
 
@@ -387,6 +435,71 @@ export default function SpecialTestTake() {
           >
             Bosh sahifaga qaytish
           </button>
+        </div>
+      </div>
+    );
+  }
+
+  // TEST YAKUNLANGAN HOLLATDA (Link orqali kirilganda)
+  const isTestEnded = Boolean(testData.isEnded || testData.isClosed || testData.status === 'completed');
+  if (isTestEnded) {
+    return (
+      <div className="fixed inset-0 z-30 bg-[#0d0d0d] flex items-center justify-center p-4">
+        <div className="glass-panel p-6 sm:p-8 max-w-md w-full text-center space-y-5 rounded-3xl border border-rose-500/30 bg-[#161616] shadow-2xl relative overflow-hidden">
+          <div className="absolute -top-12 -right-12 w-32 h-32 bg-rose-500/10 rounded-full blur-2xl pointer-events-none" />
+          
+          <div className="w-16 h-16 bg-rose-500/15 text-rose-400 border border-rose-500/30 rounded-2xl flex items-center justify-center mx-auto shadow-lg shadow-rose-500/20">
+            <Lock size={32} />
+          </div>
+
+          <div className="space-y-2">
+            <span className="inline-block px-3 py-1 rounded-full bg-rose-500/15 text-rose-400 border border-rose-500/30 text-xs font-bold uppercase tracking-wider">
+              Test yakunlangan
+            </span>
+            <h2 className="text-2xl font-black text-white">{testData.title}</h2>
+            <p className="text-rose-400 font-bold text-base">Ushbu test yakunlangan!</p>
+            <p className="text-white/60 text-xs sm:text-sm leading-relaxed">
+              Test o'qituvchi / admin tomonidan yakunlangan. Yangi javoblar qabul qilinmaydi.
+            </p>
+          </div>
+
+          <div className="p-4 rounded-2xl bg-white/5 border border-white/5 space-y-2.5 text-xs text-white/60 text-left">
+            <div className="flex justify-between items-center">
+              <span>Savollar soni:</span>
+              <strong className="text-white font-mono">45 ta savol (55 birlik)</strong>
+            </div>
+            <div className="flex justify-between items-center">
+              <span>Baholash tizimi:</span>
+              <strong className="text-[#FEC204] font-bold">Rasch Modeli</strong>
+            </div>
+            {testData.endedAt && (
+              <div className="flex justify-between items-center pt-2 border-t border-white/5">
+                <span>Yakunlangan vaqt:</span>
+                <strong className="text-white/90 font-mono">{new Date(testData.endedAt).toLocaleString('uz-UZ')}</strong>
+              </div>
+            )}
+          </div>
+
+          <div className="flex gap-2.5 pt-2">
+            <button
+              onClick={() => {
+                if ((window as any).Telegram?.WebApp?.close) {
+                  (window as any).Telegram.WebApp.close();
+                } else {
+                  navigate('/');
+                }
+              }}
+              className="flex-1 py-3 bg-white/10 hover:bg-white/20 text-white font-bold rounded-xl transition-colors text-sm"
+            >
+              Yopish
+            </button>
+            <button
+              onClick={() => navigate('/')}
+              className="py-3 px-4 bg-white/5 hover:bg-white/10 text-white/70 hover:text-white font-bold rounded-xl transition-colors text-sm"
+            >
+              Bosh sahifa
+            </button>
+          </div>
         </div>
       </div>
     );

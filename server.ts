@@ -189,6 +189,36 @@ async function startServer() {
     }
   });
 
+  app.post("/api/special-test-toggle-status/:id", async (req, res) => {
+    try {
+      if (!adminDb) return res.status(500).json({ error: "Database not available" });
+      const { id } = req.params;
+      const testRef = adminDb.collection("tests").doc(id);
+      const snap = await testRef.get();
+      if (!snap.exists) return res.status(404).json({ error: "Test topilmadi" });
+
+      const current = snap.data() || {};
+      let isEnded = req.body.isEnded;
+      if (typeof isEnded !== 'boolean') {
+        const isCurrentlyEnded = Boolean(current.isEnded || current.isClosed || current.status === 'completed');
+        isEnded = !isCurrentlyEnded;
+      }
+
+      const updateData = {
+        isEnded,
+        isClosed: isEnded,
+        status: isEnded ? 'completed' : 'active',
+        endedAt: isEnded ? new Date().toISOString() : null
+      };
+
+      await testRef.update(updateData);
+      res.json({ success: true, isEnded, ...updateData });
+    } catch (err: any) {
+      console.error("Special test toggle status error:", err);
+      res.status(500).json({ error: err.message || "Xatolik" });
+    }
+  });
+
   app.post("/api/submit-special-test", async (req, res) => {
     try {
       if (!adminDb) return res.status(500).json({ error: "Database not available" });
@@ -196,16 +226,66 @@ async function startServer() {
       if (!payload || !payload.testId || !payload.studentName) {
         return res.status(400).json({ error: "Noto'g'ri ma'lumotlar" });
       }
-      const docRef = await adminDb.collection("special_test_results").add({
+
+      // Agar test yakunlangan bo'lsa, yangi javob qabul qilmaymiz
+      const testSnap = await adminDb.collection("tests").doc(payload.testId).get();
+      if (testSnap.exists) {
+        const tData = testSnap.data() || {};
+        if (tData.isEnded || tData.isClosed || tData.status === 'completed') {
+          return res.status(403).json({ error: "Ushbu test yakunlangan! Yangi natijalar qabul qilinmaydi." });
+        }
+      }
+
+      const clientIp = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || req.socket.remoteAddress || '';
+      const userAgent = req.headers['user-agent'] || '';
+      const tgChatId = payload.telegramUserId || payload.tgChatId;
+      const platform = payload.platform || (tgChatId ? 'tg_bot' : 'web');
+
+      let tgAccountName = payload.tgAccountName || '';
+      let tgUsername = payload.tgUsername || null;
+      let tgUser = payload.tgUser || null;
+
+      // Agar Telegram ID bo'lsa va username/akkaunt nomi to'liq bo'lmasa, bot orqali Telegram profilini aniqlaymiz
+      if (tgChatId && (!tgAccountName || !tgUsername)) {
+        try {
+          const { bot } = await import('./src/server/bot');
+          if (bot) {
+            const chat: any = await bot.telegram.getChat(tgChatId).catch(() => null);
+            if (chat) {
+              tgAccountName = [chat.first_name, chat.last_name].filter(Boolean).join(' ') || chat.username || tgAccountName;
+              tgUsername = chat.username ? `@${chat.username}` : tgUsername;
+              tgUser = {
+                id: tgChatId,
+                first_name: chat.first_name || '',
+                last_name: chat.last_name || '',
+                username: chat.username || ''
+              };
+            }
+          }
+        } catch (e) {
+          console.warn("Could not lookup Telegram chat:", e);
+        }
+      }
+
+      const docData = {
         ...payload,
+        platform,
+        ip: clientIp,
+        userAgent,
+        telegramUserId: tgChatId ? String(tgChatId) : null,
+        tgChatId: tgChatId ? String(tgChatId) : null,
+        tgAccountName: tgAccountName || null,
+        tgUsername: tgUsername || null,
+        tgUser: tgUser || null,
         createdAt: FieldValue.serverTimestamp()
-      });
+      };
+
+      const docRef = await adminDb.collection("special_test_results").add(docData);
 
       // Telegram orqali topshirgan bo'lsa, o'quvchiga natijasini xabar qilib yuboramiz
-      const tgChatId = payload.telegramUserId || payload.tgChatId;
       if (tgChatId) {
         try {
-          const { bot } = require('./src/server/bot');
+          const { bot } = await import('./src/server/bot');
           if (bot) {
             const ball = payload.ball ?? 0;
             const grade = payload.grade ?? 'NC';
