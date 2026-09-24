@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { TestData, Group, Exam } from '../../types';
-import { Trash2, Edit2, Copy, FileText, X, Award, BarChart2, Search } from 'lucide-react';
+import { Trash2, Edit2, Copy, FileText, X, Award, BarChart2, Search, Link2, Sparkles, ExternalLink } from 'lucide-react';
 import { collection, doc, deleteDoc, addDoc, updateDoc, onSnapshot, query, orderBy, getDocs, where } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { useConfirm } from '../../contexts/ConfirmContext';
 import toast from 'react-hot-toast';
 import AdminCertificateBuilder from './AdminCertificateBuilder';
 import AdminCertificateResults from './AdminCertificateResults';
+import AdminSpecialTestResultsModal from './AdminSpecialTestResultsModal';
 import { useAuth } from '../../contexts/AuthContext';
 import { computeRaschReport, computeRaschWithReference, dedupeBestAttempts } from '../../lib/rasch';
 import { generateSyntheticMatrix, itemDifficultiesFromMatrix, seedFromString } from '../../lib/synthetic';
@@ -30,6 +31,13 @@ export default function AdminMilliySertifikat() {
 
   const [activeTab, setActiveTab] = useState<'tests' | 'exams'>('exams');
   const [searchQuery, setSearchQuery] = useState('');
+  const [viewingSpecialResults, setViewingSpecialResults] = useState<{ id: string; title: string } | null>(null);
+
+  const handleCopySpecialTestLink = (testId: string) => {
+    const link = `${window.location.origin}/maxsus-test/${testId}`;
+    navigator.clipboard.writeText(link);
+    toast.success("Maxsus test havolasi nusxalandi!");
+  };
 
   const [isEditExamModalOpen, setIsEditExamModalOpen] = useState(false);
   const [editingExam, setEditingExam] = useState<Exam | null>(null);
@@ -128,14 +136,15 @@ export default function AdminMilliySertifikat() {
     setIsCreationModeModalOpen(true);
   };
 
-  const handleStartCreation = (isFastMode: boolean) => {
+  const handleStartCreation = (isFastMode: boolean, isSpecialMode: boolean = false) => {
     setEditingTest({
-      title: 'Yangi Sertifikat Testi',
+      title: isSpecialMode ? 'Yangi Maxsus Test' : 'Yangi Sertifikat Testi',
       questionCount: 45,
       variantCount: 0,
       testType: 'Milliy Sertifikat',
       format: 'rasch',
       isFastMode,
+      isSpecialMode,
       questions: [],
       createdAt: new Date().toISOString()
     } as any);
@@ -357,7 +366,22 @@ export default function AdminMilliySertifikat() {
             tests.filter(t => t.title.toLowerCase().includes(searchQuery.toLowerCase())).map(test => (
               <div key={test.id} className="glass-panel p-5 rounded-2xl border border-white/10 flex flex-col h-full">
                 <div className="flex-1">
-                  <h3 className="font-bold text-white text-lg mb-1">{test.title}</h3>
+                  <div className="flex items-start justify-between gap-2 mb-1">
+                    <h3 className="font-bold text-white text-lg">{test.title}</h3>
+                    {test.isSpecialMode ? (
+                      <span className="px-2 py-0.5 bg-[#FEC204]/20 text-[#FEC204] border border-[#FEC204]/30 text-xs font-bold rounded-lg shrink-0">
+                        Maxsus
+                      </span>
+                    ) : test.isFastMode ? (
+                      <span className="px-2 py-0.5 bg-blue-500/20 text-blue-300 border border-blue-500/30 text-xs font-bold rounded-lg shrink-0">
+                        Tezkor
+                      </span>
+                    ) : (
+                      <span className="px-2 py-0.5 bg-green-500/20 text-green-300 border border-green-500/30 text-xs font-bold rounded-lg shrink-0">
+                        To'liq
+                      </span>
+                    )}
+                  </div>
                   <div className="flex flex-col gap-1 text-sm text-white/60 mb-4">
                     <span>45 ta savol (55 birlik)</span>
                     <span>Yaratildi: {new Date(test.createdAt).toLocaleDateString()}</span>
@@ -374,6 +398,24 @@ export default function AdminMilliySertifikat() {
                     <Trash2 size={18} />
                   </button>
                 </div>
+                {test.isSpecialMode && test.id && (
+                  <div className="flex gap-2 mt-2 pt-2 border-t border-white/5">
+                    <button
+                      onClick={() => handleCopySpecialTestLink(test.id!)}
+                      className="flex-1 bg-[#FEC204]/10 hover:bg-[#FEC204]/20 text-[#FEC204] py-1.5 px-3 rounded-lg text-xs font-bold transition-colors flex items-center justify-center gap-1.5 border border-[#FEC204]/30"
+                      title="Havolani nusxalash"
+                    >
+                      <Link2 size={14} /> Havolani nusxalash
+                    </button>
+                    <button
+                      onClick={() => setViewingSpecialResults({ id: test.id!, title: test.title })}
+                      className="bg-white/10 hover:bg-white/20 text-white py-1.5 px-3 rounded-lg text-xs font-bold transition-colors flex items-center justify-center gap-1.5"
+                      title="Natijalarni ko'rish"
+                    >
+                      <Award size={14} /> Natijalar
+                    </button>
+                  </div>
+                )}
               </div>
             ))
           )}
@@ -490,13 +532,17 @@ export default function AdminMilliySertifikat() {
                 </button>
               </div>
               <div className="space-y-4">
-                <button onClick={() => handleStartCreation(false)} className="w-full text-left p-4 rounded-xl border border-white/10 hover:bg-white/5 transition-colors group relative overflow-hidden">
+                <button onClick={() => handleStartCreation(false, false)} className="w-full text-left p-4 rounded-xl border border-white/10 hover:bg-white/5 transition-colors group relative overflow-hidden">
                   <div className="font-bold text-white text-lg mb-1 group-hover:text-[#FEC204] transition-colors">To'liq (Savol + Javob)</div>
                   <div className="text-sm text-white/50">Testning to'liq savol va javoblarini kiritish orqali haqiqiy onlayn test varaqasini yaratish.</div>
                 </button>
-                <button onClick={() => handleStartCreation(true)} className="w-full text-left p-4 rounded-xl border border-white/10 hover:bg-white/5 transition-colors group relative overflow-hidden">
+                <button onClick={() => handleStartCreation(true, false)} className="w-full text-left p-4 rounded-xl border border-white/10 hover:bg-white/5 transition-colors group relative overflow-hidden">
                   <div className="font-bold text-white text-lg mb-1 group-hover:text-[#FEC204] transition-colors">Faqat javoblar (Tezkor)</div>
                   <div className="text-sm text-white/50">Javoblar varaqasi shaklida faqat to'g'ri kalitlarni va matnlarni kiritish. O'quvchilar javoblarini tekshirish uchun.</div>
+                </button>
+                <button onClick={() => handleStartCreation(true, true)} className="w-full text-left p-4 rounded-xl border border-white/10 hover:bg-white/5 transition-colors group relative overflow-hidden">
+                  <div className="font-bold text-white text-lg mb-1 group-hover:text-[#FEC204] transition-colors">Maxsus</div>
+                  <div className="text-sm text-white/50">Maxsus test uchun javoblar varaqasi shaklida to'g'ri kalitlarni va javoblarni kiritish.</div>
                 </button>
               </div>
             </div>
@@ -648,6 +694,14 @@ export default function AdminMilliySertifikat() {
             </div>
           </div>
         </div>
+      )}
+
+      {viewingSpecialResults && (
+        <AdminSpecialTestResultsModal
+          testId={viewingSpecialResults.id}
+          testTitle={viewingSpecialResults.title}
+          onClose={() => setViewingSpecialResults(null)}
+        />
       )}
     </div>
   );

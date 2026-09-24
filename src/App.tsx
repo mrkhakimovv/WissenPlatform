@@ -35,6 +35,7 @@ import StudentResults from './pages/student/StudentResults';
 import StudentNews from './pages/student/StudentNews';
 import StudentRegistration from './pages/StudentRegistration';
 import TeacherRegistration from './pages/TeacherRegistration';
+import SpecialTestTake from './pages/SpecialTestTake';
 
 function AuthGuard({ children, roles }: { children: React.ReactNode, roles: string[] }) {
   const { user, loading } = useAuth();
@@ -74,6 +75,7 @@ export default function App() {
           <Route element={<RootLayout />}>
             <Route path="/login" element={<Login />} />
             <Route path="/tg-exam" element={<TelegramExam />} />
+            <Route path="/maxsus-test/:testId" element={<SpecialTestTake />} />
             <Route path="/qoshil" element={<StudentRegistration />} />
             <Route path="/oqituvchi-qoshil" element={<TeacherRegistration />} />
             <Route path="/" element={<DefaultRoute />} />

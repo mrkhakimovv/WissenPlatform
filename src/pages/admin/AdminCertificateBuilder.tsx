@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { TestData, TestQuestion } from '../../types';
-import { Trash2, Edit2, X, CheckCircle2, Image as ImageIcon } from 'lucide-react';
+import { Trash2, Edit2, X, CheckCircle2, Image as ImageIcon, Copy, Check, ExternalLink, Sparkles, Link2 } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import Latex from 'react-latex-next';
 import { doc, setDoc, updateDoc, collection } from 'firebase/firestore';
@@ -16,10 +16,26 @@ interface Props {
 }
 
 export default function AdminCertificateBuilder({ initialData, onClose, onSave }: Props) {
-  const [testData, setTestData] = useState<TestData & { id?: string }>(initialData);
+  const [testData, setTestData] = useState<TestData & { id?: string }>(() => {
+    if (initialData.id) return initialData;
+    return {
+      ...initialData,
+      id: doc(collection(db, 'tests')).id
+    };
+  });
   const [activeQuestion, setActiveQuestion] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
   const [isFastAnswerModeOpen, setIsFastAnswerModeOpen] = useState(false);
+  const [isLinkCopied, setIsLinkCopied] = useState(false);
+
+  const handleCopySpecialLink = () => {
+    if (!testData.id) return;
+    const link = `${window.location.origin}/maxsus-test/${testData.id}`;
+    navigator.clipboard.writeText(link);
+    setIsLinkCopied(true);
+    toast.success("Maxsus test havolasi nusxalandi! O'quvchilarga yuborishingiz mumkin.");
+    setTimeout(() => setIsLinkCopied(false), 2500);
+  };
 
   // Initialize the 45 questions if they don't exist
   useEffect(() => {
@@ -79,16 +95,21 @@ export default function AdminCertificateBuilder({ initialData, onClose, onSave }
   const handleSave = async () => {
     try {
       setIsSaving(true);
+      const dataToSave = {
+        ...testData,
+        isFastMode: isFastMode,
+        isSpecialMode: isSpecialMode,
+      };
       if (testData.id) {
-         await updateDoc(doc(db, 'tests', testData.id), { ...testData });
+         await setDoc(doc(db, 'tests', testData.id), dataToSave, { merge: true });
          // Test o'zgarganda imtihonlarni qayta hisoblash
          toast.loading("Natijalar qayta hisoblanmoqda...", { id: 'recalc' });
-         await recalculateCertificateExams(testData);
+         await recalculateCertificateExams(dataToSave as any);
          toast.success("Sertifikat testi saqlandi va barcha mos imtihon natijalari yangilandi!", { id: 'recalc' });
       } else {
          const newDocRef = doc(collection(db, 'tests'));
          await setDoc(newDocRef, {
-            ...testData,
+            ...dataToSave,
             id: newDocRef.id,
             createdAt: new Date().toISOString()
          });
@@ -105,14 +126,12 @@ export default function AdminCertificateBuilder({ initialData, onClose, onSave }
   };
 
   if (!testData.questions || testData.questions.length === 0) return null;
-
   const currentQ = testData.questions[activeQuestion];
   if (!currentQ) return null;
 
   const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-
-
-  const isFastMode = !!testData.isFastMode;
+  const isSpecialMode = !!testData.isSpecialMode;
+  const isFastMode = !!testData.isFastMode || isSpecialMode;
 
   return createPortal(
     <div className="fixed inset-0 bg-[#0d0d0d] z-[9999] flex flex-col animate-in fade-in zoom-in-95 duration-200">
@@ -120,7 +139,9 @@ export default function AdminCertificateBuilder({ initialData, onClose, onSave }
       <div className="flex items-center justify-between p-4 border-b border-white/10 shrink-0 bg-[#121212]">
         <div>
           <h2 className="text-lg font-black text-white">{testData.title}</h2>
-          <p className="text-xs text-[#FEC204] font-bold">Milliy Sertifikat (Rasch) • 45 ta savol (55 birlik) {isFastMode && " • Faqat Javoblar"}</p>
+          <p className="text-xs text-[#FEC204] font-bold">
+            Milliy Sertifikat (Rasch) • 45 ta savol (55 birlik) {isSpecialMode ? " • Maxsus" : isFastMode ? " • Faqat Javoblar" : ""}
+          </p>
         </div>
         <div className="flex items-center gap-3">
           <button onClick={onClose} className="px-4 py-2 rounded-lg bg-white/5 text-white/70 hover:bg-white/10 hover:text-white transition-colors text-sm font-bold">
@@ -142,12 +163,53 @@ export default function AdminCertificateBuilder({ initialData, onClose, onSave }
                 value={testData.title}
                 onChange={(e) => setTestData({ ...testData, title: e.target.value })}
                 className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#FEC204]"
-                placeholder="Test nomini kiriting (Masalan: Milliy Sertifikat 1-variant)"
+                placeholder={isSpecialMode ? "Maxsus test nomini kiriting (Masalan: Maxsus test 1-variant)" : "Test nomini kiriting (Masalan: Milliy Sertifikat 1-variant)"}
               />
             </div>
             
-            <h3 className="text-xl font-bold text-white mb-2">Javoblar varaqasi (Kalitlarni belgilash)</h3>
-            <p className="text-white/50 mb-8 text-sm">O'quvchilar testni qog'ozda ishlashadi va faqat javoblarni onlayn tizimga kiritishadi, yoki siz shu yerda to'g'ri kalitlarni belgilaysiz.</p>
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
+              <div>
+                <h3 className="text-xl font-bold text-white mb-1">
+                  {isSpecialMode ? "Maxsus test — Javoblar varaqasi (Kalitlarni belgilash)" : "Javoblar varaqasi (Kalitlarni belgilash)"}
+                </h3>
+                <p className="text-white/50 text-sm">
+                  {isSpecialMode
+                    ? "Maxsus test uchun to'g'ri kalitlarni va javoblarni kiritish jarayoni."
+                    : "O'quvchilar testni qog'ozda ishlashadi va faqat javoblarni onlayn tizimga kiritishadi, yoki siz shu yerda to'g'ri kalitlarni belgilaysiz."}
+                </p>
+              </div>
+
+              {isSpecialMode && testData.id && (
+                <div className="flex items-center gap-2 bg-[#FEC204]/10 border border-[#FEC204]/30 px-3 py-2 rounded-2xl shrink-0">
+                  <div className="flex flex-col min-w-0">
+                    <span className="text-[11px] text-[#FEC204] font-bold uppercase tracking-wider flex items-center gap-1">
+                      <Sparkles size={13} /> O'quvchilar uchun maxsus havola
+                    </span>
+                    <span className="text-xs text-white/70 font-mono truncate max-w-[200px] sm:max-w-[260px]">
+                      {`${window.location.origin}/maxsus-test/${testData.id}`}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleCopySpecialLink}
+                    className="px-3 py-1.5 bg-[#FEC204] hover:bg-[#FEC204]/90 text-black text-xs font-black rounded-xl transition-all flex items-center gap-1.5 shrink-0 ml-1 active:scale-95 shadow-md shadow-[#FEC204]/20"
+                    title="Havolani nusxalash"
+                  >
+                    {isLinkCopied ? <CheckCircle2 size={15} /> : <Copy size={15} />}
+                    <span>{isLinkCopied ? "Nusxalandi!" : "Havolani nusxalash"}</span>
+                  </button>
+                  <a
+                    href={`/maxsus-test/${testData.id}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="p-2 bg-white/10 hover:bg-white/20 text-white rounded-xl transition-colors shrink-0"
+                    title="Yangi oynada ochish"
+                  >
+                    <ExternalLink size={15} />
+                  </a>
+                </div>
+              )}
+            </div>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
               {testData.questions.map((q, i) => (

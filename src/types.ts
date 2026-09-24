@@ -123,6 +123,7 @@ export interface TestData {
   format?: "rasch" | "normal";
   satType?: string;
   isFastMode?: boolean;
+  isSpecialMode?: boolean;
   maxAttempts?: number;
   questions: TestQuestion[];
   createdAt: string;

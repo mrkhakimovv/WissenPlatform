@@ -173,6 +173,69 @@ async function startServer() {
     }
   });
 
+  // Special Test API Endpoints
+  app.get("/api/special-test-full/:id", async (req, res) => {
+    try {
+      if (!adminDb) return res.status(500).json({ error: "Database not available" });
+      const { id } = req.params;
+      const snap = await adminDb.collection("tests").doc(id).get();
+      if (!snap.exists) return res.status(404).json({ error: "Test topilmadi" });
+      res.json({ id: snap.id, ...snap.data() });
+    } catch (err: any) {
+      console.error("Special test fetch error:", err);
+      res.status(500).json({ error: "Testni yuklashda xatolik" });
+    }
+  });
+
+  app.post("/api/submit-special-test", async (req, res) => {
+    try {
+      if (!adminDb) return res.status(500).json({ error: "Database not available" });
+      const payload = req.body;
+      if (!payload || !payload.testId || !payload.studentName) {
+        return res.status(400).json({ error: "Noto'g'ri ma'lumotlar" });
+      }
+      const docRef = await adminDb.collection("special_test_results").add({
+        ...payload,
+        createdAt: FieldValue.serverTimestamp()
+      });
+      res.json({ success: true, id: docRef.id });
+    } catch (err: any) {
+      console.error("Special test submit error:", err);
+      res.status(500).json({ error: "Natijani saqlashda xatolik" });
+    }
+  });
+
+  app.get("/api/special-test-results/:testId", async (req, res) => {
+    try {
+      if (!adminDb) return res.status(500).json({ error: "Database not available" });
+      const { testId } = req.params;
+      const snap = await adminDb.collection("special_test_results")
+        .where("testId", "==", testId)
+        .get();
+      const results: any[] = [];
+      snap.forEach(doc => {
+        results.push({ id: doc.id, ...doc.data() });
+      });
+      results.sort((a, b) => (b.ball ?? 0) - (a.ball ?? 0));
+      res.json({ results });
+    } catch (err: any) {
+      console.error("Special test results fetch error:", err);
+      res.status(500).json({ error: "Natijalarni yuklashda xatolik" });
+    }
+  });
+
+  app.delete("/api/special-test-results/:id", async (req, res) => {
+    try {
+      if (!adminDb) return res.status(500).json({ error: "Database not available" });
+      const { id } = req.params;
+      await adminDb.collection("special_test_results").doc(id).delete();
+      res.json({ success: true });
+    } catch (err: any) {
+      console.error("Special test result delete error:", err);
+      res.status(500).json({ error: "O'chirishda xatolik" });
+    }
+  });
+
 app.get("/api/notification-debug", async (_req, res) => {
     try {
       if (!adminDb) {
