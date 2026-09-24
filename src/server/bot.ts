@@ -23,12 +23,80 @@ export const bot = BOT_TOKEN ? new Telegraf<MyContext>(BOT_TOKEN) : null as any;
 if (bot) bot.use(session());
 
 // Quyidagi havolani o'zingizning render.com havolangiz bilan almashtiring (masalan: 'https://mening-loyiham.onrender.com')
-const DOMAIN = process.env.APP_URL || process.env.WEB_APP_URL || 'https://wissenedu.onrender.com'; // <-- O'zingizning render dagi havolangizni shu yerga yozing
+let DOMAIN = (process.env.APP_URL && !process.env.APP_URL.includes('asia-southeast1.run.app'))
+  ? process.env.APP_URL
+  : (process.env.WEB_APP_URL || 'https://wissenedu.onrender.com');
+
+export function setBotDomain(domain: string) {
+  if (domain && domain.startsWith('http')) {
+    DOMAIN = domain;
+  }
+}
+
+export function getBotDomain() {
+  return DOMAIN;
+}
 
 // Handle /start
-if (bot) bot.start((ctx) => {
+if (bot) bot.start(async (ctx) => {
   ctx.session = ctx.session || {};
   ctx.session.state = 'idle';
+
+  const rawPayload = (ctx.payload || '').trim();
+  if (rawPayload && adminDb) {
+    let testId = rawPayload;
+    const isExam = testId.startsWith('exam_');
+    testId = testId.replace(/^(special_|test_|exam_|sp_)/, '');
+
+    try {
+      if (!isExam) {
+        // Avval maxsus testlar (tests) kolleksiyasidan qidiramiz
+        const testDoc = await adminDb.collection('tests').doc(testId).get();
+        if (testDoc.exists) {
+          const testData = testDoc.data() || {};
+          const title = testData.title || "Maxsus Sertifikat Testi";
+          const count = testData.questions?.length || 45;
+          const subject = testData.subject || "Matematika";
+          const webAppUrl = `${DOMAIN}/maxsus-test/${testId}`;
+
+          return ctx.reply(
+            `🎯 <b>${title}</b>\n\n` +
+            `📚 Fan: <b>${subject}</b>\n` +
+            `📋 Savollar soni: <b>${count} ta (55 birlik)</b>\n` +
+            `📊 Baholash: <b>Rasch modeli (Milliy sertifikat)</b>\n\n` +
+            `Testni Telegram ichida Mini App sifatida topshirish uchun quyidagi tugmani bosing:`,
+            {
+              parse_mode: 'HTML',
+              ...Markup.inlineKeyboard([
+                [Markup.button.webApp('🚀 Testni boshlash (Mini App)', webAppUrl)],
+                [Markup.button.url('🌐 Brauzerda ochish', webAppUrl)]
+              ])
+            }
+          );
+        }
+      }
+
+      // Imtihonlar (exams) kolleksiyasidan qidiramiz
+      const examDoc = await adminDb.collection('exams').doc(testId).get();
+      if (examDoc.exists) {
+        const examData = examDoc.data() || {};
+        const title = examData.title || "Imtihon";
+        const webAppUrl = `${DOMAIN}/tg-exam?examId=${testId}`;
+
+        return ctx.reply(
+          `🎯 <b>${title}</b>\n\nImtihonni topshirish uchun quyidagi tugmani bosing:`,
+          {
+            parse_mode: 'HTML',
+            ...Markup.inlineKeyboard([
+              [Markup.button.webApp('🚀 Imtihonni boshlash', webAppUrl)]
+            ])
+          }
+        );
+      }
+    } catch (err) {
+      console.error("Bot start payload error:", err);
+    }
+  }
   
   ctx.reply(
     "Assalomu alaykum! Wissen Edu tizimining rasmiy botiga xush kelibsiz.\n\nTizimga kirish uchun quyidagi tugmani bosing.",
@@ -75,6 +143,36 @@ if (bot) bot.action('show_exams', async (ctx) => {
 if (bot) bot.on('text', async (ctx) => {
   ctx.session = ctx.session || {};
   const text = ctx.message.text.trim();
+
+  // Foydalanuvchi to'g'ridan-to'g'ri test havolasini yoki ID sini yuborgan bo'lsa
+  const testMatch = text.match(/(?:maxsus-test\/|special_|test_|startapp=special_|start=special_|^)([A-Za-z0-9_-]{16,})/i);
+  if (testMatch && testMatch[1] && (!ctx.session.state || ctx.session.state === 'idle') && adminDb) {
+    const extractedId = testMatch[1];
+    try {
+      const testDoc = await adminDb.collection('tests').doc(extractedId).get();
+      if (testDoc.exists) {
+        const testData = testDoc.data() || {};
+        const title = testData.title || "Maxsus Test";
+        const count = testData.questions?.length || 45;
+        const webAppUrl = `${DOMAIN}/maxsus-test/${extractedId}`;
+        return ctx.reply(
+          `🎯 <b>${title}</b>\n\n` +
+          `📋 Savollar: <b>${count} ta (55 birlik)</b>\n` +
+          `📊 Baholash: <b>Rasch modeli</b>\n\n` +
+          `Testni Telegram ichida Mini App sifatida ishlash uchun quyidagi tugmani bosing:`,
+          {
+            parse_mode: 'HTML',
+            ...Markup.inlineKeyboard([
+              [Markup.button.webApp('🚀 Testni boshlash (Mini App)', webAppUrl)],
+              [Markup.button.url('🌐 Brauzerda ochish', webAppUrl)]
+            ])
+          }
+        );
+      }
+    } catch (e) {
+      console.error("Text test fetch error:", e);
+    }
+  }
   
   if (ctx.session.state === 'awaiting_username') {
     ctx.session.username = text;

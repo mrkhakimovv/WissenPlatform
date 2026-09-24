@@ -8,6 +8,7 @@ import toast from 'react-hot-toast';
 import AdminCertificateBuilder from './AdminCertificateBuilder';
 import AdminCertificateResults from './AdminCertificateResults';
 import AdminSpecialTestResultsModal from './AdminSpecialTestResultsModal';
+import AdminSpecialTestShareModal from './AdminSpecialTestShareModal';
 import { useAuth } from '../../contexts/AuthContext';
 import { computeRaschReport, computeRaschWithReference, dedupeBestAttempts } from '../../lib/rasch';
 import { generateSyntheticMatrix, itemDifficultiesFromMatrix, seedFromString } from '../../lib/synthetic';
@@ -32,11 +33,19 @@ export default function AdminMilliySertifikat() {
   const [activeTab, setActiveTab] = useState<'tests' | 'exams'>('exams');
   const [searchQuery, setSearchQuery] = useState('');
   const [viewingSpecialResults, setViewingSpecialResults] = useState<{ id: string; title: string } | null>(null);
+  const [sharingSpecialTest, setSharingSpecialTest] = useState<{ id: string; title: string; questionsCount?: number } | null>(null);
 
-  const handleCopySpecialTestLink = (testId: string) => {
-    const link = `${window.location.origin}/maxsus-test/${testId}`;
-    navigator.clipboard.writeText(link);
-    toast.success("Maxsus test havolasi nusxalandi!");
+  const handleCopySpecialTestLink = (t: TestData & { id?: string }) => {
+    if (!t.id) return;
+    const botUsername = 'wissenedu_bot';
+    const tgLink = `https://t.me/${botUsername}?start=special_${t.id}`;
+    navigator.clipboard.writeText(tgLink);
+    toast.success("Telegram test havolasi nusxalandi!");
+    setSharingSpecialTest({
+      id: t.id,
+      title: t.title,
+      questionsCount: t.questions?.length || 45
+    });
   };
 
   const [isEditExamModalOpen, setIsEditExamModalOpen] = useState(false);
@@ -401,8 +410,8 @@ export default function AdminMilliySertifikat() {
                 {test.isSpecialMode && test.id && (
                   <div className="flex gap-2 mt-2 pt-2 border-t border-white/5">
                     <button
-                      onClick={() => handleCopySpecialTestLink(test.id!)}
-                      className="flex-1 bg-[#FEC204]/10 hover:bg-[#FEC204]/20 text-[#FEC204] py-1.5 px-3 rounded-lg text-xs font-bold transition-colors flex items-center justify-center gap-1.5 border border-[#FEC204]/30"
+                      onClick={() => handleCopySpecialTestLink(test)}
+                      className="flex-1 bg-[#0088cc]/10 hover:bg-[#0088cc]/20 text-[#38bdf8] py-1.5 px-3 rounded-lg text-xs font-bold transition-colors flex items-center justify-center gap-1.5 border border-[#0088cc]/30"
                       title="Havolani nusxalash"
                     >
                       <Link2 size={14} /> Havolani nusxalash
@@ -701,6 +710,14 @@ export default function AdminMilliySertifikat() {
           testId={viewingSpecialResults.id}
           testTitle={viewingSpecialResults.title}
           onClose={() => setViewingSpecialResults(null)}
+        />
+      )}
+
+      {sharingSpecialTest && (
+        <AdminSpecialTestShareModal
+          isOpen={!!sharingSpecialTest}
+          onClose={() => setSharingSpecialTest(null)}
+          test={sharingSpecialTest}
         />
       )}
     </div>

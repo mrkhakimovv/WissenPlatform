@@ -198,6 +198,34 @@ async function startServer() {
         ...payload,
         createdAt: FieldValue.serverTimestamp()
       });
+
+      // Telegram orqali topshirgan bo'lsa, o'quvchiga natijasini xabar qilib yuboramiz
+      const tgChatId = payload.telegramUserId || payload.tgChatId;
+      if (tgChatId) {
+        try {
+          const { bot } = require('./src/server/bot');
+          if (bot) {
+            const ball = payload.ball ?? 0;
+            const grade = payload.grade ?? 'NC';
+            const score = payload.score ?? 0;
+            const total = payload.total ?? 55;
+            const testTitle = payload.testTitle || "Maxsus Test";
+            bot.telegram.sendMessage(
+              tgChatId,
+              `🎉 <b>${payload.studentName}</b>, siz <b>"${testTitle}"</b> testini muvaffaqiyatli topshirdingiz!\n\n` +
+              `📊 <b>Natijangiz:</b>\n` +
+              `✅ To'g'ri javoblar: <b>${score} / ${total} ta</b>\n` +
+              `📈 Rasch balli: <b>${ball} ball</b>\n` +
+              `🎖 Daraja: <b>${grade}</b>\n\n` +
+              `Wissen Edu orqali bilimingizni yuksaltirishda davom eting!`,
+              { parse_mode: 'HTML' }
+            ).catch((e: any) => console.error("TG Special Test student send error:", e));
+          }
+        } catch (tgErr) {
+          console.warn("TG special test notify failed:", tgErr);
+        }
+      }
+
       res.json({ success: true, id: docRef.id });
     } catch (err: any) {
       console.error("Special test submit error:", err);

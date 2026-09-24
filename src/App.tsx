@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { setupMessageListener } from './lib/messaging';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import NotificationWatcher from './components/NotificationWatcher';
 import { RootLayout } from './components/RootLayout';
@@ -37,6 +37,64 @@ import StudentRegistration from './pages/StudentRegistration';
 import TeacherRegistration from './pages/TeacherRegistration';
 import SpecialTestTake from './pages/SpecialTestTake';
 
+function TelegramAppRouter() {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    try {
+      const tg = (window as any).Telegram?.WebApp;
+      if (tg) {
+        tg.ready();
+        tg.expand();
+      }
+
+      // Check for start_param in multiple places:
+      // 1. window.Telegram.WebApp.initDataUnsafe.start_param
+      let startParam = tg?.initDataUnsafe?.start_param;
+
+      // 2. URL search params: ?tgWebAppStartParam=... or ?startapp=... or ?start=...
+      if (!startParam) {
+        const search = new URLSearchParams(window.location.search);
+        startParam = search.get('tgWebAppStartParam') || search.get('startapp') || search.get('start');
+      }
+
+      // 3. Hash params: #tgWebAppData=...
+      if (!startParam && window.location.hash) {
+        try {
+          const hashStr = window.location.hash.replace(/^#/, '');
+          const hashParams = new URLSearchParams(hashStr);
+          startParam = hashParams.get('tgWebAppStartParam');
+          if (!startParam && hashParams.get('tgWebAppData')) {
+            const raw = hashParams.get('tgWebAppData') || '';
+            const inner = new URLSearchParams(raw);
+            startParam = inner.get('start_param');
+          }
+        } catch {}
+      }
+
+      if (startParam) {
+        const cleaned = startParam.trim();
+        if (cleaned.startsWith('exam_')) {
+          const examId = cleaned.replace(/^exam_/, '');
+          if (!location.pathname.startsWith('/tg-exam')) {
+            navigate(`/tg-exam?examId=${examId}`, { replace: true });
+          }
+        } else {
+          const testId = cleaned.replace(/^(special_|test_|sp_)/, '');
+          if (testId && !location.pathname.startsWith('/maxsus-test/')) {
+            navigate(`/maxsus-test/${testId}`, { replace: true });
+          }
+        }
+      }
+    } catch (err) {
+      console.warn("Telegram route check error:", err);
+    }
+  }, [location.pathname, navigate]);
+
+  return null;
+}
+
 function AuthGuard({ children, roles }: { children: React.ReactNode, roles: string[] }) {
   const { user, loading } = useAuth();
   
@@ -67,6 +125,7 @@ export default function App() {
   
   return (
     <BrowserRouter>
+      <TelegramAppRouter />
       <AuthProvider>
         <NotificationWatcher />
         <ConfirmProvider>

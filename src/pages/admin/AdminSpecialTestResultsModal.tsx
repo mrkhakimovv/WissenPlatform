@@ -22,7 +22,21 @@ export default function AdminSpecialTestResultsModal({ testId, testTitle, onClos
   const fetchResults = async () => {
     setLoading(true);
     try {
-      // Direct Firestore
+      // 1. Try server API first (authoritative with adminDb)
+      try {
+        const res = await fetch(`/api/special-test-results/${testId}`);
+        if (res.ok) {
+          const data = await res.json();
+          const list = data.results || [];
+          list.sort((a: any, b: any) => (b.ball ?? 0) - (a.ball ?? 0));
+          setResults(list);
+          return;
+        }
+      } catch (apiErr) {
+        console.warn("API fetch error, trying direct Firestore:", apiErr);
+      }
+
+      // 2. Direct Firestore fallback
       const q = query(
         collection(db, 'special_test_results'),
         where('testId', '==', testId)
@@ -32,18 +46,8 @@ export default function AdminSpecialTestResultsModal({ testId, testTitle, onClos
       list.sort((a: any, b: any) => (b.ball ?? 0) - (a.ball ?? 0));
       setResults(list);
     } catch (err) {
-      console.warn("Firestore fetch error, trying API:", err);
-      try {
-        const res = await fetch(`/api/special-test-results/${testId}`);
-        if (res.ok) {
-          const data = await res.json();
-          setResults(data.results || []);
-        } else {
-          toast.error("Natijalarni yuklab bo'lmadi");
-        }
-      } catch {
-        toast.error("Natijalarni yuklashda xatolik");
-      }
+      console.error("Firestore fetch error:", err);
+      toast.error("Natijalarni yuklashda xatolik");
     } finally {
       setLoading(false);
     }
@@ -53,17 +57,39 @@ export default function AdminSpecialTestResultsModal({ testId, testTitle, onClos
     fetchResults();
   }, [testId]);
 
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
   const handleDelete = async (id: string, name: string) => {
     if (await confirm({
       title: "Natijani o'chirish",
-      message: `Haqiqatan ham ${name}ning natijasini o'chirmoqchimisiz?`
+      message: `Haqiqatan ham ${name || "o'quvchi"}ning natijasini o'chirmoqchimisiz?`
     })) {
       try {
-        await deleteDoc(doc(db, 'special_test_results', id));
-        setResults(prev => prev.filter(r => r.id !== id));
-        toast.success("Natija o'chirildi");
-      } catch (e) {
-        toast.error("O'chirishda xatolik");
+        setDeletingId(id);
+        const res = await fetch(`/api/special-test-results/${id}`, {
+          method: 'DELETE'
+        });
+        
+        if (res.ok) {
+          setResults(prev => prev.filter(r => r.id !== id));
+          toast.success(`${name || "O'quvchi"} natijasi muvaffaqiyatli o'chirildi`);
+        } else {
+          // Fallback to client SDK delete
+          await deleteDoc(doc(db, 'special_test_results', id));
+          setResults(prev => prev.filter(r => r.id !== id));
+          toast.success(`${name || "O'quvchi"} natijasi muvaffaqiyatli o'chirildi`);
+        }
+      } catch (e: any) {
+        console.error("Delete error:", e);
+        try {
+          await deleteDoc(doc(db, 'special_test_results', id));
+          setResults(prev => prev.filter(r => r.id !== id));
+          toast.success(`${name || "O'quvchi"} natijasi o'chirildi`);
+        } catch (clientErr) {
+          toast.error("Natijani o'chirishda xatolik yuz berdi");
+        }
+      } finally {
+        setDeletingId(null);
       }
     }
   };
@@ -77,145 +103,245 @@ export default function AdminSpecialTestResultsModal({ testId, testTitle, onClos
   };
 
   const handleExportExcel = () => {
-    try {
-      const TOTAL_QUESTIONS = 55; // 55 items (D to BF)
-      const LAST_COL = 'BF';
-      const MIN_ROWS = Math.max(results.length, 25);
+    if (!results || results.length === 0) {
+      toast.error("Eksport qilish uchun hech qanday natijalar mavjud emas");
+      return;
+    }
 
+    try {
+      const TOTAL_QUESTIONS = 55;
       const wb = XLSX.utils.book_new();
-      const ws: any = {};
 
       const borderStyle = {
-        top: { style: 'thin', color: { rgb: '000000' } },
-        bottom: { style: 'thin', color: { rgb: '000000' } },
-        left: { style: 'thin', color: { rgb: '000000' } },
-        right: { style: 'thin', color: { rgb: '000000' } }
+        top: { style: 'thin', color: { rgb: 'D0D5DD' } },
+        bottom: { style: 'thin', color: { rgb: 'D0D5DD' } },
+        left: { style: 'thin', color: { rgb: 'D0D5DD' } },
+        right: { style: 'thin', color: { rgb: 'D0D5DD' } }
       };
 
-      const fontHeader = { name: 'Times New Roman', sz: 11, bold: true };
-      const fontData = { name: 'Times New Roman', sz: 11 };
+      const fontTitle = { name: 'Times New Roman', sz: 14, bold: true, color: { rgb: '000000' } };
+      const fontHeader = { name: 'Times New Roman', sz: 11, bold: true, color: { rgb: '000000' } };
+      const fontData = { name: 'Times New Roman', sz: 11, color: { rgb: '000000' } };
+      const fillHeader = { fgColor: { rgb: 'F2F4F7' } };
+      const fillHighlight = { fgColor: { rgb: 'FEF08A' } }; // Gold highlight for Rasch score
 
-      // Row 2 (Header Row)
-      ws['A2'] = {
+      // ==========================================
+      // SHEET 1: UMUMIY NATIJALAR (Barcha ma'lumotlar bilan)
+      // ==========================================
+      const ws1: any = {};
+
+      // Row 1: Title
+      ws1['A1'] = {
         t: 's',
-        v: '№',
-        s: { font: fontHeader, alignment: { horizontal: 'center', vertical: 'center' }, border: borderStyle }
-      };
-      ws['B2'] = {
-        t: 's',
-        v: 'F.I.O.',
-        s: { font: fontHeader, alignment: { horizontal: 'center', vertical: 'center' }, border: borderStyle }
-      };
-      ws['C2'] = {
-        t: 's',
-        v: "To'g'risi",
-        s: { font: fontHeader, alignment: { horizontal: 'center', vertical: 'center' }, border: borderStyle }
+        v: `${testTitle || 'Maxsus Test'} - O'quvchilar natijalari (Rasch modeli)`,
+        s: { font: fontTitle }
       };
 
-      // Question columns 1 to 55 (Col D to BF)
+      // Row 2: Subtitle summary stats
+      ws1['A2'] = {
+        t: 's',
+        v: `Topshirganlar: ${results.length} ta | O'rtacha Rasch ball: ${avgBall} | Eng yuqori ball: ${maxBall} | Sana: ${new Date().toLocaleDateString('uz-UZ')}`,
+        s: { font: { ...fontData, italic: true } }
+      };
+
+      // Row 3: Headers
+      const headers1 = [
+        '№',
+        'F.I.O. (O\'quvchi)',
+        'Rasch balli',
+        'Daraja',
+        'To\'g\'risi',
+        'Jami savol',
+        'Foiz (%)',
+        'Topshirilgan sana va vaqt'
+      ];
+      for (let q = 1; q <= TOTAL_QUESTIONS; q++) {
+        headers1.push(`${q}-savol`);
+      }
+
+      headers1.forEach((h, colIdx) => {
+        const cell = XLSX.utils.encode_cell({ r: 2, c: colIdx });
+        const isHighlight = colIdx === 2 || colIdx === 3;
+        ws1[cell] = {
+          t: 's',
+          v: h,
+          s: {
+            font: fontHeader,
+            fill: isHighlight ? fillHighlight : fillHeader,
+            border: borderStyle,
+            alignment: { horizontal: 'center', vertical: 'center', wrapText: true }
+          }
+        };
+      });
+
+      // Fill student data rows
+      results.forEach((student, idx) => {
+        const rowIdx = idx + 3; // row 4 in Excel
+        const itemsArr = Array.isArray(student.items) ? student.items : [];
+        const score = typeof student.score === 'number'
+          ? student.score
+          : itemsArr.filter((x: any) => x === 1).length;
+        const total = typeof student.total === 'number' && student.total > 0 ? student.total : TOTAL_QUESTIONS;
+        const ball = typeof student.ball === 'number' ? student.ball : parseFloat(student.ball || 0) || 0;
+        const grade = student.grade || 'NC';
+        const percent = `${((score / total) * 100).toFixed(1)}%`;
+        const timeStr = student.submittedAt
+          ? new Date(student.submittedAt).toLocaleString('uz-UZ', {
+              year: 'numeric',
+              month: '2-digit',
+              day: '2-digit',
+              hour: '2-digit',
+              minute: '2-digit',
+              second: '2-digit'
+            })
+          : '';
+
+        const rowValues: any[] = [
+          idx + 1,
+          student.studentName || '',
+          ball,
+          grade,
+          score,
+          total,
+          percent,
+          timeStr
+        ];
+
+        for (let q = 0; q < TOTAL_QUESTIONS; q++) {
+          rowValues.push(itemsArr[q] === 1 ? 1 : 0);
+        }
+
+        rowValues.forEach((val, colIdx) => {
+          const cell = XLSX.utils.encode_cell({ r: rowIdx, c: colIdx });
+          const isNum = typeof val === 'number';
+          ws1[cell] = {
+            t: isNum ? 'n' : 's',
+            v: val,
+            s: {
+              font: colIdx === 2 ? { ...fontData, bold: true } : fontData,
+              border: borderStyle,
+              alignment: {
+                horizontal: colIdx === 1 ? 'left' : 'center',
+                vertical: 'center'
+              }
+            }
+          };
+        });
+      });
+
+      const lastColLetter1 = XLSX.utils.encode_col(headers1.length - 1);
+      ws1['!ref'] = `A1:${lastColLetter1}${results.length + 3}`;
+      ws1['!cols'] = [
+        { wch: 6 },  // №
+        { wch: 28 }, // F.I.O.
+        { wch: 14 }, // Rasch balli
+        { wch: 10 }, // Daraja
+        { wch: 12 }, // To'g'risi
+        { wch: 12 }, // Jami
+        { wch: 12 }, // Foiz
+        { wch: 22 }, // Sana
+        ...Array(TOTAL_QUESTIONS).fill({ wch: 8 }) // 1..55
+      ];
+      ws1['!rows'] = [
+        { hpt: 24 }, // Title
+        { hpt: 18 }, // Subtitle
+        { hpt: 26 }, // Header
+        ...Array(results.length).fill({ hpt: 20 })
+      ];
+
+      XLSX.utils.book_append_sheet(wb, ws1, 'Umumiy natijalar');
+
+      // ==========================================
+      // SHEET 2: RASCH MATRITSASI (1-55 Savollar)
+      // ==========================================
+      const ws2: any = {};
+      const LAST_COL_SHABLON = 'BF'; // Col 57 (0-based)
+
+      // Header row (Row 2 in template)
+      ws2['A2'] = { t: 's', v: '№', s: { font: fontHeader, fill: fillHeader, alignment: { horizontal: 'center', vertical: 'center' }, border: borderStyle } };
+      ws2['B2'] = { t: 's', v: 'F.I.O.', s: { font: fontHeader, fill: fillHeader, alignment: { horizontal: 'center', vertical: 'center' }, border: borderStyle } };
+      ws2['C2'] = { t: 's', v: "To'g'risi", s: { font: fontHeader, fill: fillHeader, alignment: { horizontal: 'center', vertical: 'center' }, border: borderStyle } };
+
       for (let i = 1; i <= TOTAL_QUESTIONS; i++) {
         const colLetter = XLSX.utils.encode_col(i + 2); // 3 is D
-        ws[`${colLetter}2`] = {
+        ws2[`${colLetter}2`] = {
           t: 'n',
           v: i,
+          s: { font: fontHeader, fill: fillHeader, alignment: { horizontal: 'center', vertical: 'center' }, border: borderStyle }
+        };
+      }
+
+      // Extra summary columns in Sheet 2 as well
+      const colRasch = XLSX.utils.encode_col(TOTAL_QUESTIONS + 3); // BG
+      const colGrade = XLSX.utils.encode_col(TOTAL_QUESTIONS + 4); // BH
+      const colDate = XLSX.utils.encode_col(TOTAL_QUESTIONS + 5);  // BI
+      ws2[`${colRasch}2`] = { t: 's', v: 'Rasch balli', s: { font: fontHeader, fill: fillHighlight, alignment: { horizontal: 'center', vertical: 'center' }, border: borderStyle } };
+      ws2[`${colGrade}2`] = { t: 's', v: 'Daraja', s: { font: fontHeader, fill: fillHighlight, alignment: { horizontal: 'center', vertical: 'center' }, border: borderStyle } };
+      ws2[`${colDate}2`] = { t: 's', v: 'Topshirilgan vaqti', s: { font: fontHeader, fill: fillHeader, alignment: { horizontal: 'center', vertical: 'center' }, border: borderStyle } };
+
+      results.forEach((student, idx) => {
+        const rowNum = idx + 3;
+        const itemsArr = Array.isArray(student.items) ? student.items : [];
+        const score = typeof student.score === 'number'
+          ? student.score
+          : itemsArr.filter((x: any) => x === 1).length;
+        const ball = typeof student.ball === 'number' ? student.ball : parseFloat(student.ball || 0) || 0;
+        const grade = student.grade || 'NC';
+        const timeStr = student.submittedAt
+          ? new Date(student.submittedAt).toLocaleString('uz-UZ', {
+              year: 'numeric',
+              month: '2-digit',
+              day: '2-digit',
+              hour: '2-digit',
+              minute: '2-digit',
+              second: '2-digit'
+            })
+          : '';
+
+        ws2[`A${rowNum}`] = { t: 'n', v: idx + 1, s: { font: fontData, alignment: { horizontal: 'center', vertical: 'center' }, border: borderStyle } };
+        ws2[`B${rowNum}`] = { t: 's', v: student.studentName || '', s: { font: fontData, alignment: { horizontal: 'left', vertical: 'center' }, border: borderStyle } };
+        ws2[`C${rowNum}`] = {
+          t: 'n',
+          v: score,
+          f: `SUM(D${rowNum}:${LAST_COL_SHABLON}${rowNum})`,
           s: { font: fontHeader, alignment: { horizontal: 'center', vertical: 'center' }, border: borderStyle }
         };
-      }
 
-      // Fill student rows
-      for (let idx = 0; idx < MIN_ROWS; idx++) {
-        const rowNum = idx + 3; // 1-indexed row in Excel
-        const student = results[idx];
-
-        // Column A: №
-        ws[`A${rowNum}`] = {
-          t: 'n',
-          v: idx + 1,
-          s: { font: fontData, alignment: { horizontal: 'center', vertical: 'center' }, border: borderStyle }
-        };
-
-        if (student) {
-          // Column B: F.I.O.
-          ws[`B${rowNum}`] = {
-            t: 's',
-            v: student.studentName || '',
-            s: { font: fontData, alignment: { horizontal: 'left', vertical: 'center' }, border: borderStyle }
-          };
-
-          const itemsArr = Array.isArray(student.items) ? student.items : [];
-          const correctCount = typeof student.score === 'number'
-            ? student.score
-            : itemsArr.filter((x: any) => x === 1).length;
-
-          // Column C: To'g'risi (Formula: SUM(D{row}:BF{row}))
-          ws[`C${rowNum}`] = {
+        for (let q = 0; q < TOTAL_QUESTIONS; q++) {
+          const colLetter = XLSX.utils.encode_col(q + 3);
+          ws2[`${colLetter}${rowNum}`] = {
             t: 'n',
-            v: correctCount,
-            f: `SUM(D${rowNum}:${LAST_COL}${rowNum})`,
-            s: { font: fontHeader, alignment: { horizontal: 'center', vertical: 'center' }, border: borderStyle }
+            v: itemsArr[q] === 1 ? 1 : 0,
+            s: { font: fontData, alignment: { horizontal: 'center', vertical: 'center' }, border: borderStyle }
           };
-
-          // Question columns D to BF: 1 if correct, 0 if incorrect
-          for (let q = 0; q < TOTAL_QUESTIONS; q++) {
-            const colLetter = XLSX.utils.encode_col(q + 3);
-            const val = itemsArr[q] === 1 ? 1 : 0;
-            ws[`${colLetter}${rowNum}`] = {
-              t: 'n',
-              v: val,
-              s: { font: fontData, alignment: { horizontal: 'center', vertical: 'center' }, border: borderStyle }
-            };
-          }
-        } else {
-          // Empty template row (as in sample screenshot rows 4 to 25)
-          ws[`B${rowNum}`] = {
-            t: 's',
-            v: '',
-            s: { font: fontData, alignment: { horizontal: 'left', vertical: 'center' }, border: borderStyle }
-          };
-
-          ws[`C${rowNum}`] = {
-            t: 'n',
-            v: 0,
-            f: `SUM(D${rowNum}:${LAST_COL}${rowNum})`,
-            s: { font: fontHeader, alignment: { horizontal: 'center', vertical: 'center' }, border: borderStyle }
-          };
-
-          for (let q = 0; q < TOTAL_QUESTIONS; q++) {
-            const colLetter = XLSX.utils.encode_col(q + 3);
-            ws[`${colLetter}${rowNum}`] = {
-              t: 's',
-              v: '',
-              s: { font: fontData, alignment: { horizontal: 'center', vertical: 'center' }, border: borderStyle }
-            };
-          }
         }
-      }
 
-      const totalRows = MIN_ROWS + 2;
-      ws['!ref'] = `A1:${LAST_COL}${totalRows}`;
+        ws2[`${colRasch}${rowNum}`] = { t: 'n', v: ball, s: { font: { ...fontData, bold: true }, alignment: { horizontal: 'center', vertical: 'center' }, border: borderStyle } };
+        ws2[`${colGrade}${rowNum}`] = { t: 's', v: grade, s: { font: { ...fontData, bold: true }, alignment: { horizontal: 'center', vertical: 'center' }, border: borderStyle } };
+        ws2[`${colDate}${rowNum}`] = { t: 's', v: timeStr, s: { font: fontData, alignment: { horizontal: 'center', vertical: 'center' }, border: borderStyle } };
+      });
 
-      // Column widths
-      const colWidths = [
-        { wch: 6 },  // A: №
-        { wch: 32 }, // B: F.I.O.
-        { wch: 10 }, // C: To'g'risi
-        ...Array(TOTAL_QUESTIONS).fill({ wch: 4 }) // D to BF: 1..55
+      ws2['!ref'] = `A1:${colDate}${results.length + 2}`;
+      ws2['!cols'] = [
+        { wch: 6 },
+        { wch: 28 },
+        { wch: 10 },
+        ...Array(TOTAL_QUESTIONS).fill({ wch: 4 }),
+        { wch: 14 },
+        { wch: 10 },
+        { wch: 22 }
       ];
-      ws['!cols'] = colWidths;
-
-      // Row heights
-      const rowHeights = [
-        { hpt: 15 }, // Row 1
-        { hpt: 26 }, // Row 2 (Header)
-        ...Array(MIN_ROWS).fill({ hpt: 20 }) // Data rows
+      ws2['!rows'] = [
+        { hpt: 15 },
+        { hpt: 24 },
+        ...Array(results.length).fill({ hpt: 20 })
       ];
-      ws['!rows'] = rowHeights;
 
-      XLSX.utils.book_append_sheet(wb, ws, 'Natijalar');
+      XLSX.utils.book_append_sheet(wb, ws2, '1-55 Savollar matritsasi');
 
       const safeTitle = (testTitle || 'Maxsus_test').replace(/[/\\?%*:|"<>]/g, '_').trim();
       XLSX.writeFile(wb, `${safeTitle}_natijalari.xlsx`);
-      toast.success("Excel (.xlsx) fayli muvaffaqiyatli yuklandi!");
+      toast.success("Barcha natijalar Excel (.xlsx) fayliga muvaffaqiyatli yuklandi!");
     } catch (err: any) {
       console.error("Excel export error:", err);
       toast.error("Excel faylni yaratishda xatolik yuz berdi: " + (err.message || String(err)));
@@ -376,10 +502,15 @@ export default function AdminSpecialTestResultsModal({ testId, testTitle, onClos
 
                     <button
                       onClick={() => handleDelete(item.id, item.studentName)}
-                      className="p-2 hover:bg-red-500/20 text-white/40 hover:text-red-400 rounded-lg transition-colors"
-                      title="O'chirish"
+                      disabled={deletingId === item.id}
+                      className="p-2.5 bg-red-500/10 hover:bg-red-500/25 text-red-400 hover:text-red-300 rounded-xl transition-all border border-red-500/20 active:scale-95 disabled:opacity-40 flex items-center justify-center shadow-sm"
+                      title="Natijani o'chirish"
                     >
-                      <Trash2 size={16} />
+                      {deletingId === item.id ? (
+                        <div className="w-4 h-4 border-2 border-red-400 border-t-transparent rounded-full animate-spin"></div>
+                      ) : (
+                        <Trash2 size={16} />
+                      )}
                     </button>
                   </div>
                 </div>

@@ -6,19 +6,16 @@ import { doc, getDoc, collection, addDoc, getDocs, query, where } from 'firebase
 import toast from 'react-hot-toast';
 import {
   Award,
-  CheckCircle2,
   XCircle,
   Send,
   User,
   ArrowRight,
-  RotateCcw,
   Sparkles,
-  ChevronDown,
-  ChevronUp,
   Share2,
-  Check
+  Check,
+  Smartphone,
+  ExternalLink
 } from 'lucide-react';
-import Latex from 'react-latex-next';
 import { useAuth } from '../contexts/AuthContext';
 import MathAnswerField, { answersEqual } from '../components/MathAnswerField';
 import { computeRaschWithReference, RaschResult } from '../lib/rasch';
@@ -52,8 +49,42 @@ export default function SpecialTestTake() {
     items: number[];
   } | null>(null);
 
-  const [showDetailedAnswers, setShowDetailedAnswers] = useState(false);
   const [isShared, setIsShared] = useState(false);
+  const [isTgMiniApp, setIsTgMiniApp] = useState(false);
+  const [tgUser, setTgUser] = useState<any>(null);
+
+  // Initialize Telegram WebApp if opened inside Telegram
+  useEffect(() => {
+    try {
+      const tg = (window as any).Telegram?.WebApp;
+      if (tg) {
+        tg.ready();
+        tg.expand();
+        tg.enableClosingConfirmation?.();
+
+        if (tg.setHeaderColor) {
+          try { tg.setHeaderColor('#121212'); } catch {}
+        }
+        if (tg.setBackgroundColor) {
+          try { tg.setBackgroundColor('#0d0d0d'); } catch {}
+        }
+
+        if (tg.initDataUnsafe?.user) {
+          setIsTgMiniApp(true);
+          const u = tg.initDataUnsafe.user;
+          setTgUser(u);
+          const fullName = [u.first_name, u.last_name].filter(Boolean).join(' ') || u.username;
+          if (fullName) {
+            setStudentName(prev => prev || fullName);
+          }
+        } else if (tg.initData) {
+          setIsTgMiniApp(true);
+        }
+      }
+    } catch (err) {
+      console.warn("Telegram WebApp initialization error:", err);
+    }
+  }, []);
 
   // Fetch test details
   useEffect(() => {
@@ -254,8 +285,17 @@ export default function SpecialTestTake() {
         rank: computedUser.rank ?? 1,
         items: raschItems,
         answers: userAnswers,
+        telegramUserId: tgUser?.id || null,
+        tgChatId: tgUser?.id || null,
         submittedAt: new Date().toISOString()
       };
+
+      try {
+        const tg = (window as any).Telegram?.WebApp;
+        if (tg?.HapticFeedback) {
+          tg.HapticFeedback.notificationOccurred('success');
+        }
+      } catch {}
 
       // 4. Save to Firestore and server API
       try {
@@ -380,6 +420,26 @@ export default function SpecialTestTake() {
             </div>
 
             <form onSubmit={handleStartTest} className="space-y-5">
+              {isTgMiniApp ? (
+                <div className="flex items-center justify-center gap-2 py-2 px-3 rounded-2xl bg-[#0088cc]/15 border border-[#0088cc]/30 text-[#38bdf8] text-xs font-bold">
+                  <Send size={14} className="shrink-0 text-[#38bdf8]" />
+                  <span>Telegram Mini App orqali ulandi {tgUser?.username ? `(@${tgUser.username})` : ''}</span>
+                </div>
+              ) : (
+                <div className="text-center">
+                  <a
+                    href={`https://t.me/wissenedu_bot?start=special_${testId}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 py-1.5 px-3 rounded-xl bg-[#0088cc]/10 hover:bg-[#0088cc]/20 border border-[#0088cc]/25 text-[#38bdf8] text-xs font-medium transition-colors"
+                  >
+                    <Send size={13} />
+                    <span>Telegram Mini App orqali ochish</span>
+                    <ExternalLink size={12} />
+                  </a>
+                </div>
+              )}
+
               <div>
                 <label className="block text-sm font-bold text-white/80 mb-2">
                   To'liq ism va familiyangiz: <span className="text-red-400">*</span>
@@ -481,120 +541,15 @@ export default function SpecialTestTake() {
             </div>
 
             {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <div className="flex justify-center">
               <button
                 onClick={handleShareResult}
-                className="flex-1 py-3.5 px-6 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-sm flex items-center justify-center gap-2 transition-colors"
+                className="w-full py-3.5 px-6 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-sm flex items-center justify-center gap-2 transition-colors"
               >
                 {isShared ? <Check size={18} className="text-emerald-400" /> : <Share2 size={18} />}
                 <span>{isShared ? "Nusxalandi!" : "Natijani ulashish"}</span>
               </button>
-
-              <button
-                onClick={() => {
-                  setUserAnswers({});
-                  setMyResult(null);
-                  setStage('taking');
-                }}
-                className="flex-1 py-3.5 px-6 rounded-xl bg-[#FEC204] hover:bg-[#FEC204]/90 text-black font-bold text-sm flex items-center justify-center gap-2 transition-colors"
-              >
-                <RotateCcw size={18} />
-                <span>Qayta ishlash</span>
-              </button>
             </div>
-          </div>
-
-          {/* Collapsible Question Breakdown */}
-          <div className="glass-panel p-6 rounded-3xl border border-white/10 bg-[#161616]/90">
-            <button
-              onClick={() => setShowDetailedAnswers(!showDetailedAnswers)}
-              className="w-full flex items-center justify-between font-bold text-white hover:text-[#FEC204] transition-colors"
-            >
-              <span className="text-base sm:text-lg flex items-center gap-2">
-                <Sparkles size={18} className="text-[#FEC204]" /> Savollar bo'yicha to'liq tahlil
-              </span>
-              {showDetailedAnswers ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-            </button>
-
-            {showDetailedAnswers && (
-              <div className="mt-6 pt-6 border-t border-white/10 space-y-4">
-                {testData.questions.map((q, idx) => {
-                  if (q.isOpenEnded) {
-                    const ansA = userAnswers[`${q.id}_0`] || '-';
-                    const correctA = q.subAnswers?.[0]?.correctAnswerText || '';
-                    const ansB = userAnswers[`${q.id}_1`] || '-';
-                    const correctB = q.subAnswers?.[1]?.correctAnswerText || '';
-
-                    return (
-                      <div key={q.id} className="p-4 rounded-2xl bg-white/5 border border-white/5 space-y-3">
-                        <div className="flex items-center justify-between">
-                          <span className="font-bold text-[#FEC204]">{idx + 1}-savol (Ochiq savol):</span>
-                          <span className="text-xs text-white/40">2 qism</span>
-                        </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-                          <div className="p-3 rounded-xl bg-white/5 border border-white/5">
-                            <span className="text-xs text-white/50 block font-bold mb-1">a) qism:</span>
-                            <div className="text-white/80">
-                              Javobingiz: <span className="font-mono text-white font-bold"><Latex>{ansA}</Latex></span>
-                            </div>
-                            <div className="text-white/50 text-xs mt-1">
-                              To'g'ri kalit: <span className="font-mono text-emerald-400 font-bold"><Latex>{correctA}</Latex></span>
-                            </div>
-                          </div>
-                          <div className="p-3 rounded-xl bg-white/5 border border-white/5">
-                            <span className="text-xs text-white/50 block font-bold mb-1">b) qism:</span>
-                            <div className="text-white/80">
-                              Javobingiz: <span className="font-mono text-white font-bold"><Latex>{ansB}</Latex></span>
-                            </div>
-                            <div className="text-white/50 text-xs mt-1">
-                              To'g'ri kalit: <span className="font-mono text-emerald-400 font-bold"><Latex>{correctB}</Latex></span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  }
-
-                  const selected = userAnswers[q.id];
-                  const isCorrect = selected === q.correctOptionIndex;
-
-                  return (
-                    <div
-                      key={q.id}
-                      className={`p-3 sm:p-4 rounded-xl border flex items-center justify-between gap-3 ${
-                        isCorrect
-                          ? 'border-emerald-500/30 bg-emerald-500/5'
-                          : selected !== undefined
-                          ? 'border-rose-500/30 bg-rose-500/5'
-                          : 'border-white/5 bg-white/5'
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <span className="font-bold text-white/70 w-8">{idx + 1}.</span>
-                        <div className="text-sm">
-                          <span className="text-white/50">Tanlangan: </span>
-                          <span className={`font-bold ${isCorrect ? 'text-emerald-400' : 'text-rose-400'}`}>
-                            {selected !== undefined ? ALPHABET[selected] : 'Belgilanmagan'}
-                          </span>
-                          {!isCorrect && q.correctOptionIndex !== undefined && q.correctOptionIndex >= 0 && (
-                            <span className="text-xs text-white/40 ml-2">
-                              (To'g'ri: <strong className="text-emerald-400">{ALPHABET[q.correctOptionIndex]}</strong>)
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      <div>
-                        {isCorrect ? (
-                          <CheckCircle2 size={18} className="text-emerald-400" />
-                        ) : (
-                          <XCircle size={18} className="text-rose-400" />
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
           </div>
         </div>
       </div>
